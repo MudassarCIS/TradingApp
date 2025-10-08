@@ -1,0 +1,51 @@
+<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+        <a href="{{ url('/') }}" class="brand-link">
+            <img src="{{ asset('admin-assets/img/AdminLTELogo.png') }}" alt="AdminLTE Logo" class="brand-image opacity-75 shadow">
+            <span class="brand-text fw-light">Admin Panel</span>
+        </a>
+    </div>
+    <div class="sidebar-wrapper">
+        {{-- Navigation menu copied from HTML --}}
+        <nav class="mt-2">
+            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview">
+                <li class="nav-item">
+                    <a href="{{route('dashboard')}}" class="nav-link @if(request()->routeIs('dashboard')) active @endif">
+                        <i class="nav-icon bi bi-palette"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
+
+                <li class="nav-item menu-open">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon bi bi-gear"></i>
+                        <p>
+                            Settings
+                            <i class="nav-arrow bi bi-chevron-right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{route('admin.users.index')}}" class="nav-link @if(request()->routeIs('admin.users.index')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Manage Users') }}</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{route('admin.roles.index')}}" class="nav-link @if(request()->routeIs('admin.roles.index')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Manage Roles') }}</p>
+                            </a>
+                        </li>
+                        <!--<li class="nav-item">
+                            <a href="./index3.html" class="nav-link">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>Dashboard v3</p>
+                            </a>
+                        </li>-->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</aside>
