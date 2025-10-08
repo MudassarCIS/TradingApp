@@ -13,6 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // CORS middleware for API routes
+        $middleware->api(prepend: [
+            \Fruitcake\Cors\HandleCors::class,
+        ]);
+        
         // spatti rolls and permissions
         $middleware->alias([
             'role' => RoleMiddleware::class,

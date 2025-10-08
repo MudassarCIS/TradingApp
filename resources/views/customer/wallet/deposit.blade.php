@@ -73,7 +73,7 @@
         <div class="deposit-card">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h2>Deposit USDT</h2>
+                    <h2>Deposit Funds</h2>
                     <p>Add funds to your wallet to start trading</p>
                 </div>
                 <div class="col-md-4 text-end">
@@ -84,45 +84,74 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Deposit Address & QR Code -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-wallet2"></i> Deposit Address</h5>
-            </div>
-            <div class="card-body">
-                <div class="address-container">
-                    <code id="depositAddress">{{ $depositAddress }}</code>
+@if($walletAddresses->count() > 0)
+    @foreach($walletAddresses as $walletAddress)
+    <div class="row mb-4">
+        <!-- Deposit Address & QR Code -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wallet2"></i> Deposit {{ $walletAddress->name }} ({{ $walletAddress->symbol }})
+                        @if($walletAddress->network)
+                            <span class="badge bg-info ms-2">{{ $walletAddress->network }}</span>
+                        @endif
+                    </h5>
                 </div>
-                <button class="btn btn-primary" onclick="copyToClipboard('{{ $depositAddress }}')">
-                    <i class="bi bi-copy"></i> Copy Address
-                </button>
-                
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle"></i>
-                        Only send USDT (TRC20) to this address. Other cryptocurrencies will be lost.
-                    </small>
+                <div class="card-body">
+                    <div class="address-container">
+                        <code id="depositAddress{{ $walletAddress->id }}">{{ $walletAddress->wallet_address }}</code>
+                    </div>
+                    <button class="btn btn-primary" onclick="copyToClipboard('{{ $walletAddress->wallet_address }}', 'depositAddress{{ $walletAddress->id }}')">
+                        <i class="bi bi-copy"></i> Copy Address
+                    </button>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            @if($walletAddress->instructions)
+                                {{ $walletAddress->instructions }}
+                            @else
+                                Only send {{ $walletAddress->symbol }} to this address. Other cryptocurrencies will be lost.
+                            @endif
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-qr-code"></i> QR Code</h5>
+                </div>
+                <div class="card-body">
+                    <div class="qr-code-container">
+                        @if($walletAddress->qr_code_image)
+                            <img src="{{ $walletAddress->qr_code_url }}" alt="Deposit QR Code for {{ $walletAddress->name }}" class="img-fluid">
+                        @else
+                            <div class="text-center text-muted">
+                                <i class="bi bi-qr-code" style="font-size: 3rem;"></i>
+                                <p class="mt-2">QR Code not available</p>
+                            </div>
+                        @endif
+                        <p class="mt-3 text-muted">Scan with your wallet app</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-qr-code"></i> QR Code</h5>
-            </div>
-            <div class="card-body">
-                <div class="qr-code-container">
-                    <img src="{{ $qrCode }}" alt="Deposit QR Code" class="img-fluid">
-                    <p class="mt-3 text-muted">Scan with your wallet app</p>
-                </div>
+    @endforeach
+@else
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning text-center">
+                <h5><i class="bi bi-exclamation-triangle"></i> No Deposit Addresses Available</h5>
+                <p class="mb-0">Please contact support to set up deposit addresses.</p>
             </div>
         </div>
     </div>
-</div>
+@endif
 
 <!-- Instructions -->
 <div class="row">
@@ -207,7 +236,7 @@
 
 @push('scripts')
 <script>
-    function copyToClipboard(text) {
+    function copyToClipboard(text, elementId) {
         navigator.clipboard.writeText(text).then(function() {
             // Show success message
             const btn = event.target;

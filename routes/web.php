@@ -14,8 +14,12 @@ use App\Http\Controllers\Customer\ReferralController;
 use App\Http\Controllers\Customer\SupportController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('home');
 });
+
+Route::get('/home', function () {
+    return view('home');
+})->name('home');
 
 // API Routes for market data
 Route::prefix('api')->group(function () {
@@ -48,6 +52,8 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('trades', App\Http\Controllers\Admin\TradeController::class);
     Route::resource('transactions', App\Http\Controllers\Admin\TransactionController::class);
     Route::resource('agents', App\Http\Controllers\Admin\AgentController::class);
+    Route::resource('plans', App\Http\Controllers\Admin\PlanController::class);
+    Route::resource('wallet-addresses', App\Http\Controllers\Admin\WalletAddressController::class);
 });
 
 // Customer Routes (only for customers)

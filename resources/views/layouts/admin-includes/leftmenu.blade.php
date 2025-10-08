@@ -37,12 +37,18 @@
                                 <p>{{ __('Manage Roles') }}</p>
                             </a>
                         </li>
-                        <!--<li class="nav-item">
-                            <a href="./index3.html" class="nav-link">
+                        <li class="nav-item">
+                            <a href="{{route('admin.plans.index')}}" class="nav-link @if(request()->routeIs('admin.plans.*')) active @endif">
                                 <i class="nav-icon bi bi-circle"></i>
-                                <p>Dashboard v3</p>
+                                <p>{{ __('Manage Plans') }}</p>
                             </a>
-                        </li>-->
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{route('admin.wallet-addresses.index')}}" class="nav-link @if(request()->routeIs('admin.wallet-addresses.*')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Deposits Admin Details') }}</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
             </ul>

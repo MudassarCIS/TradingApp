@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Models\WalletAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -40,11 +41,10 @@ class WalletController extends Controller
         $user = Auth::user();
         $wallet = $user->getMainWallet('USDT');
         
-        // Generate deposit address (in real app, this would come from admin settings)
-        $depositAddress = 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'; // Example USDT address
-        $qrCode = 'data:image/png;base64,' . base64_encode('QR_CODE_DATA'); // Generate QR code
+        // Fetch active wallet addresses from admin settings
+        $walletAddresses = WalletAddress::active()->ordered()->get();
         
-        return view('customer.wallet.deposit', compact('wallet', 'depositAddress', 'qrCode'));
+        return view('customer.wallet.deposit', compact('wallet', 'walletAddresses'));
     }
 
     public function withdraw()

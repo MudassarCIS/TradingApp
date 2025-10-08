@@ -24,12 +24,34 @@
             </x-nav-link>
         </li>
         @endrole
+
+        @role('admin')
+        <li>
+            <x-nav-link :href="route('admin.plans.index')" :active="request()->routeIs('admin.plans.*')" class="block">
+                {{ __('Manage Plans') }}
+            </x-nav-link>
+        </li>
+        @endrole
+
+        @role('admin')
+        <li class="mb-2">
+            <div class="text-gray-700 dark:text-gray-300 text-sm font-semibold mb-2">Settings</div>
+            <ul class="ml-4 space-y-1">
+                <li>
+                    <x-nav-link :href="route('admin.wallet-addresses.index')" :active="request()->routeIs('admin.wallet-addresses.*')" class="block text-sm">
+                        {{ __('Deposits Admin Details') }}
+                    </x-nav-link>
+                </li>
+            </ul>
+        </li>
+        @endrole
     </ul>
 
-    <!-- User Dropdown 
+    <!-- User Dropdown -->
+    @auth
     <div class="mt-8 border-t border-gray-200 dark:border-gray-600 pt-4">
         <div class="flex items-center justify-between">
-            <span class="text-gray-700 dark:text-gray-300 text-sm">{{ Auth::user()->name }}</span>
+            <span class="text-gray-700 dark:text-gray-300 text-sm">{{ Auth::user()->name ?? 'User' }}</span>
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
                     <svg class="w-4 h-4 text-gray-500 cursor-pointer" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,5 +71,6 @@
                 </x-slot>
             </x-dropdown>
         </div>
-    </div>-->
+    </div>
+    @endauth
 </nav>
