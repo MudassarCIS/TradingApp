@@ -17,29 +17,33 @@ class WalletAddressController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $walletAddresses = WalletAddress::select('*');
-            return DataTables::of($walletAddresses)
-                ->addIndexColumn()
-                ->addColumn('action', function ($walletAddress) {
-                    $editBtn = '<a href="' . route('admin.wallet-addresses.edit', $walletAddress->id) . '" class="btn btn-sm btn-primary">Edit</a>';
-                    $deleteBtn = '<form method="POST" action="' . route('admin.wallet-addresses.destroy', $walletAddress->id) . '" style="display:inline">
-                        ' . csrf_field() . '
-                        ' . method_field('DELETE') . '
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
-                    </form>';
-                    return $editBtn . ' ' . $deleteBtn;
-                })
-                ->addColumn('status', function ($walletAddress) {
-                    return $walletAddress->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
-                })
-                ->addColumn('qr_code', function ($walletAddress) {
-                    if ($walletAddress->qr_code_image) {
-                        return '<img src="' . $walletAddress->qr_code_url . '" alt="QR Code" style="width: 50px; height: 50px;">';
-                    }
-                    return '<span class="text-muted">No QR Code</span>';
-                })
-                ->rawColumns(['action', 'status', 'qr_code'])
-                ->make(true);
+            try {
+                $walletAddresses = WalletAddress::select('*');
+                return DataTables::of($walletAddresses)
+                    ->addIndexColumn()
+                    ->addColumn('action', function ($walletAddress) {
+                        $editBtn = '<a href="' . route('admin.wallet-addresses.edit', $walletAddress->id) . '" class="btn btn-sm btn-primary">Edit</a>';
+                        $deleteBtn = '<form method="POST" action="' . route('admin.wallet-addresses.destroy', $walletAddress->id) . '" style="display:inline">
+                            ' . csrf_field() . '
+                            ' . method_field('DELETE') . '
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
+                        </form>';
+                        return $editBtn . ' ' . $deleteBtn;
+                    })
+                    ->addColumn('status', function ($walletAddress) {
+                        return $walletAddress->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
+                    })
+                    ->addColumn('qr_code', function ($walletAddress) {
+                        if ($walletAddress->qr_code_image) {
+                            return '<img src="' . $walletAddress->qr_code_url . '" alt="QR Code" style="width: 50px; height: 50px;">';
+                        }
+                        return '<span class="text-muted">No QR Code</span>';
+                    })
+                    ->rawColumns(['action', 'status', 'qr_code'])
+                    ->make(true);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
         }
 
         return view('admin.wallet-addresses.index');
