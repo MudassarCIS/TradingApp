@@ -54,6 +54,10 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('agents', App\Http\Controllers\Admin\AgentController::class);
     Route::resource('plans', App\Http\Controllers\Admin\PlanController::class);
     Route::resource('wallet-addresses', App\Http\Controllers\Admin\WalletAddressController::class);
+    Route::resource('deposits', App\Http\Controllers\Admin\DepositController::class)->only(['index']);
+    Route::post('/deposits/{id}/approve', [App\Http\Controllers\Admin\DepositController::class, 'approve'])->name('deposits.approve');
+    Route::post('/deposits/{id}/reject', [App\Http\Controllers\Admin\DepositController::class, 'reject'])->name('deposits.reject');
+    Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
 });
 
 // Customer Routes (only for customers)
@@ -70,6 +74,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     // Wallet
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::get('/wallet/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
+    Route::post('/wallet/deposit', [WalletController::class, 'submitDeposit'])->name('wallet.deposit.submit');
     Route::get('/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
     Route::post('/wallet/withdraw', [WalletController::class, 'processWithdrawal'])->name('wallet.withdraw.process');
     Route::get('/wallet/history', [WalletController::class, 'history'])->name('wallet.history');

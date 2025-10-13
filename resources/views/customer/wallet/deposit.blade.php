@@ -77,7 +77,9 @@
                     <p>Add funds to your wallet to start trading</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <i class="bi bi-plus-circle" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <button type="button" class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#depositModal">
+                        <i class="bi bi-plus-circle"></i> New Deposit
+                    </button>
                 </div>
             </div>
         </div>
@@ -229,6 +231,78 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deposit Modal -->
+<div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="depositModalLabel">
+                    <i class="bi bi-plus-circle"></i> Submit New Deposit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="depositForm" action="{{ route('customer.wallet.deposit.submit') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="currency" class="form-label">Currency <span class="text-danger">*</span></label>
+                            <select class="form-select" id="currency" name="currency" required>
+                                <option value="">Select Currency</option>
+                                @foreach($walletAddresses->pluck('symbol')->unique() as $symbol)
+                                    <option value="{{ $symbol }}">{{ $symbol }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="network" class="form-label">Network <span class="text-danger">*</span></label>
+                            <select class="form-select" id="network" name="network" required>
+                                <option value="">Select Network</option>
+                                @foreach($walletAddresses->pluck('network')->filter()->unique() as $network)
+                                    <option value="{{ $network }}">{{ $network }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="proof_image" class="form-label">Proof Image <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="proof_image" name="proof_image" accept="image/*" required>
+                            <div class="form-text">Upload screenshot or receipt of your deposit transaction</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Additional Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional information about your deposit..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Important Information</h6>
+                        <ul class="mb-0">
+                            <li>Your deposit will be reviewed by our team</li>
+                            <li>Processing time: 1-24 hours</li>
+                            <li>Make sure the proof image clearly shows the transaction details</li>
+                            <li>Only send the exact amount specified</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Submit Deposit
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
