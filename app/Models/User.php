@@ -26,6 +26,8 @@ class User extends Authenticatable
         'last_login_at',
         'referral_code',
         'referred_by',
+        'active_plan_id',
+        'active_investment_amount',
     ];
 
     /**
@@ -49,6 +51,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'active_investment_amount' => 'decimal:8',
         ];
     }
 
@@ -114,6 +117,21 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'referred_by');
     }
 
+    public function activePlan()
+    {
+        return $this->belongsTo(Plan::class, 'active_plan_id');
+    }
+
+    public function parentReferral()
+    {
+        return $this->hasOne(Referral::class, 'referred_id', 'id')->where('status', 'active');
+    }
+
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
     // Helper methods - Updated to use Spatie roles instead of user_type
     public function isAdmin()
     {
@@ -148,9 +166,24 @@ class User extends Authenticatable
     public function generateReferralCode()
     {
         if (!$this->referral_code) {
-            $this->referral_code = strtoupper(substr($this->name, 0, 3) . rand(1000, 9999));
+            do {
+                $code = strtoupper(\Illuminate\Support\Str::random(8));
+            } while (User::where('referral_code', $code)->exists());
+            $this->referral_code = $code;
             $this->save();
         }
         return $this->referral_code;
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($user) {
+            if (empty($user->referral_code)) {
+                do {
+                    $code = strtoupper(\Illuminate\Support\Str::random(8));
+                } while (User::where('referral_code', $code)->exists());
+                $user->referral_code = $code;
+            }
+        });
     }
 }

@@ -452,6 +452,25 @@
                     @enderror
                 </div>
 
+                <!-- Referral Code -->
+                <div class="form-group">
+                    <label for="referral_code" class="form-label">Referral Code (Optional)</label>
+                    <input id="referral_code" 
+                           type="text" 
+                           name="referral_code" 
+                           value="{{ old('referral_code') }}" 
+                           class="form-control @error('referral_code') is-invalid @enderror" 
+                           placeholder="Enter referral code if you have one"
+                           autocomplete="off">
+                    <input type="hidden" id="referred_by" name="referred_by" value="{{ old('referred_by') }}" />
+                    @error('referral_code')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.875rem;">
+                        Get bonus rewards when someone refers you!
+                    </small>
+                </div>
+
                 <!-- Terms and Conditions -->
                 <div class="form-check">
                     <input id="terms" 
@@ -575,6 +594,22 @@
             } else {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
+            }
+        });
+
+        // Referral code handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref') || urlParams.get('referral');
+            if (ref) {
+                document.getElementById('referral_code').value = ref;
+                fetch('/api/referral/resolve?code=' + encodeURIComponent(ref))
+                    .then(res => res.json())
+                    .then(json => {
+                        if (json.success && json.user_id) {
+                            document.getElementById('referred_by').value = json.user_id;
+                        }
+                    }).catch(() => {});
             }
         });
     </script>

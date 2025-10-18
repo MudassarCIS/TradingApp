@@ -28,6 +28,22 @@ Route::prefix('api')->group(function () {
     Route::get('/klines/{symbol}/{interval?}', [App\Http\Controllers\MarketDataController::class, 'getKlines']);
     Route::get('/market-data/{symbol}', [App\Http\Controllers\MarketDataController::class, 'getMarketData']);
     Route::post('/prices', [App\Http\Controllers\MarketDataController::class, 'getMultiplePrices']);
+    
+    // Referral resolution
+    Route::get('/referral/resolve', function(\Illuminate\Http\Request $request) {
+        $code = $request->query('code');
+        $user = \App\Models\User::where('referral_code', $code)->first();
+        
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Referral code not found'], 404);
+        }
+        
+        return response()->json([
+            'success' => true, 
+            'user_id' => $user->id, 
+            'referral_code' => $user->referral_code
+        ]);
+    });
 });
 
 // Redirect authenticated users to appropriate dashboard

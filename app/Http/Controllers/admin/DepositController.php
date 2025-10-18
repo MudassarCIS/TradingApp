@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\Transaction;
 use App\Models\Wallet;
+use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,7 @@ class DepositController extends Controller
             return response()->json(['error' => 'Deposit is not pending'], 400);
         }
 
-        DB::transaction(function () use ($deposit) {
+        DB::transaction(function () use ($deposit, $request) {
             // Update deposit status
             $deposit->update([
                 'status' => 'approved',
@@ -117,6 +118,9 @@ class DepositController extends Controller
 
             $wallet->increment('balance', $deposit->amount);
             $wallet->increment('total_deposited', $deposit->amount);
+
+            // Distribute referral bonuses using ReferralService
+            app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
         });
 
         return response()->json(['success' => 'Deposit approved successfully']);
