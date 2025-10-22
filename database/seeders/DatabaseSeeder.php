@@ -13,9 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Run our trading app seeder
+        // Run our trading app seeders
         $this->call([
             TradingAppSeeder::class,
+            CustomerSeeder::class,
+            ReferralTestSeeder::class,
+            ComprehensiveReferralSeeder::class,
         ]);
     }
 

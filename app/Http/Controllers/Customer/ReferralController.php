@@ -11,7 +11,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class ReferralController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
@@ -32,15 +32,27 @@ class ReferralController extends Controller
         $referralLink = route('register', ['ref' => $user->referral_code]);
         $qrCode = QrCode::size(200)->generate($referralLink);
         
-        // Get all referrals with their investment data
-        $allReferrals = $this->getAllReferrals($user, 3);
+        // Get referrals by level with pagination
+        $level1Referrals = $this->getReferralsByLevel($user, 1, $request);
+        $level2Referrals = $this->getReferralsByLevel($user, 2, $request);
+        $level3Referrals = $this->getReferralsByLevel($user, 3, $request);
+        
+        // Get counts for each level
+        $level1Count = $this->getReferralCountByLevel($user, 1);
+        $level2Count = $this->getReferralCountByLevel($user, 2);
+        $level3Count = $this->getReferralCountByLevel($user, 3);
         
         return view('customer.referrals.index', compact(
             'referralCount',
             'totalCommission',
             'pendingCommission',
             'referralTree',
-            'allReferrals',
+            'level1Referrals',
+            'level2Referrals',
+            'level3Referrals',
+            'level1Count',
+            'level2Count',
+            'level3Count',
             'referralLink',
             'qrCode'
         ));
@@ -107,5 +119,51 @@ class ReferralController extends Controller
             // Recursively get referrals from this user
             $this->collectReferrals($referral, $allReferrals, $currentLevel + 1, $maxLevel);
         }
+    }
+    
+    protected function getReferralsByLevel(User $user, int $level, Request $request)
+    {
+        $perPage = $request->get('per_page', 10);
+        
+        if ($level === 1) {
+            // Direct referrals
+            $query = $user->referredUsers()->with(['wallets', 'activePlan', 'profile']);
+        } else {
+            // Get referrals at specific level using recursive approach
+            $userIds = $this->getUserIdsAtLevel($user, $level);
+            $query = User::whereIn('id', $userIds)->with(['wallets', 'activePlan', 'profile']);
+        }
+        
+        return $query->paginate($perPage)->appends($request->query());
+    }
+    
+    protected function getReferralCountByLevel(User $user, int $level)
+    {
+        if ($level === 1) {
+            return $user->referredUsers()->count();
+        } else {
+            $userIds = $this->getUserIdsAtLevel($user, $level);
+            return User::whereIn('id', $userIds)->count();
+        }
+    }
+    
+    protected function getUserIdsAtLevel(User $user, int $targetLevel, int $currentLevel = 1)
+    {
+        if ($currentLevel >= $targetLevel) {
+            return [$user->id];
+        }
+        
+        $userIds = [];
+        $referrals = $user->referredUsers;
+        
+        foreach ($referrals as $referral) {
+            if ($currentLevel + 1 === $targetLevel) {
+                $userIds[] = $referral->id;
+            } else {
+                $userIds = array_merge($userIds, $this->getUserIdsAtLevel($referral, $targetLevel, $currentLevel + 1));
+            }
+        }
+        
+        return $userIds;
     }
 }

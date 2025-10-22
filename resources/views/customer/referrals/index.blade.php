@@ -132,6 +132,78 @@
         color: #6c757d;
         font-style: italic;
     }
+    
+    /* Tab Styles */
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        border-color: transparent;
+        border-bottom-color: #dee2e6;
+        color: #495057;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        background-color: transparent;
+    }
+    
+    .nav-tabs .nav-link .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .tab-content {
+        border: none;
+        background: white;
+    }
+    
+    .tab-pane {
+        padding: 0;
+    }
+    
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .card-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .nav-tabs .nav-link {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .nav-tabs .nav-link .badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+        
+        .avatar-sm {
+            width: 28px;
+            height: 28px;
+            font-size: 0.75rem;
+        }
+    }
 </style>
 @endpush
 
@@ -222,73 +294,260 @@
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Referral Tree (Up to 3 Levels)</h5>
             </div>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Level</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Referral ID</th>
-                            <th>Join Date</th>
-                            <th>Total Investment</th>
-                            <th>Active Plan</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($allReferrals as $referral)
-                        <tr>
-                            <td>
-                                <span class="level-badge level-{{ $referral['level'] }}">
-                                    Level {{ $referral['level'] }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
-                                        {{ substr($referral['user']->name, 0, 1) }}
-                                    </div>
-                                    {{ $referral['user']->name }}
-                                </div>
-                            </td>
-                            <td>{{ $referral['user']->email }}</td>
-                            <td>
-                                <code>{{ $referral['referral_code'] ?? 'N/A' }}</code>
-                            </td>
-                            <td>{{ $referral['joined_at']->format('M d, Y') }}</td>
-                            <td>
-                                @if($referral['total_investment'] > 0)
-                                    <span class="investment-amount">
-                                        ${{ number_format($referral['total_investment'], 2) }}
-                                    </span>
-                                @else
-                                    <span class="no-investment">No investment</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($referral['active_plan'])
-                                    <span class="badge bg-info">{{ $referral['active_plan']->name }}</span>
-                                @else
-                                    <span class="text-muted">No plan</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="badge bg-success">Active</span>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                <i class="bi bi-people" style="font-size: 3rem; opacity: 0.3;"></i>
-                                <br>
-                                <p class="mt-2">No referrals yet</p>
-                                <p class="text-muted">Share your referral link to start earning commissions!</p>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            
+            <!-- Tabs Navigation -->
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs nav-fill" id="referralTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="level1-tab" data-bs-toggle="tab" data-bs-target="#level1" type="button" role="tab">
+                            <i class="bi bi-1-circle"></i> Level 1 Referrals
+                            <span class="badge bg-primary ms-2">{{ $level1Count }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="level2-tab" data-bs-toggle="tab" data-bs-target="#level2" type="button" role="tab">
+                            <i class="bi bi-2-circle"></i> Level 2 Referrals
+                            <span class="badge bg-secondary ms-2">{{ $level2Count }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="level3-tab" data-bs-toggle="tab" data-bs-target="#level3" type="button" role="tab">
+                            <i class="bi bi-3-circle"></i> Level 3 Referrals
+                            <span class="badge bg-success ms-2">{{ $level3Count }}</span>
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="referralTabsContent">
+                    <!-- Level 1 Tab -->
+                    <div class="tab-pane fade show active" id="level1" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Referral ID</th>
+                                        <th>Join Date</th>
+                                        <th>Total Investment</th>
+                                        <th>Active Plan</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($level1Referrals as $referral)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ substr($referral->name, 0, 1) }}
+                                                </div>
+                                                {{ $referral->name }}
+                                            </div>
+                                        </td>
+                                        <td>{{ $referral->email }}</td>
+                                        <td>
+                                            <code>{{ $referral->referral_code ?? 'N/A' }}</code>
+                                        </td>
+                                        <td>{{ $referral->created_at->format('M d, Y') }}</td>
+                                        <td>
+                                            @php
+                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                            @endphp
+                                            @if($totalInvestment > 0)
+                                                <span class="investment-amount">
+                                                    ${{ number_format($totalInvestment, 2) }}
+                                                </span>
+                                            @else
+                                                <span class="no-investment">No investment</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($referral->activePlan)
+                                                <span class="badge bg-info">{{ $referral->activePlan->name }}</span>
+                                            @else
+                                                <span class="text-muted">No plan</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">Active</span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="bi bi-people" style="font-size: 3rem; opacity: 0.3;"></i>
+                                            <br>
+                                            <p class="mt-2">No Level 1 referrals yet</p>
+                                            <p class="text-muted">Share your referral link to get direct referrals!</p>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Level 1 Pagination -->
+                        @if($level1Referrals->hasPages())
+                        <div class="card-footer">
+                            {{ $level1Referrals->links() }}
+                        </div>
+                        @endif
+                    </div>
+                    
+                    <!-- Level 2 Tab -->
+                    <div class="tab-pane fade" id="level2" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Referral ID</th>
+                                        <th>Join Date</th>
+                                        <th>Total Investment</th>
+                                        <th>Active Plan</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($level2Referrals as $referral)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ substr($referral->name, 0, 1) }}
+                                                </div>
+                                                {{ $referral->name }}
+                                            </div>
+                                        </td>
+                                        <td>{{ $referral->email }}</td>
+                                        <td>
+                                            <code>{{ $referral->referral_code ?? 'N/A' }}</code>
+                                        </td>
+                                        <td>{{ $referral->created_at->format('M d, Y') }}</td>
+                                        <td>
+                                            @php
+                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                            @endphp
+                                            @if($totalInvestment > 0)
+                                                <span class="investment-amount">
+                                                    ${{ number_format($totalInvestment, 2) }}
+                                                </span>
+                                            @else
+                                                <span class="no-investment">No investment</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($referral->activePlan)
+                                                <span class="badge bg-info">{{ $referral->activePlan->name }}</span>
+                                            @else
+                                                <span class="text-muted">No plan</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">Active</span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="bi bi-people" style="font-size: 3rem; opacity: 0.3;"></i>
+                                            <br>
+                                            <p class="mt-2">No Level 2 referrals yet</p>
+                                            <p class="text-muted">Your Level 1 referrals need to refer others!</p>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Level 2 Pagination -->
+                        @if($level2Referrals->hasPages())
+                        <div class="card-footer">
+                            {{ $level2Referrals->links() }}
+                        </div>
+                        @endif
+                    </div>
+                    
+                    <!-- Level 3 Tab -->
+                    <div class="tab-pane fade" id="level3" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Referral ID</th>
+                                        <th>Join Date</th>
+                                        <th>Total Investment</th>
+                                        <th>Active Plan</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($level3Referrals as $referral)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ substr($referral->name, 0, 1) }}
+                                                </div>
+                                                {{ $referral->name }}
+                                            </div>
+                                        </td>
+                                        <td>{{ $referral->email }}</td>
+                                        <td>
+                                            <code>{{ $referral->referral_code ?? 'N/A' }}</code>
+                                        </td>
+                                        <td>{{ $referral->created_at->format('M d, Y') }}</td>
+                                        <td>
+                                            @php
+                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                            @endphp
+                                            @if($totalInvestment > 0)
+                                                <span class="investment-amount">
+                                                    ${{ number_format($totalInvestment, 2) }}
+                                                </span>
+                                            @else
+                                                <span class="no-investment">No investment</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($referral->activePlan)
+                                                <span class="badge bg-info">{{ $referral->activePlan->name }}</span>
+                                            @else
+                                                <span class="text-muted">No plan</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">Active</span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="bi bi-people" style="font-size: 3rem; opacity: 0.3;"></i>
+                                            <br>
+                                            <p class="mt-2">No Level 3 referrals yet</p>
+                                            <p class="text-muted">Your Level 2 referrals need to refer others!</p>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Level 3 Pagination -->
+                        @if($level3Referrals->hasPages())
+                        <div class="card-footer">
+                            {{ $level3Referrals->links() }}
+                        </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -389,6 +648,34 @@
         
         img.src = svgUrl;
     }
+    
+    // Tab functionality with URL hash support
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle URL hash for direct tab access
+        const hash = window.location.hash;
+        if (hash) {
+            const tabButton = document.querySelector(`[data-bs-target="${hash}"]`);
+            if (tabButton) {
+                const tab = new bootstrap.Tab(tabButton);
+                tab.show();
+            }
+        }
+        
+        // Update URL hash when tab changes
+        const tabButtons = document.querySelectorAll('#referralTabs button[data-bs-toggle="tab"]');
+        tabButtons.forEach(function(button) {
+            button.addEventListener('shown.bs.tab', function(event) {
+                const target = event.target.getAttribute('data-bs-target');
+                window.location.hash = target;
+            });
+        });
+        
+        // Add smooth scrolling for tab content
+        const tabContent = document.querySelector('.tab-content');
+        if (tabContent) {
+            tabContent.style.minHeight = '400px';
+        }
+    });
     
     // Auto-refresh referral data every 30 seconds
     setInterval(function() {

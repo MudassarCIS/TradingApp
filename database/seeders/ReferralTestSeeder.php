@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Plan;
 use App\Models\Referral;
 use App\Models\Wallet;
+use App\Models\Profile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -13,8 +14,8 @@ class ReferralTestSeeder extends Seeder
 {
     public function run()
     {
-        // Create a test plan
-        $plan = Plan::firstOrCreate([
+        // Create test plans
+        $basicPlan = Plan::firstOrCreate([
             'name' => 'Basic Plan',
         ], [
             'investment_amount' => 1000,
@@ -30,11 +31,27 @@ class ReferralTestSeeder extends Seeder
             'description' => 'Basic investment plan for testing',
         ]);
 
-        // Create main user (referrer)
+        $premiumPlan = Plan::firstOrCreate([
+            'name' => 'Premium Plan',
+        ], [
+            'investment_amount' => 5000,
+            'joining_fee' => 0,
+            'bots_allowed' => 3,
+            'trades_per_day' => 50,
+            'direct_bonus' => 0,
+            'referral_level_1' => 15,
+            'referral_level_2' => 8,
+            'referral_level_3' => 3,
+            'is_active' => true,
+            'sort_order' => 2,
+            'description' => 'Premium investment plan for testing',
+        ]);
+
+        // Create main user (top referrer)
         $mainUser = User::firstOrCreate([
             'email' => 'main@test.com'
         ], [
-            'name' => 'Main User',
+            'name' => 'Main Referrer',
             'password' => Hash::make('password'),
             'user_type' => 'customer',
             'is_active' => true,
@@ -42,92 +59,134 @@ class ReferralTestSeeder extends Seeder
         $mainUser->assignRole('customer');
         $mainUser->generateReferralCode();
 
-        // Create level 1 referrals
-        $level1Users = [];
-        for ($i = 1; $i <= 3; $i++) {
+        // Create profile for main user
+        Profile::firstOrCreate([
+            'user_id' => $mainUser->id,
+        ], [
+            'first_name' => 'Main',
+            'last_name' => 'Referrer',
+            'phone' => '+1234567890',
+            'kyc_status' => 'approved',
+            'referral_code' => $mainUser->referral_code,
+        ]);
+
+        // Create wallet for main user
+        Wallet::firstOrCreate([
+            'user_id' => $mainUser->id,
+            'currency' => 'USDT',
+        ], [
+            'balance' => 10000,
+            'total_deposited' => 10000,
+            'total_withdrawn' => 0,
+            'total_profit' => 0,
+            'total_loss' => 0,
+        ]);
+
+        // Assign premium plan to main user
+        $mainUser->active_plan_id = $premiumPlan->id;
+        $mainUser->active_investment_amount = 5000;
+        $mainUser->save();
+
+        $this->command->info("Created main user: {$mainUser->email} (Referral Code: {$mainUser->referral_code})");
+
+        // Create multi-level referral structure
+        $this->createReferralLevel($mainUser, 1, 4, $basicPlan, $premiumPlan);
+        
+        $this->command->info('Multi-level referral test data created successfully!');
+        $this->command->info("Main user: {$mainUser->email} (Referral Code: {$mainUser->referral_code})");
+        $this->command->info('Password for all test users: password');
+    }
+
+    private function createReferralLevel($parentUser, $level, $maxLevel, $basicPlan, $premiumPlan, $usersPerLevel = 3)
+    {
+        if ($level > $maxLevel) {
+            return;
+        }
+
+        $levelUsers = [];
+        
+        for ($i = 1; $i <= $usersPerLevel; $i++) {
             $user = User::firstOrCreate([
-                'email' => "level1_{$i}@test.com"
+                'email' => "level{$level}_{$i}@test.com"
             ], [
-                'name' => "Level 1 User {$i}",
+                'name' => "Level {$level} User {$i}",
                 'password' => Hash::make('password'),
                 'user_type' => 'customer',
                 'is_active' => true,
-                'referred_by' => $mainUser->id,
+                'referred_by' => $parentUser->id,
             ]);
+            
             $user->assignRole('customer');
             $user->generateReferralCode();
-            $level1Users[] = $user;
+            $levelUsers[] = $user;
 
-            // Create referral relationship
-            Referral::firstOrCreate([
-                'referrer_id' => $mainUser->id,
-                'referred_id' => $user->id,
+            // Create profile
+            Profile::firstOrCreate([
+                'user_id' => $user->id,
             ], [
-                'commission_rate' => 10,
-                'status' => 'active',
-                'joined_at' => now(),
+                'first_name' => "Level{$level}",
+                'last_name' => "User{$i}",
+                'phone' => '+123456789' . ($level * 10 + $i),
+                'kyc_status' => $level <= 2 ? 'approved' : 'pending',
+                'referral_code' => $user->referral_code,
             ]);
 
-            // Create wallets with some investment
+            // Create referral relationship
+            $commissionRate = $this->getCommissionRate($level);
+            Referral::firstOrCreate([
+                'referrer_id' => $parentUser->id,
+                'referred_id' => $user->id,
+            ], [
+                'commission_rate' => $commissionRate,
+                'status' => 'active',
+                'joined_at' => now()->subDays(rand(1, 30)),
+            ]);
+
+            // Create wallet with investment
+            $investmentAmount = $this->getInvestmentAmount($level);
             Wallet::firstOrCreate([
                 'user_id' => $user->id,
                 'currency' => 'USDT',
             ], [
-                'balance' => 500,
-                'total_deposited' => 1000,
+                'balance' => $investmentAmount * 0.5,
+                'total_deposited' => $investmentAmount,
                 'total_withdrawn' => 0,
-                'total_profit' => 0,
+                'total_profit' => $investmentAmount * 0.1,
                 'total_loss' => 0,
             ]);
 
-            // Assign plan to some users
-            if ($i <= 2) {
-                $user->active_plan_id = $plan->id;
-                $user->active_investment_amount = 1000;
-                $user->save();
-            }
+            // Assign plan based on level
+            $plan = $level <= 2 ? $premiumPlan : $basicPlan;
+            $user->active_plan_id = $plan->id;
+            $user->active_investment_amount = $investmentAmount;
+            $user->save();
+
+            $this->command->info("Created Level {$level} User {$i}: {$user->email} (Referred by: {$parentUser->email})");
+
+            // Recursively create next level
+            $this->createReferralLevel($user, $level + 1, $maxLevel, $basicPlan, $premiumPlan, $usersPerLevel - 1);
         }
+    }
 
-        // Create level 2 referrals
-        foreach ($level1Users as $index => $level1User) {
-            for ($j = 1; $j <= 2; $j++) {
-                $user = User::firstOrCreate([
-                    'email' => "level2_{$index}_{$j}@test.com"
-                ], [
-                    'name' => "Level 2 User {$index}-{$j}",
-                    'password' => Hash::make('password'),
-                    'user_type' => 'customer',
-                    'is_active' => true,
-                    'referred_by' => $level1User->id,
-                ]);
-                $user->assignRole('customer');
-                $user->generateReferralCode();
+    private function getCommissionRate($level)
+    {
+        return match($level) {
+            1 => 15,  // Level 1: 15%
+            2 => 8,   // Level 2: 8%
+            3 => 3,   // Level 3: 3%
+            4 => 1,   // Level 4: 1%
+            default => 0
+        };
+    }
 
-                // Create referral relationship
-                Referral::firstOrCreate([
-                    'referrer_id' => $level1User->id,
-                    'referred_id' => $user->id,
-                ], [
-                    'commission_rate' => 5,
-                    'status' => 'active',
-                    'joined_at' => now(),
-                ]);
-
-                // Create wallets with some investment
-                Wallet::firstOrCreate([
-                    'user_id' => $user->id,
-                    'currency' => 'USDT',
-                ], [
-                    'balance' => 250,
-                    'total_deposited' => 500,
-                    'total_withdrawn' => 0,
-                    'total_profit' => 0,
-                    'total_loss' => 0,
-                ]);
-            }
-        }
-
-        $this->command->info('Referral test data created successfully!');
-        $this->command->info("Main user: {$mainUser->email} (Referral Code: {$mainUser->referral_code})");
+    private function getInvestmentAmount($level)
+    {
+        return match($level) {
+            1 => 5000,  // Level 1: $5000
+            2 => 3000,  // Level 2: $3000
+            3 => 1500,  // Level 3: $1500
+            4 => 1000,  // Level 4: $1000
+            default => 500
+        };
     }
 }
