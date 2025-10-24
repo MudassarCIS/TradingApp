@@ -7,7 +7,6 @@ use App\Models\Wallet;
 use App\Models\Trade;
 use App\Models\Agent;
 use App\Models\Transaction;
-use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -63,8 +62,6 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
-        // Get available packages
-        $packages = Package::where('is_active', true)->get();
         
         // Get referral statistics
         $referralCount = $user->referredUsers()->count();
@@ -80,7 +77,6 @@ class DashboardController extends Controller
             'activeAgents',
             'recentTransactions',
             'recentTrades',
-            'packages',
             'referralCount',
             'referralEarnings'
         ));

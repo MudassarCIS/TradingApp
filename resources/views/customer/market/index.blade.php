@@ -1,105 +1,59 @@
 @extends('layouts.customer-layout')
 
-@section('title', 'Market - AI Trade App')
-@section('page-title', 'Market Overview')
+@section('title', 'Live Market Data - AI Trade App')
+@section('page-title', 'Live Market Data')
 
 @push('styles')
 <style>
-    .market-card {
+    .market-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 15px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        transition: transform 0.3s ease;
-    }
-    
-    .market-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .price-card {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
         text-align: center;
     }
     
-    .price-card h4 {
-        font-size: 2rem;
+    .market-header h1 {
+        font-size: 2.5rem;
         font-weight: bold;
-        margin: 0;
-    }
-    
-    .price-card .symbol {
-        color: #666;
-        font-size: 0.9rem;
         margin-bottom: 0.5rem;
     }
     
-    .price-card .change {
-        font-size: 1.2rem;
-        font-weight: 600;
+    .market-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
     }
     
-    .price-up {
-        color: #28a745;
-    }
-    
-    .price-down {
-        color: #dc3545;
-    }
-    
-    .market-stats {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-    }
-    
-    .market-stats h6 {
-        color: var(--primary-color);
-        font-weight: bold;
-        margin-bottom: 1rem;
-    }
-    
-    .stat-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .stat-item:last-child {
-        border-bottom: none;
-    }
-    
-    .stat-label {
-        color: #666;
+    .connection-status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
         font-size: 0.9rem;
-    }
-    
-    .stat-value {
         font-weight: 600;
-        color: #333;
+        transition: all 0.3s ease;
     }
     
-    .loading {
-        text-align: center;
-        padding: 2rem;
-        color: #666;
+    .connection-status.connected {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
     }
     
-    .error {
+    .connection-status.disconnected {
         background: #f8d7da;
         color: #721c24;
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .connection-status.connecting {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
     }
     
     .chart-container {
@@ -107,20 +61,140 @@
         border-radius: 15px;
         padding: 1.5rem;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
+        margin-bottom: 2rem;
+        position: relative;
     }
     
-    .chart-container h6 {
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .chart-title {
         color: var(--primary-color);
         font-weight: bold;
-        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        margin: 0;
     }
     
-    .crypto-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
+    .chart-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .interval-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .interval-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+    
+    .interval-btn:hover {
+        background: #f8f9fa;
+    }
+    
+    .interval-btn.active:hover {
+        background: var(--primary-color);
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 500px;
+        width: 100%;
+    }
+    
+    .price-display {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: bold;
+        z-index: 10;
+    }
+    
+    .price-change {
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+    
+    .price-up {
+        color: #00d4aa;
+    }
+    
+    .price-down {
+        color: #ff6b6b;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    .market-stats {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        text-align: center;
+        padding: 1rem;
+        border-radius: 10px;
+        background: #f8f9fa;
+    }
+    
+    .stat-card h6 {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
     }
     
     .refresh-btn {
@@ -137,6 +211,7 @@
         font-size: 1.5rem;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         transition: all 0.3s ease;
+        cursor: pointer;
     }
     
     .refresh-btn:hover {
@@ -148,290 +223,386 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
+    
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        border: 1px solid #f5c6cb;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .pulse {
+        animation: pulse 2s infinite;
+    }
 </style>
 @endpush
 
 @section('content')
-<!-- Market Header -->
-<div class="row">
-    <div class="col-12 mb-4">
-        <div class="market-card">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h2>Live Market Data</h2>
-                    <p>Real-time cryptocurrency prices and market analysis</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <i class="bi bi-graph-up" style="font-size: 4rem; opacity: 0.3;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Connection Status -->
+<div class="connection-status" id="connectionStatus">
+    <i class="bi bi-wifi"></i> Connecting...
 </div>
 
-<!-- Market Overview -->
+<!-- Market Header -->
+<div class="market-header">
+    <h1><i class="bi bi-graph-up"></i> Live Market Data</h1>
+    <p>Real-time BTC-USDT candlestick charts with WebSocket streaming from Binance</p>
+</div>
+
+<!-- Market Statistics -->
 <div class="row">
     <div class="col-12">
         <div class="market-stats">
-            <h6><i class="bi bi-bar-chart"></i> Market Overview</h6>
-            <div id="marketOverview">
-                <div class="loading">
-                    <i class="bi bi-arrow-clockwise spin"></i> Loading market data...
+            <h6><i class="bi bi-bar-chart"></i> Market Statistics</h6>
+            <div class="stats-grid" id="marketStats">
+                <div class="stat-card">
+                    <h6>Current Price</h6>
+                    <div class="value" id="currentPrice">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h6>24h Change</h6>
+                    <div class="value" id="priceChange">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h6>24h High</h6>
+                    <div class="value" id="high24h">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h6>24h Low</h6>
+                    <div class="value" id="low24h">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h6>24h Volume</h6>
+                    <div class="value" id="volume24h">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h6>Last Update</h6>
+                    <div class="value" id="lastUpdate">Loading...</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Cryptocurrency Prices -->
-<div class="crypto-grid" id="cryptoGrid">
-    <!-- Prices will be loaded here via JavaScript -->
-</div>
-
-<!-- Technical Analysis -->
+<!-- Live Candlestick Chart -->
 <div class="row">
-    <div class="col-md-6 mb-4">
+    <div class="col-12">
         <div class="chart-container">
-            <h6><i class="bi bi-graph-up"></i> BTC/USDT Chart</h6>
-            <div id="btcChart" style="height: 300px;">
-                <div class="loading">Loading chart...</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6 mb-4">
-        <div class="chart-container">
-            <h6><i class="bi bi-graph-up"></i> ETH/USDT Chart</h6>
-            <div id="ethChart" style="height: 300px;">
-                <div class="loading">Loading chart...</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Market Categories -->
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-trophy"></i> Top Gainers</h6>
-            </div>
-            <div class="card-body">
-                <div id="topGainers">
-                    <div class="loading">Loading...</div>
+            <div class="chart-header">
+                <h6 class="chart-title">
+                    <i class="bi bi-graph-up"></i> BTC/USDT Live Chart
+                </h6>
+                <div class="chart-controls">
+                    <button class="interval-btn active" data-interval="1m">1m</button>
+                    <button class="interval-btn" data-interval="5m">5m</button>
+                    <button class="interval-btn" data-interval="15m">15m</button>
+                    <button class="interval-btn" data-interval="1h">1h</button>
+                    <button class="interval-btn" data-interval="4h">4h</button>
+                    <button class="interval-btn" data-interval="1d">1d</button>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-arrow-down"></i> Top Losers</h6>
-            </div>
-            <div class="card-body">
-                <div id="topLosers">
-                    <div class="loading">Loading...</div>
+            <div class="chart-wrapper">
+                <div class="price-display" id="priceDisplay">
+                    <span id="currentPriceDisplay">$0.00</span>
+                    <span class="price-change" id="priceChangeDisplay">+0.00%</span>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-volume-up"></i> Most Active</h6>
-            </div>
-            <div class="card-body">
-                <div id="mostActive">
-                    <div class="loading">Loading...</div>
+                <div class="loading-overlay" id="chartLoading">
+                    <div class="loading-spinner"></div>
                 </div>
+                <canvas id="candlestickChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Refresh Button -->
-<button class="refresh-btn" id="refreshBtn" onclick="refreshMarketData()">
+<button class="refresh-btn" id="refreshBtn" title="Refresh Data">
     <i class="bi bi-arrow-clockwise"></i>
 </button>
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script>
-    let marketData = {};
-    let charts = {};
+    // Global variables
+    let ws = null;
+    let chart = null;
+    let currentInterval = '1m';
+    let marketData = {
+        price: 0,
+        change: 0,
+        high24h: 0,
+        low24h: 0,
+        volume24h: 0,
+        lastUpdate: null
+    };
+    let candlestickData = [];
+    let isConnected = false;
     
-    // Initialize market data
+    // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        loadMarketData();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(loadMarketData, 30000);
+        initializeChart();
+        setupEventListeners();
+        connectWebSocket();
+        loadInitialData();
     });
     
-    // Load market data
-    async function loadMarketData() {
-        try {
-            const refreshBtn = document.getElementById('refreshBtn');
-            refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
-            
-            // Load multiple symbols
-            const symbols = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT', 'BNBUSDT', 'XRPUSDT', 'SOLUSDT'];
-            const promises = symbols.map(symbol => fetchMarketData(symbol));
-            
-            await Promise.all(promises);
-            
-            // Update UI
-            updateMarketOverview();
-            updateCryptoGrid();
-            updateCharts();
-            
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
-            
-        } catch (error) {
-            console.error('Error loading market data:', error);
-            showError('Failed to load market data. Please try again.');
-        }
-    }
-    
-    // Fetch market data for a symbol
-    async function fetchMarketData(symbol) {
-        try {
-            const response = await fetch(`/api/market-data/${symbol}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                marketData[symbol] = data.data;
+    // Initialize Chart.js candlestick chart
+    function initializeChart() {
+        const ctx = document.getElementById('candlestickChart').getContext('2d');
+        
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'BTC/USDT',
+                    data: [],
+                    borderColor: '#00d4aa',
+                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Price: $${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm',
+                                hour: 'MMM dd HH:mm',
+                                day: 'MMM dd'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        position: 'right',
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 0
+                    }
+                }
             }
-        } catch (error) {
-            console.error(`Error fetching data for ${symbol}:`, error);
-        }
+        });
     }
     
-    // Update market overview
-    function updateMarketOverview() {
-        const overview = document.getElementById('marketOverview');
-        const symbols = Object.keys(marketData);
-        
-        if (symbols.length === 0) {
-            overview.innerHTML = '<div class="error">No market data available</div>';
-            return;
-        }
-        
-        let totalVolume = 0;
-        let totalChange = 0;
-        
-        symbols.forEach(symbol => {
-            const data = marketData[symbol];
-            totalVolume += data.volume || 0;
-            totalChange += data.price_change_24h || 0;
+    // Setup event listeners
+    function setupEventListeners() {
+        // Interval buttons
+        document.querySelectorAll('.interval-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentInterval = this.dataset.interval;
+                loadInitialData();
+            });
         });
         
-        const avgChange = totalChange / symbols.length;
-        
-        overview.innerHTML = `
-            <div class="stat-item">
-                <span class="stat-label">Total Volume (24h)</span>
-                <span class="stat-value">$${formatNumber(totalVolume)}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Average Change (24h)</span>
-                <span class="stat-value ${avgChange >= 0 ? 'price-up' : 'price-down'}">
-                    ${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%
-                </span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Active Symbols</span>
-                <span class="stat-value">${symbols.length}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Last Updated</span>
-                <span class="stat-value">${new Date().toLocaleTimeString()}</span>
-            </div>
-        `;
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadInitialData();
+        });
     }
     
-    // Update crypto grid
-    function updateCryptoGrid() {
-        const grid = document.getElementById('cryptoGrid');
-        const symbols = Object.keys(marketData);
+    // Connect to Binance WebSocket
+    function connectWebSocket() {
+        updateConnectionStatus('connecting');
         
-        if (symbols.length === 0) {
-            grid.innerHTML = '<div class="col-12"><div class="error">No market data available</div></div>';
-            return;
-        }
+        // Binance WebSocket URL for BTCUSDT ticker
+        const wsUrl = 'wss://stream.binance.com:9443/ws/btcusdt@ticker';
         
-        grid.innerHTML = symbols.map(symbol => {
-            const data = marketData[symbol];
-            const change = data.price_change_24h || 0;
-            const changeClass = change >= 0 ? 'price-up' : 'price-down';
-            const changeIcon = change >= 0 ? 'bi-arrow-up' : 'bi-arrow-down';
+        try {
+            ws = new WebSocket(wsUrl);
             
-            return `
-                <div class="price-card">
-                    <div class="symbol">${symbol}</div>
-                    <h4>$${formatPrice(data.price)}</h4>
-                    <div class="change ${changeClass}">
-                        <i class="bi ${changeIcon}"></i>
-                        ${change >= 0 ? '+' : ''}${change.toFixed(2)}%
-                    </div>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Vol: $${formatNumber(data.volume)}
-                        </small>
-                    </div>
-                </div>
-            `;
-        }).join('');
+            ws.onopen = function() {
+                console.log('WebSocket connected to Binance');
+                updateConnectionStatus('connected');
+                isConnected = true;
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                updateMarketData(data);
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus('disconnected');
+                isConnected = false;
+                
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => {
+                    if (!isConnected) {
+                        connectWebSocket();
+                    }
+                }, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateConnectionStatus('disconnected');
+                isConnected = false;
+            };
+            
+        } catch (error) {
+            console.error('Failed to connect to WebSocket:', error);
+            updateConnectionStatus('disconnected');
+        }
     }
     
-    // Update charts
-    function updateCharts() {
-        updateChart('btcChart', 'BTCUSDT');
-        updateChart('ethChart', 'ETHUSDT');
-    }
-    
-    // Update individual chart
-    function updateChart(chartId, symbol) {
-        const container = document.getElementById(chartId);
-        const data = marketData[symbol];
+    // Update connection status display
+    function updateConnectionStatus(status) {
+        const statusEl = document.getElementById('connectionStatus');
+        statusEl.className = `connection-status ${status}`;
         
-        if (!data) {
-            container.innerHTML = '<div class="error">No data available</div>';
-            return;
+        switch(status) {
+            case 'connected':
+                statusEl.innerHTML = '<i class="bi bi-wifi"></i> Connected';
+                break;
+            case 'connecting':
+                statusEl.innerHTML = '<i class="bi bi-wifi pulse"></i> Connecting...';
+                break;
+            case 'disconnected':
+                statusEl.innerHTML = '<i class="bi bi-wifi-off"></i> Disconnected';
+                break;
+        }
+    }
+    
+    // Update market data from WebSocket
+    function updateMarketData(data) {
+        marketData = {
+            price: parseFloat(data.c),
+            change: parseFloat(data.P),
+            high24h: parseFloat(data.h),
+            low24h: parseFloat(data.l),
+            volume24h: parseFloat(data.v),
+            lastUpdate: new Date()
+        };
+        
+        updateUI();
+        updateChart();
+    }
+    
+    // Update UI elements
+    function updateUI() {
+        document.getElementById('currentPrice').textContent = formatPrice(marketData.price);
+        document.getElementById('priceChange').innerHTML = formatChange(marketData.change);
+        document.getElementById('high24h').textContent = formatPrice(marketData.high24h);
+        document.getElementById('low24h').textContent = formatPrice(marketData.low24h);
+        document.getElementById('volume24h').textContent = formatVolume(marketData.volume24h);
+        document.getElementById('lastUpdate').textContent = marketData.lastUpdate.toLocaleTimeString();
+        
+        // Update price display on chart
+        document.getElementById('currentPriceDisplay').textContent = formatPrice(marketData.price);
+        document.getElementById('priceChangeDisplay').innerHTML = formatChange(marketData.change);
+        document.getElementById('priceChangeDisplay').className = `price-change ${marketData.change >= 0 ? 'price-up' : 'price-down'}`;
+    }
+    
+    // Update chart with new data
+    function updateChart() {
+        if (!chart) return;
+        
+        const now = new Date();
+        const newDataPoint = {
+            x: now,
+            y: marketData.price
+        };
+        
+        // Add new data point
+        chart.data.datasets[0].data.push(newDataPoint);
+        
+        // Keep only last 100 data points
+        if (chart.data.datasets[0].data.length > 100) {
+            chart.data.datasets[0].data.shift();
         }
         
-        // Simple price display for now
-        container.innerHTML = `
-            <div class="text-center">
-                <h3>$${formatPrice(data.price)}</h3>
-                <p class="${data.price_change_24h >= 0 ? 'price-up' : 'price-down'}">
-                    ${data.price_change_24h >= 0 ? '+' : ''}${data.price_change_24h.toFixed(2)}%
-                </p>
-                <div class="row text-center mt-3">
-                    <div class="col-6">
-                        <small class="text-muted">High 24h</small><br>
-                        <strong>$${formatPrice(data.high_24h)}</strong>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted">Low 24h</small><br>
-                        <strong>$${formatPrice(data.low_24h)}</strong>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Update chart
+        chart.update('none');
     }
     
-    // Refresh market data
-    function refreshMarketData() {
-        loadMarketData();
+    // Load initial historical data
+    async function loadInitialData() {
+        showChartLoading(true);
+        
+        try {
+            const response = await fetch(`/api/klines/BTCUSDT/${currentInterval}?limit=100`);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                const klines = result.data;
+                const chartData = klines.map(kline => ({
+                    x: new Date(kline[0]),
+                    y: parseFloat(kline[4]) // Close price
+                }));
+                
+                chart.data.datasets[0].data = chartData;
+                chart.update();
+            }
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+            showError('Failed to load historical data');
+        } finally {
+            showChartLoading(false);
+        }
     }
     
-    // Utility functions
+    // Show/hide chart loading overlay
+    function showChartLoading(show) {
+        const loadingEl = document.getElementById('chartLoading');
+        loadingEl.style.display = show ? 'flex' : 'none';
+    }
+    
+    // Format price for display
     function formatPrice(price) {
         return parseFloat(price).toLocaleString('en-US', {
             minimumFractionDigits: 2,
@@ -439,20 +610,29 @@
         });
     }
     
-    function formatNumber(num) {
-        if (num >= 1e9) {
-            return (num / 1e9).toFixed(1) + 'B';
-        } else if (num >= 1e6) {
-            return (num / 1e6).toFixed(1) + 'M';
-        } else if (num >= 1e3) {
-            return (num / 1e3).toFixed(1) + 'K';
-        }
-        return num.toFixed(0);
+    // Format change percentage
+    function formatChange(change) {
+        const sign = change >= 0 ? '+' : '';
+        const colorClass = change >= 0 ? 'price-up' : 'price-down';
+        return `<span class="${colorClass}">${sign}${change.toFixed(2)}%</span>`;
     }
     
+    // Format volume
+    function formatVolume(volume) {
+        if (volume >= 1e9) {
+            return (volume / 1e9).toFixed(1) + 'B';
+        } else if (volume >= 1e6) {
+            return (volume / 1e6).toFixed(1) + 'M';
+        } else if (volume >= 1e3) {
+            return (volume / 1e3).toFixed(1) + 'K';
+        }
+        return volume.toFixed(0);
+    }
+    
+    // Show error message
     function showError(message) {
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'error';
+        errorDiv.className = 'error-message';
         errorDiv.textContent = message;
         document.body.insertBefore(errorDiv, document.body.firstChild);
         
@@ -460,16 +640,12 @@
             errorDiv.remove();
         }, 5000);
     }
-</script>
-
-<style>
-    .spin {
-        animation: spin 1s linear infinite;
-    }
     
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-</style>
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (ws) {
+            ws.close();
+        }
+    });
+</script>
 @endpush

@@ -214,41 +214,6 @@
     </div>
 </div>
 
-<!-- Available Packages -->
-@if($packages->count() > 0)
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-gift"></i> Available Packages</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    @foreach($packages as $package)
-                    <div class="col-md-4 mb-3">
-                        <div class="package-card card">
-                            <div class="card-header">
-                                <h6 class="mb-0">{{ $package->name }}</h6>
-                            </div>
-                            <div class="card-body">
-                                <h4 class="text-primary">${{ number_format($package->price, 2) }}</h4>
-                                <p class="text-muted">{{ $package->description }}</p>
-                                <ul class="list-unstyled">
-                                    <li><i class="bi bi-check text-success"></i> Min: ${{ number_format($package->min_investment, 2) }}</li>
-                                    <li><i class="bi bi-check text-success"></i> {{ $package->daily_return_rate }}% daily return</li>
-                                    <li><i class="bi bi-check text-success"></i> {{ $package->duration_days }} days duration</li>
-                                </ul>
-                                <button class="btn btn-primary btn-sm w-100">Invest Now</button>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
 
 <!-- Recent Transactions -->
 @if($recentTransactions->count() > 0)
