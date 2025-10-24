@@ -337,6 +337,8 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.0/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
     // Global variables
     let ws = null;
@@ -365,19 +367,31 @@
     function initializeChart() {
         const ctx = document.getElementById('candlestickChart').getContext('2d');
         
+        // Custom plugin to draw candlesticks
+        const candlestickPlugin = {
+            id: 'candlestick',
+            afterDraw: function(chart) {
+                drawCandlesticks();
+            }
+        };
+        
         chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [],
-                datasets: [{
-                    label: 'BTC/USDT',
-                    data: [],
-                    borderColor: '#00d4aa',
-                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.1
-                }]
+                datasets: [
+                    {
+                        label: 'Price Range',
+                        data: [],
+                        borderColor: 'transparent',
+                        backgroundColor: 'transparent',
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        borderWidth: 0,
+                        fill: false,
+                        showLine: false,
+                        tension: 0
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -394,8 +408,18 @@
                         mode: 'index',
                         intersect: false,
                         callbacks: {
+                            title: function(context) {
+                                const data = candlestickData[context[0].dataIndex];
+                                return new Date(data.x).toLocaleString();
+                            },
                             label: function(context) {
-                                return `Price: $${context.parsed.y.toFixed(2)}`;
+                                const data = candlestickData[context[0].dataIndex];
+                                return [
+                                    `Open: $${data.o.toFixed(2)}`,
+                                    `High: $${data.h.toFixed(2)}`,
+                                    `Low: $${data.l.toFixed(2)}`,
+                                    `Close: $${data.c.toFixed(2)}`
+                                ];
                             }
                         }
                     }
@@ -413,6 +437,9 @@
                         },
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 10
                         }
                     },
                     y: {
@@ -424,7 +451,8 @@
                             callback: function(value) {
                                 return '$' + value.toFixed(2);
                             }
-                        }
+                        },
+                        beginAtZero: false
                     }
                 },
                 elements: {
@@ -432,8 +460,96 @@
                         radius: 0
                     }
                 }
+            },
+            plugins: [candlestickPlugin]
+        });
+    }
+    
+    // Custom candlestick drawing function
+    function drawCandlesticks() {
+        if (!chart || !candlestickData.length) {
+            console.log('No chart or candlestick data available');
+            return;
+        }
+        
+        const ctx = chart.ctx;
+        const xScale = chart.scales.x;
+        const yScale = chart.scales.y;
+        
+        if (!xScale || !yScale) {
+            console.log('Chart scales not ready');
+            return;
+        }
+        
+        ctx.save();
+        
+        // Calculate bar width based on available space
+        const availableWidth = xScale.width;
+        const barWidth = Math.max(6, Math.min(16, (availableWidth / candlestickData.length) * 0.7));
+        const halfBarWidth = barWidth / 2;
+        
+        console.log(`Drawing ${candlestickData.length} candlesticks with bar width: ${barWidth}`);
+        
+        candlestickData.forEach((candle, index) => {
+            try {
+                // Get pixel positions
+                const x = xScale.getPixelForValue(candle.x);
+                const openY = yScale.getPixelForValue(candle.o);
+                const highY = yScale.getPixelForValue(candle.h);
+                const lowY = yScale.getPixelForValue(candle.l);
+                const closeY = yScale.getPixelForValue(candle.c);
+                
+                // Skip if any position is invalid or outside chart bounds
+                if (isNaN(x) || isNaN(openY) || isNaN(highY) || isNaN(lowY) || isNaN(closeY)) {
+                    console.log(`Invalid position for candle ${index}:`, {x, openY, highY, lowY, closeY});
+                    return;
+                }
+                
+                // Skip if outside chart bounds
+                if (x < 0 || x > availableWidth) {
+                    return;
+                }
+                
+                const isBullish = candle.c >= candle.o;
+                const color = isBullish ? '#00d4aa' : '#ff6b6b';
+                const bodyColor = isBullish ? 'rgba(0, 212, 170, 0.5)' : 'rgba(255, 107, 107, 0.5)';
+                
+                // Draw wick (high-low line)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, highY);
+                ctx.lineTo(x, lowY);
+                ctx.stroke();
+                
+                // Draw body (open-close rectangle)
+                const bodyTop = Math.min(openY, closeY);
+                const bodyHeight = Math.abs(closeY - openY);
+                
+                if (bodyHeight > 1) { // Minimum height to avoid rendering issues
+                    // Fill body
+                    ctx.fillStyle = bodyColor;
+                    ctx.fillRect(x - halfBarWidth, bodyTop, barWidth, bodyHeight);
+                    
+                    // Draw body border
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x - halfBarWidth, bodyTop, barWidth, bodyHeight);
+                } else {
+                    // Doji (open = close) - draw horizontal line
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x - halfBarWidth, openY);
+                    ctx.lineTo(x + halfBarWidth, openY);
+                    ctx.stroke();
+                }
+            } catch (error) {
+                console.warn('Error drawing candlestick at index', index, error);
             }
         });
+        
+        ctx.restore();
     }
     
     // Setup event listeners
@@ -553,21 +669,47 @@
         if (!chart) return;
         
         const now = new Date();
-        const newDataPoint = {
+        const currentPrice = marketData.price;
+        
+        // Create candlestick data point
+        const newCandlestick = {
             x: now,
-            y: marketData.price
+            o: currentPrice,  // Open
+            h: currentPrice,  // High
+            l: currentPrice,  // Low
+            c: currentPrice   // Close
         };
         
-        // Add new data point
-        chart.data.datasets[0].data.push(newDataPoint);
-        
-        // Keep only last 100 data points
-        if (chart.data.datasets[0].data.length > 100) {
-            chart.data.datasets[0].data.shift();
+        // If we have previous data, use the previous close as open
+        if (candlestickData.length > 0) {
+            const lastCandle = candlestickData[candlestickData.length - 1];
+            newCandlestick.o = lastCandle.c;
         }
         
-        // Update chart
+        // Add new candlestick data point
+        candlestickData.push(newCandlestick);
+        
+        // Keep only last 100 data points
+        if (candlestickData.length > 100) {
+            candlestickData.shift();
+        }
+        
+        // Update chart datasets with range data for proper scaling
+        const rangeData = candlestickData.map(candle => ({ 
+            x: candle.x, 
+            y: Math.max(candle.h, candle.l) // Use high for upper bound
+        }));
+        chart.data.datasets[0].data = rangeData;
+        
+        // Update chart (candlesticks will be drawn by plugin)
         chart.update('none');
+        
+        // Force redraw after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (chart) {
+                chart.draw();
+            }
+        }, 50);
     }
     
     // Load initial historical data
@@ -580,13 +722,29 @@
             
             if (result.success && result.data) {
                 const klines = result.data;
-                const chartData = klines.map(kline => ({
+                candlestickData = klines.map(kline => ({
                     x: new Date(kline[0]),
-                    y: parseFloat(kline[4]) // Close price
+                    o: parseFloat(kline[1]),   // Open price
+                    h: parseFloat(kline[2]),   // High price
+                    l: parseFloat(kline[3]),   // Low price
+                    c: parseFloat(kline[4])    // Close price
                 }));
                 
-                chart.data.datasets[0].data = chartData;
+                // Update chart datasets with range data for proper scaling
+                const rangeData = candlestickData.map(candle => ({ 
+                    x: candle.x, 
+                    y: Math.max(candle.h, candle.l) // Use high for upper bound
+                }));
+                chart.data.datasets[0].data = rangeData;
+                
                 chart.update();
+                
+                // Force redraw after a short delay to ensure proper rendering
+                setTimeout(() => {
+                    if (chart) {
+                        chart.draw();
+                    }
+                }, 50);
             }
         } catch (error) {
             console.error('Error loading initial data:', error);
