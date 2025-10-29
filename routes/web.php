@@ -69,6 +69,7 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('transactions', App\Http\Controllers\Admin\TransactionController::class);
     Route::resource('agents', App\Http\Controllers\Admin\AgentController::class);
     Route::resource('plans', App\Http\Controllers\Admin\PlanController::class);
+    Route::resource('rent-bot-packages', App\Http\Controllers\Admin\RentBotPackageController::class);
     Route::resource('wallet-addresses', App\Http\Controllers\Admin\WalletAddressController::class);
     Route::resource('deposits', App\Http\Controllers\Admin\DepositController::class)->only(['index']);
     Route::post('/deposits/{id}/approve', [App\Http\Controllers\Admin\DepositController::class, 'approve'])->name('deposits.approve');

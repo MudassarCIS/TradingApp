@@ -40,7 +40,13 @@
                         <li class="nav-item">
                             <a href="{{route('admin.plans.index')}}" class="nav-link @if(request()->routeIs('admin.plans.*')) active @endif">
                                 <i class="nav-icon bi bi-circle"></i>
-                                <p>{{ __('Manage Plans') }}</p>
+                                <p>{{ __('Manage Sharing(NEXA) Plans') }}</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{route('admin.rent-bot-packages.index')}}" class="nav-link @if(request()->routeIs('admin.rent-bot-packages.*')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Manage Rent a Bot Plans') }}</p>
                             </a>
                         </li>
                         <li class="nav-item">
