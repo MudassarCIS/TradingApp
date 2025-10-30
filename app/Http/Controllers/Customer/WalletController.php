@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class WalletController extends Controller
@@ -46,45 +47,72 @@ class WalletController extends Controller
         // Fetch active wallet addresses from admin settings
         $walletAddresses = WalletAddress::active()->ordered()->get();
         
-        return view('customer.wallet.deposit', compact('wallet', 'walletAddresses'));
+        // Fetch user's recent deposits
+        $recentDeposits = Deposit::where('user_id', $user->id)
+            ->latest()
+            ->limit(5)
+            ->get();
+        
+        return view('customer.wallet.deposit', compact('wallet', 'walletAddresses', 'recentDeposits'));
     }
 
     public function submitDeposit(Request $request)
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|string|max:10',
-            'network' => 'required|string|max:20',
-            'proof_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'notes' => 'nullable|string|max:1000'
-        ]);
+        try {
+            $validated = $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'currency' => 'required|string|max:10',
+                'network' => 'required|string|max:20',
+                'proof_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'notes' => 'nullable|string|max:1000'
+            ]);
 
-        $user = Auth::user();
+            $user = Auth::user();
 
-        // Generate unique deposit ID
-        $depositId = 'DEP' . strtoupper(Str::random(8)) . time();
+            // Generate unique deposit ID
+            $depositId = 'DEP' . strtoupper(Str::random(8)) . time();
 
-        // Handle file upload
-        $proofImagePath = null;
-        if ($request->hasFile('proof_image')) {
-            $file = $request->file('proof_image');
-            $proofImagePath = $file->store('deposits/proofs', 'public');
+            // Handle file upload
+            $proofImagePath = null;
+            if ($request->hasFile('proof_image')) {
+                $file = $request->file('proof_image');
+                $proofImagePath = $file->store('deposits/proofs', 'public');
+                
+                // Ensure storage directory exists
+                if (!$proofImagePath) {
+                    return redirect()->route('customer.wallet.deposit')
+                        ->with('error', 'Failed to upload proof image. Please try again.');
+                }
+            }
+
+            // Create deposit record
+            $deposit = Deposit::create([
+                'user_id' => $user->id,
+                'deposit_id' => $depositId,
+                'amount' => $validated['amount'],
+                'currency' => $validated['currency'],
+                'network' => $validated['network'],
+                'status' => 'pending',
+                'proof_image' => $proofImagePath,
+                'notes' => $validated['notes'] ?? null
+            ]);
+
+            if ($deposit) {
+                return redirect()->route('customer.wallet.deposit')
+                    ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $depositId . '. We will review it within 24 hours.');
+            } else {
+                return redirect()->route('customer.wallet.deposit')
+                    ->with('error', 'Failed to create deposit. Please try again.');
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('customer.wallet.deposit')
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            Log::error('Deposit submission error: ' . $e->getMessage());
+            return redirect()->route('customer.wallet.deposit')
+                ->with('error', 'An error occurred while submitting your deposit. Please try again.');
         }
-
-        // Create deposit record
-        $deposit = Deposit::create([
-            'user_id' => $user->id,
-            'deposit_id' => $depositId,
-            'amount' => $request->amount,
-            'currency' => $request->currency,
-            'network' => $request->network,
-            'status' => 'pending',
-            'proof_image' => $proofImagePath,
-            'notes' => $request->notes
-        ]);
-
-        return redirect()->route('customer.wallet.deposit')
-            ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $depositId . '. We will review it within 24 hours.');
     }
 
     public function withdraw()

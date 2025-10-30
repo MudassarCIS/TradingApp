@@ -21,7 +21,7 @@
 @endif
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>AI Agents</h2>
+    <h2>All Bot Plans</h2>
     <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Create New Agent
     </a>
@@ -165,7 +165,7 @@
                 <div class="card-footer bg-white border-0 pt-0">
                     <div class="d-flex gap-2">
                         @if($bot->invoice_status === 'Unpaid')
-                            <a href="{{ route('customer.invoices.index') }}" class="btn btn-warning btn-sm flex-fill">
+                            <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-warning btn-sm flex-fill">
                                 <i class="bi bi-credit-card me-1"></i> Pay Now
                             </a>
                         @else

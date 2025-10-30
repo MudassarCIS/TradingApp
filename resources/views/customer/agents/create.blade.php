@@ -116,6 +116,7 @@
 $(document).ready(function() {
     let selectedBotType = null;
     let selectedPlan = null;
+    let loadedPlans = []; // Store plans in memory
 
     // Bot type selection
     $('.bot-type-card').click(function() {
@@ -139,6 +140,7 @@ $(document).ready(function() {
             method: 'GET',
             success: function(response) {
                 $('#loading-spinner').hide();
+                loadedPlans = response.data; // Store plans in memory
                 displayPlans(response.data, botType);
             },
             error: function(xhr) {
@@ -155,12 +157,11 @@ $(document).ready(function() {
         
         plans.forEach(function(plan, index) {
             const cardClass = botType === 'rent-bot' ? 'rent-bot-card' : 'sharing-nexa-card';
-            const planData = JSON.stringify(plan);
             const planName = plan.name || (botType === 'rent-bot' ? `Package ${index + 1}` : 'Plan');
             
             html += `
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card ${cardClass}" data-plan='${planData.replace(/'/g, "&apos;")}'>
+                    <div class="card ${cardClass}">
                         <div class="card-body">
                             <h5 class="card-title">${planName}</h5>
                             <div class="plan-details">
@@ -175,7 +176,7 @@ $(document).ready(function() {
                                      <p><strong>Trades/Day:</strong> ${plan.trades_per_day}</p>`
                                 }
                             </div>
-                            <button class="btn btn-primary w-100 select-plan-btn" data-plan='${planData.replace(/'/g, "&apos;")}'>
+                            <button class="btn btn-primary w-100 select-plan-btn" data-plan-index="${index}">
                                 Select
                             </button>
                         </div>
@@ -190,11 +191,16 @@ $(document).ready(function() {
     // Plan selection
     $(document).on('click', '.select-plan-btn', function() {
         try {
-            selectedPlan = JSON.parse($(this).data('plan'));
-            showPlanConfirmation();
+            const planIndex = parseInt($(this).data('plan-index'));
+            if (planIndex >= 0 && planIndex < loadedPlans.length) {
+                selectedPlan = loadedPlans[planIndex];
+                showPlanConfirmation();
+            } else {
+                throw new Error('Invalid plan index');
+            }
         } catch (e) {
-            console.error('Error parsing plan data:', e);
-            alert('Error parsing plan data. Please try again.');
+            console.error('Error selecting plan:', e);
+            alert('Error selecting plan. Please try again.');
         }
     });
 
@@ -299,7 +305,7 @@ $(document).ready(function() {
 
     // Reset confirm button
     function resetConfirmButton() {
-        $('#confirm-plan-selection').prop('disabled', false).html('Confirm Selection');
+        $('#confirm-plan-selection').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm & Create Plan');
     }
 
     // Show success message

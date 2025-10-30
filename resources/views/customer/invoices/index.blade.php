@@ -107,9 +107,9 @@ $(document).ready(function() {
                 render: function(data, type, row) {
                     if (row.status === 'Unpaid') {
                         return `
-                            <button class="btn btn-sm btn-primary" onclick="showPaymentModal(${data}, '${row.formatted_amount}')">
+                            <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-sm btn-primary">
                                 <i class="bi bi-credit-card"></i> Pay
-                            </button>
+                            </a>
                         `;
                     } else {
                         return '<span class="text-success"><i class="bi bi-check-circle"></i> Paid</span>';

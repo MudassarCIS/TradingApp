@@ -85,6 +85,7 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('deposits', App\Http\Controllers\Admin\DepositController::class)->only(['index']);
     Route::post('/deposits/{id}/approve', [App\Http\Controllers\Admin\DepositController::class, 'approve'])->name('deposits.approve');
     Route::post('/deposits/{id}/reject', [App\Http\Controllers\Admin\DepositController::class, 'reject'])->name('deposits.reject');
+    Route::put('/deposits/{id}', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
 });
 

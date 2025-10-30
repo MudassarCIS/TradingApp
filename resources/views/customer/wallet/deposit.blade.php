@@ -67,6 +67,33 @@
 @endpush
 
 @section('content')
+<!-- Success/Error Messages -->
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+@if($errors->any())
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> 
+    <ul class="mb-0">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 <!-- Deposit Header -->
 <div class="row">
     <div class="col-12 mb-4">
@@ -198,31 +225,37 @@
                     <table class="table table-sm">
                         <thead>
                             <tr>
+                                <th>Deposit ID</th>
                                 <th>Amount</th>
+                                <th>Currency</th>
+                                <th>Network</th>
                                 <th>Status</th>
                                 <th>Date</th>
-                                <th>Confirmations</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($wallet->user->transactions()->where('type', 'deposit')->latest()->limit(5)->get() as $transaction)
+                            @forelse($recentDeposits as $deposit)
                             <tr>
                                 <td>
-                                    <span class="text-success fw-bold">
-                                        +${{ number_format($transaction->amount, 2) }}
-                                    </span>
+                                    <small class="text-muted">{{ $deposit->deposit_id }}</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : ($transaction->status === 'pending' ? 'warning' : 'secondary') }}">
-                                        {{ ucfirst($transaction->status) }}
+                                    <span class="text-success fw-bold">
+                                        +{{ number_format($deposit->amount, 2) }}
                                     </span>
                                 </td>
-                                <td>{{ $transaction->created_at->format('M d, Y H:i') }}</td>
-                                <td>{{ $transaction->confirmations }}/3</td>
+                                <td>{{ $deposit->currency }}</td>
+                                <td>{{ $deposit->network }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $deposit->status === 'approved' ? 'success' : ($deposit->status === 'pending' ? 'warning' : 'danger') }}">
+                                        {{ ucfirst($deposit->status) }}
+                                    </span>
+                                </td>
+                                <td>{{ $deposit->created_at->format('M d, Y H:i') }}</td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted">
+                                <td colspan="6" class="text-center text-muted">
                                     No deposits found
                                 </td>
                             </tr>
@@ -251,14 +284,14 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" value="{{ old('amount') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="currency" class="form-label">Currency <span class="text-danger">*</span></label>
                             <select class="form-select" id="currency" name="currency" required>
                                 <option value="">Select Currency</option>
                                 @foreach($walletAddresses->pluck('symbol')->unique() as $symbol)
-                                    <option value="{{ $symbol }}">{{ $symbol }}</option>
+                                    <option value="{{ $symbol }}" {{ old('currency') == $symbol ? 'selected' : '' }}>{{ $symbol }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -270,7 +303,7 @@
                             <select class="form-select" id="network" name="network" required>
                                 <option value="">Select Network</option>
                                 @foreach($walletAddresses->pluck('network')->filter()->unique() as $network)
-                                    <option value="{{ $network }}">{{ $network }}</option>
+                                    <option value="{{ $network }}" {{ old('network') == $network ? 'selected' : '' }}>{{ $network }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -283,7 +316,7 @@
                     
                     <div class="mb-3">
                         <label for="notes" class="form-label">Additional Notes (Optional)</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional information about your deposit..."></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional information about your deposit...">{{ old('notes') }}</textarea>
                     </div>
                     
                     <div class="alert alert-info">
@@ -329,9 +362,64 @@
         });
     }
     
-    // Auto-refresh to check for new deposits
-    setInterval(function() {
-        location.reload();
-    }, 30000); // Refresh every 30 seconds
+    // Handle deposit form submission
+    $(document).ready(function() {
+        $('#depositForm').on('submit', function(e) {
+            const form = $(this);
+            const submitBtn = form.find('button[type="submit"]');
+            const originalBtnText = submitBtn.html();
+            
+            // Disable submit button to prevent double submission
+            submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Submitting...');
+            
+            // Form will submit normally, but we can add validation feedback
+            const amount = $('#amount').val();
+            const currency = $('#currency').val();
+            const network = $('#network').val();
+            const proofImage = $('#proof_image').val();
+            
+            if (!amount || amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid amount');
+                submitBtn.prop('disabled', false).html(originalBtnText);
+                return false;
+            }
+            
+            if (!currency) {
+                e.preventDefault();
+                alert('Please select a currency');
+                submitBtn.prop('disabled', false).html(originalBtnText);
+                return false;
+            }
+            
+            if (!network) {
+                e.preventDefault();
+                alert('Please select a network');
+                submitBtn.prop('disabled', false).html(originalBtnText);
+                return false;
+            }
+            
+            if (!proofImage) {
+                e.preventDefault();
+                alert('Please upload a proof image');
+                submitBtn.prop('disabled', false).html(originalBtnText);
+                return false;
+            }
+            
+            // If all validations pass, form will submit
+            // The server will handle the response
+        });
+        
+        // Reset form when modal is closed
+        $('#depositModal').on('hidden.bs.modal', function() {
+            $('#depositForm')[0].reset();
+            $('#depositForm').find('button[type="submit"]').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Submit Deposit');
+        });
+        
+        // Auto-refresh to check for new deposits (optional - can be disabled)
+        // setInterval(function() {
+        //     location.reload();
+        // }, 30000); // Refresh every 30 seconds
+    });
 </script>
 @endpush

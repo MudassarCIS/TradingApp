@@ -200,6 +200,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
+                                <i class="bi bi-cash-coin"></i>
+                                Deposits
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
                                 <i class="bi bi-robot"></i>
                                 AI Agents
@@ -214,7 +220,7 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
                                 <i class="bi bi-receipt"></i>
-                                Customer Invoices
+                                Invoices
                                 @if(isset($unpaidCount) && $unpaidCount > 0)
                                     <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
                                 @endif
