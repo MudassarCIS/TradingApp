@@ -44,6 +44,17 @@ Route::prefix('api')->group(function () {
             'referral_code' => $user->referral_code
         ]);
     });
+
+    // Bot packages and plans API
+    Route::get('/rent-bot-packages', function() {
+        $packages = \App\Models\RentBotPackage::where('status', 1)->orWhere('status', 'active')->get();
+        return response()->json(['success' => true, 'data' => $packages]);
+    });
+
+    Route::get('/plans', function() {
+        $plans = \App\Models\Plan::active()->ordered()->get();
+        return response()->json(['success' => true, 'data' => $plans]);
+    });
 });
 
 // Redirect authenticated users to appropriate dashboard
@@ -117,6 +128,10 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     // Support
     Route::get('/support', [SupportController::class, 'index'])->name('support.index');
     Route::post('/support', [SupportController::class, 'store'])->name('support.store');
+    
+    // Invoices
+    Route::get('/invoices', [App\Http\Controllers\Customer\InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('/invoices/data', [App\Http\Controllers\Customer\InvoiceController::class, 'getInvoicesData'])->name('invoices.data');
 });
 
 // General auth routes

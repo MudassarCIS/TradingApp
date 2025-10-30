@@ -132,6 +132,16 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'referred_by');
     }
 
+    public function activeBots()
+    {
+        return $this->hasMany(UserActiveBot::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(UserInvoice::class);
+    }
+
     // Helper methods - Updated to use Spatie roles instead of user_type
     public function isAdmin()
     {

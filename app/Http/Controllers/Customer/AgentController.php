@@ -14,7 +14,31 @@ class AgentController extends Controller
         $user = Auth::user();
         $agents = $user->agents()->latest()->paginate(10);
         
-        return view('customer.agents.index', compact('agents'));
+        // Get user's active bots with their invoice status
+        $activeBots = $user->activeBots()
+            ->with(['user' => function($query) {
+                $query->with(['invoices' => function($q) {
+                    $q->where('invoice_type', '!=', null);
+                }]);
+            }])
+            ->latest()
+            ->get()
+            ->map(function($bot) use ($user) {
+                // Get the corresponding invoice for this bot
+                $invoice = $user->invoices()
+                    ->where('invoice_type', $bot->buy_type)
+                    ->where('created_at', '>=', $bot->created_at->subMinutes(5))
+                    ->where('created_at', '<=', $bot->created_at->addMinutes(5))
+                    ->first();
+                
+                $bot->invoice_status = $invoice ? $invoice->status : 'Unknown';
+                $bot->invoice_amount = $invoice ? $invoice->amount : 0;
+                $bot->invoice_due_date = $invoice ? $invoice->due_date : null;
+                
+                return $bot;
+            });
+        
+        return view('customer.agents.index', compact('agents', 'activeBots'));
     }
     
     public function create()
@@ -24,6 +48,12 @@ class AgentController extends Controller
     
     public function store(Request $request)
     {
+        // Check if this is the new bot selection flow
+        if ($request->has('bot_type') && $request->has('plan_data')) {
+            return $this->storeBotSelection($request);
+        }
+
+        // Original agent creation flow (keep for backward compatibility)
         $request->validate([
             'name' => 'required|string|max:255',
             'strategy' => 'required|string',
@@ -52,6 +82,54 @@ class AgentController extends Controller
         
         return redirect()->route('customer.agents.index')
             ->with('success', 'AI Agent created successfully!');
+    }
+
+    private function storeBotSelection(Request $request)
+    {
+        $request->validate([
+            'bot_type' => 'required|in:rent-bot,sharing-nexa',
+            'plan_data' => 'required|array',
+        ]);
+
+        $user = Auth::user();
+        $planData = $request->plan_data;
+        $botType = $request->bot_type;
+
+        try {
+            \DB::beginTransaction();
+
+            // Create user active bot record
+            $activeBot = $user->activeBots()->create([
+                'buy_type' => $botType === 'rent-bot' ? 'Rent A Bot' : 'Sharing Nexa',
+                'buy_plan_details' => $planData,
+            ]);
+
+            // Create invoice
+            $amount = $botType === 'rent-bot' ? $planData['amount'] : $planData['joining_fee'];
+            $invoiceType = $botType === 'rent-bot' ? 'Rent A Bot' : 'Sharing Nexa';
+            
+            $invoice = $user->invoices()->create([
+                'invoice_type' => $invoiceType,
+                'amount' => $amount,
+                'due_date' => now()->addDays(7),
+                'status' => 'Unpaid',
+            ]);
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bot plan created successfully! Invoice generated for payment.',
+                'invoice_id' => $invoice->id,
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving bot selection: ' . $e->getMessage(),
+            ], 500);
+        }
     }
     
     public function show(Agent $agent)

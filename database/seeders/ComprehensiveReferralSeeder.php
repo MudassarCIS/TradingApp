@@ -175,7 +175,7 @@ class ComprehensiveReferralSeeder extends Seeder
         $this->createTestDeposits($level1Users, $level2Users, $level3Users);
         
         // Create test transactions for wallet history
-        $this->createTestTransactions($mainUser, $level1Users, $level2Users, $level3Users);
+        $this->createTestTransactions($mainReferrer, $level1Users, $level2Users, $level3Users);
     }
 
     private function createReferralLevel($parentUser, $level, $count, $plans, $config)
@@ -274,18 +274,17 @@ class ComprehensiveReferralSeeder extends Seeder
         }
     }
     
-    private function createTestTransactions($mainUser, $level1Users, $level2Users, $level3Users)
+    private function createTestTransactions($mainReferrer, $level1Users, $level2Users, $level3Users)
     {
         $this->command->info('Creating test transactions...');
         
-        $allUsers = array_merge([$mainUser], $level1Users, $level2Users, $level3Users);
+        $allUsers = array_merge([$mainReferrer], $level1Users, $level2Users, $level3Users);
         
         foreach ($allUsers as $user) {
             // Create various types of transactions
             $transactionTypes = [
                 'deposit' => 3,
                 'withdrawal' => 2,
-                'bonus' => 1,
                 'commission' => 2,
                 'transfer' => 1,
             ];
@@ -303,7 +302,6 @@ class ComprehensiveReferralSeeder extends Seeder
         $amounts = [
             'deposit' => [100, 500, 1000, 2000, 5000],
             'withdrawal' => [50, 200, 500, 1000],
-            'bonus' => [10, 25, 50, 100],
             'commission' => [5, 15, 30, 75],
             'transfer' => [25, 100, 250, 500],
         ];
@@ -316,7 +314,7 @@ class ComprehensiveReferralSeeder extends Seeder
         
         $transaction = \App\Models\Transaction::create([
             'user_id' => $user->id,
-            'transaction_id' => 'TXN' . time() . rand(1000, 9999),
+            'transaction_id' => 'TXN' . time() . rand(1000, 9999) . '_' . $user->id . '_' . uniqid(),
             'type' => $type,
             'status' => $status,
             'currency' => 'USDT',
@@ -365,13 +363,6 @@ class ComprehensiveReferralSeeder extends Seeder
                 'Bank transfer withdrawal',
                 'Crypto withdrawal',
                 'Emergency withdrawal'
-            ],
-            'bonus' => [
-                'Welcome bonus',
-                'Referral bonus',
-                'Trading bonus',
-                'Loyalty bonus',
-                'Promotional bonus'
             ],
             'commission' => [
                 'Level 1 referral commission',

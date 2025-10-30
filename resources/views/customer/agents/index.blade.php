@@ -4,12 +4,186 @@
 @section('page-title', 'AI Agents')
 
 @section('content')
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-2"></i>
+    {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>AI Agents</h2>
     <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Create New Agent
     </a>
 </div>
+
+@if($activeBots->count() > 0)
+<!-- Active Bot Plans Section -->
+<div class="mb-5">
+    <h4 class="mb-4">
+        <i class="bi bi-robot text-primary"></i> Your Bot Plans
+        <span class="badge bg-primary ms-2">{{ $activeBots->count() }}</span>
+    </h4>
+    
+    <div class="row">
+        @foreach($activeBots as $bot)
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0" style="border-left: 4px solid {{ $bot->buy_type === 'Rent A Bot' ? '#fd7e14' : '#0d6efd' }} !important;">
+                <div class="card-header bg-white border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1 text-dark">
+                                <i class="bi {{ $bot->buy_type === 'Rent A Bot' ? 'bi-robot' : 'bi-share' }} me-2"></i>
+                                {{ $bot->buy_type }}
+                            </h5>
+                            <small class="text-muted">{{ $bot->created_at->format('M d, Y') }}</small>
+                        </div>
+                        <div class="text-end">
+                            @if($bot->invoice_status === 'Paid')
+                                <span class="badge bg-success fs-6 px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i>Active
+                                </span>
+                            @elseif($bot->invoice_status === 'Unpaid')
+                                <span class="badge bg-warning fs-6 px-3 py-2">
+                                    <i class="bi bi-clock me-1"></i>Unpaid
+                                </span>
+                            @else
+                                <span class="badge bg-secondary fs-6 px-3 py-2">
+                                    <i class="bi bi-question-circle me-1"></i>Unknown
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body pt-2">
+                    @if($bot->buy_type === 'Rent A Bot')
+                        @php $details = $bot->buy_plan_details; @endphp
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-robot text-primary me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Bots</small>
+                                        <span class="fw-bold">{{ $details['allowed_bots'] ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-graph-up text-success me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Trades</small>
+                                        <span class="fw-bold">{{ $details['allowed_trades'] ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-calendar text-info me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Validity</small>
+                                        <span class="fw-bold">{{ $details['validity'] ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-currency-dollar text-warning me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Amount</small>
+                                        <span class="fw-bold">${{ number_format($details['amount'] ?? 0, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        @php $details = $bot->buy_plan_details; @endphp
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-robot text-primary me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Bots Allowed</small>
+                                        <span class="fw-bold">{{ $details['bots_allowed'] ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-graph-up text-success me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Trades/Day</small>
+                                        <span class="fw-bold">{{ $details['trades_per_day'] ?? 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-currency-dollar text-warning me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Joining Fee</small>
+                                        <span class="fw-bold">${{ number_format($details['joining_fee'] ?? 0, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-bank text-info me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Investment</small>
+                                        <span class="fw-bold">${{ number_format($details['investment_amount'] ?? 0, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                    
+                    @if($bot->invoice_status === 'Unpaid')
+                        <div class="alert alert-warning mt-3 mb-0 py-2">
+                            <small>
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                Payment due: ${{ number_format($bot->invoice_amount, 2) }}
+                                @if($bot->invoice_due_date)
+                                    (Due: {{ $bot->invoice_due_date->format('M d, Y') }})
+                                @endif
+                            </small>
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="card-footer bg-white border-0 pt-0">
+                    <div class="d-flex gap-2">
+                        @if($bot->invoice_status === 'Unpaid')
+                            <a href="{{ route('customer.invoices.index') }}" class="btn btn-warning btn-sm flex-fill">
+                                <i class="bi bi-credit-card me-1"></i> Pay Now
+                            </a>
+                        @else
+                            <button class="btn btn-success btn-sm flex-fill" disabled>
+                                <i class="bi bi-check-circle me-1"></i> Active
+                            </button>
+                        @endif
+                        <a href="{{ route('customer.invoices.index') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-receipt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
+@endif
 
 @if($agents->count() > 0)
 <div class="row">
@@ -76,6 +250,7 @@
     {{ $agents->links() }}
 </div>
 @else
+@if($activeBots->count() == 0)
 <div class="text-center py-5">
     <i class="bi bi-robot display-1 text-muted"></i>
     <h4 class="text-muted mt-3">No AI Agents</h4>
@@ -84,5 +259,6 @@
         <i class="bi bi-robot"></i> Create Your First Agent
     </a>
 </div>
+@endif
 @endif
 @endsection

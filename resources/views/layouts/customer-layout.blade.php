@@ -212,6 +212,15 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
+                                <i class="bi bi-receipt"></i>
+                                Customer Invoices
+                                @if(isset($unpaidCount) && $unpaidCount > 0)
+                                    <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
                                 <i class="bi bi-headset"></i>
                                 Support
