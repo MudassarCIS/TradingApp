@@ -189,8 +189,13 @@ $(document).ready(function() {
 
     // Plan selection
     $(document).on('click', '.select-plan-btn', function() {
-        selectedPlan = JSON.parse($(this).data('plan'));
-        showPlanConfirmation();
+        try {
+            selectedPlan = JSON.parse($(this).data('plan'));
+            showPlanConfirmation();
+        } catch (e) {
+            console.error('Error parsing plan data:', e);
+            alert('Error parsing plan data. Please try again.');
+        }
     });
 
     // Show plan confirmation modal
@@ -227,6 +232,8 @@ $(document).ready(function() {
     $('#confirm-plan-selection').click(function() {
         if (selectedPlan && selectedBotType) {
             saveBotSelection();
+        } else {
+            alert('Missing selection data. Please try selecting a plan again.');
         }
     });
 
@@ -234,10 +241,7 @@ $(document).ready(function() {
     $('#cancel-selection').click(function() {
         // Reset selection
         selectedPlan = null;
-        selectedBotType = null;
-        
-        // Remove selected state from cards
-        $('.bot-type-card').removeClass('selected');
+        // Don't reset selectedBotType - user should be able to select a different plan of the same type
         
         // Hide plans container
         $('#plans-container').hide();
@@ -245,6 +249,12 @@ $(document).ready(function() {
         
         // Show message
         showInfoMessage('Selection cancelled. You can choose a different plan.');
+    });
+
+    // Handle modal dismissal - don't reset selectedBotType
+    $('#planModal').on('hidden.bs.modal', function() {
+        // Only reset selectedPlan, keep selectedBotType so user can select another plan
+        selectedPlan = null;
     });
 
     // Save bot selection
