@@ -9,6 +9,8 @@ class Deposit extends Model
 {
     protected $fillable = [
         'user_id',
+        'invoice_id',
+        'trans_id',
         'deposit_id',
         'amount',
         'currency',
@@ -34,6 +36,11 @@ class Deposit extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(UserInvoice::class);
     }
 
     public function getProofImageUrlAttribute()

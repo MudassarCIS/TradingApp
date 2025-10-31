@@ -7,11 +7,13 @@ use App\Models\Wallet;
 use App\Models\Transaction;
 use App\Models\WalletAddress;
 use App\Models\Deposit;
+use App\Models\UserInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WalletController extends Controller
@@ -39,7 +41,7 @@ class WalletController extends Controller
         return view('customer.wallet.index', compact('wallets'));
     }
 
-    public function deposit()
+    public function deposit(Request $request)
     {
         $user = Auth::user();
         $wallet = $user->getMainWallet('USDT');
@@ -53,7 +55,29 @@ class WalletController extends Controller
             ->limit(5)
             ->get();
         
-        return view('customer.wallet.deposit', compact('wallet', 'walletAddresses', 'recentDeposits'));
+        // Get invoice_id from URL if present
+        $invoiceId = $request->query('invoice_id');
+        $selectedInvoice = null;
+        
+        // Fetch unpaid invoices for dropdown
+        if ($invoiceId) {
+            // If invoice_id is in URL, only show that specific invoice (if it's unpaid)
+            $selectedInvoice = UserInvoice::where('user_id', $user->id)
+                ->where('id', $invoiceId)
+                ->where('status', 'Unpaid')
+                ->first();
+            
+            // Only include the selected invoice in the dropdown if it exists and is unpaid
+            $unpaidInvoices = $selectedInvoice ? collect([$selectedInvoice]) : collect([]);
+        } else {
+            // If no invoice_id in URL, show all unpaid invoices
+            $unpaidInvoices = UserInvoice::where('user_id', $user->id)
+                ->where('status', 'Unpaid')
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+        
+        return view('customer.wallet.deposit', compact('wallet', 'walletAddresses', 'recentDeposits', 'unpaidInvoices', 'invoiceId', 'selectedInvoice'));
     }
 
     public function submitDeposit(Request $request)
@@ -63,14 +87,25 @@ class WalletController extends Controller
                 'amount' => 'required|numeric|min:0.01',
                 'currency' => 'required|string|max:10',
                 'network' => 'required|string|max:20',
+                'trans_id' => 'required|string|max:255',
                 'proof_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'notes' => 'nullable|string|max:1000'
+                'notes' => 'nullable|string|max:1000',
+                'invoice_id' => 'nullable|exists:user_invoices,id'
             ]);
 
             $user = Auth::user();
-
-            // Generate unique deposit ID
-            $depositId = 'DEP' . strtoupper(Str::random(8)) . time();
+            
+            // Validate invoice_id belongs to user if provided
+            if ($request->filled('invoice_id')) {
+                $invoice = UserInvoice::where('id', $request->invoice_id)
+                    ->where('user_id', $user->id)
+                    ->first();
+                    
+                if (!$invoice) {
+                    return redirect()->route('customer.wallet.deposit')
+                        ->with('error', 'Invalid invoice selected.');
+                }
+            }
 
             // Handle file upload
             $proofImagePath = null;
@@ -85,33 +120,57 @@ class WalletController extends Controller
                 }
             }
 
-            // Create deposit record
-            $deposit = Deposit::create([
-                'user_id' => $user->id,
-                'deposit_id' => $depositId,
-                'amount' => $validated['amount'],
-                'currency' => $validated['currency'],
-                'network' => $validated['network'],
-                'status' => 'pending',
-                'proof_image' => $proofImagePath,
-                'notes' => $validated['notes'] ?? null
-            ]);
+            // Use database transaction to ensure atomicity
+            $deposit = DB::transaction(function () use ($user, $request, $validated, $proofImagePath) {
+                // Create deposit record first (without deposit_id, it's nullable now)
+                $deposit = Deposit::create([
+                    'user_id' => $user->id,
+                    'invoice_id' => $request->invoice_id ?? null,
+                    'trans_id' => $validated['trans_id'],
+                    'deposit_id' => null, // Will be set after creation
+                    'amount' => $validated['amount'],
+                    'currency' => $validated['currency'],
+                    'network' => $validated['network'],
+                    'status' => 'pending',
+                    'proof_image' => $proofImagePath,
+                    'notes' => $validated['notes'] ?? null
+                ]);
 
-            if ($deposit) {
-                return redirect()->route('customer.wallet.deposit')
-                    ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $depositId . '. We will review it within 24 hours.');
-            } else {
-                return redirect()->route('customer.wallet.deposit')
-                    ->with('error', 'Failed to create deposit. Please try again.');
+                // Generate deposit_id with format TRX-000{id} using the inserted deposit ID
+                // Format: TRX-0001, TRX-0010, TRX-0100, TRX-1000, etc.
+                $depositId = 'TRX-' . str_pad($deposit->id, 4, '0', STR_PAD_LEFT);
+                $deposit->update(['deposit_id' => $depositId]);
+                
+                return $deposit->fresh(); // Return fresh instance with updated deposit_id
+            });
+
+            // Update invoice status to payment_pending if invoice_id is provided
+            if ($deposit && $request->filled('invoice_id')) {
+                UserInvoice::where('id', $request->invoice_id)
+                    ->where('user_id', $user->id)
+                    ->update(['status' => 'payment_pending']);
             }
+            
+            return redirect()->route('customer.wallet.deposit')
+                ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $deposit->deposit_id . '. We will review it within 24 hours.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->route('customer.wallet.deposit')
                 ->withErrors($e->errors())
                 ->withInput();
         } catch (\Exception $e) {
             Log::error('Deposit submission error: ' . $e->getMessage());
+            Log::error('Deposit submission stack trace: ' . $e->getTraceAsString());
+            Log::error('Deposit submission request data: ', $request->except(['proof_image', '_token']));
+            
+            // Show user-friendly error message
+            $errorMessage = 'An error occurred while submitting your deposit. Please try again.';
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
             return redirect()->route('customer.wallet.deposit')
-                ->with('error', 'An error occurred while submitting your deposit. Please try again.');
+                ->with('error', $errorMessage)
+                ->withInput();
         }
     }
 
@@ -159,7 +218,7 @@ class WalletController extends Controller
         ]);
 
         // Lock the balance
-        $wallet->lockBalance($request->amount);
+        //$wallet->lockBalance($request->amount);
 
         return redirect()->route('customer.wallet.history')
             ->with('success', 'Withdrawal request submitted successfully');
@@ -320,5 +379,27 @@ class WalletController extends Controller
             ->paginate(20);
         
         return view('customer.wallet.purchases', compact('purchases'));
+    }
+
+    public function getInvoiceDetails($invoiceId)
+    {
+        $user = Auth::user();
+        
+        $invoice = UserInvoice::where('id', $invoiceId)
+            ->where('user_id', $user->id)
+            ->first();
+        
+        if (!$invoice) {
+            return response()->json(['error' => 'Invoice not found'], 404);
+        }
+        
+        return response()->json([
+            'id' => $invoice->id,
+            'amount' => $invoice->amount,
+            'invoice_type' => $invoice->invoice_type,
+            'invoice_title' => $invoice->invoice_type, // invoice_title is same as invoice_type
+            'status' => $invoice->status,
+            'due_date' => $invoice->due_date ? $invoice->due_date->format('Y-m-d') : null,
+        ]);
     }
 }

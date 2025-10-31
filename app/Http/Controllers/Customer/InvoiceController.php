@@ -34,10 +34,25 @@ class InvoiceController extends Controller
                 return $invoice->created_at->format('d/m/Y H:i');
             })
             ->addColumn('status_badge', function ($invoice) {
-                $badgeClass = $invoice->status === 'Paid' ? 'success' : 'danger';
+                $badgeClass = match($invoice->status) {
+                    'Paid' => 'success',
+                    'Processing' => 'warning',
+                    'Unpaid' => 'danger',
+                    default => 'secondary'
+                };
                 return '<span class="badge bg-' . $badgeClass . '">' . $invoice->status . '</span>';
             })
-            ->rawColumns(['status_badge'])
+            ->addColumn('payment_action', function ($invoice) {
+                // Hide payment button if status is not Unpaid
+                if ($invoice->status === 'Unpaid') {
+                    return '<a href="' . route('customer.wallet.deposit', ['invoice_id' => $invoice->id]) . '" class="btn btn-sm btn-primary">
+                                <i class="bi bi-credit-card"></i> Pay
+                            </a>';
+                } else {
+                    return '<span class="text-muted"><i class="bi bi-info-circle"></i> ' . $invoice->status . '</span>';
+                }
+            })
+            ->rawColumns(['status_badge', 'payment_action'])
             ->make(true);
     }
 }

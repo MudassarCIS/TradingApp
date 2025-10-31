@@ -164,7 +164,11 @@
                 
                 <div class="card-footer bg-white border-0 pt-0">
                     <div class="d-flex gap-2">
-                        @if($bot->invoice_status === 'Unpaid')
+                        @if($bot->invoice_status === 'Unpaid' && $bot->invoice_id)
+                            <a href="{{ route('customer.wallet.deposit', ['invoice_id' => $bot->invoice_id]) }}" class="btn btn-warning btn-sm flex-fill">
+                                <i class="bi bi-credit-card me-1"></i> Pay Now
+                            </a>
+                        @elseif($bot->invoice_status === 'Unpaid')
                             <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-warning btn-sm flex-fill">
                                 <i class="bi bi-credit-card me-1"></i> Pay Now
                             </a>

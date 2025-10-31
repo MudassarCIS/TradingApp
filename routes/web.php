@@ -85,6 +85,7 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('deposits', App\Http\Controllers\Admin\DepositController::class)->only(['index']);
     Route::post('/deposits/{id}/approve', [App\Http\Controllers\Admin\DepositController::class, 'approve'])->name('deposits.approve');
     Route::post('/deposits/{id}/reject', [App\Http\Controllers\Admin\DepositController::class, 'reject'])->name('deposits.reject');
+    Route::post('/deposits/{id}/cancel', [App\Http\Controllers\Admin\DepositController::class, 'cancel'])->name('deposits.cancel');
     Route::put('/deposits/{id}', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
 });
@@ -108,6 +109,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::post('/wallet/withdraw', [WalletController::class, 'processWithdrawal'])->name('wallet.withdraw.process');
     Route::get('/wallet/history', [WalletController::class, 'history'])->name('wallet.history');
     Route::get('/wallet/purchases', [WalletController::class, 'purchases'])->name('wallet.purchases');
+    Route::get('/invoices/{invoiceId}/details', [WalletController::class, 'getInvoiceDetails'])->name('invoices.details');
     
     // AI Agents
     Route::get('/agents', [AgentController::class, 'index'])->name('agents.index');

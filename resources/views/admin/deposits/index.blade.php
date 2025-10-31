@@ -100,6 +100,7 @@
                                 <th>Amount</th>
                                 <th>Currency</th>
                                 <th>Network</th>
+                                <th>Transaction ID</th>
                                 <th>Status</th>
                                 <th>Proof</th>
                                 <th>Date</th>
@@ -214,12 +215,13 @@ $(document).ready(function() {
             { data: 'amount_formatted', name: 'amount' },
             { data: 'currency', name: 'currency' },
             { data: 'network', name: 'network' },
+            { data: 'trans_id', name: 'trans_id' },
             { data: 'status_badge', name: 'status' },
             { data: 'proof_image', name: 'proof_image' },
             { data: 'created_at', name: 'created_at' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],
-        order: [[7, 'desc']],
+        order: [[8, 'desc']],
         pageLength: 25,
         responsive: true,
         dom: 'Bfrtip',
@@ -239,9 +241,10 @@ $(document).ready(function() {
                     <div class="col-md-6">
                         <h6>Deposit Information</h6>
                         <p><strong>Deposit ID:</strong> ${data.deposit_id}</p>
+                        ${data.trans_id ? `<p><strong>Transaction ID:</strong> ${data.trans_id}</p>` : ''}
                         <p><strong>Amount:</strong> $${parseFloat(data.amount).toFixed(2)} ${data.currency}</p>
                         <p><strong>Network:</strong> ${data.network}</p>
-                        <p><strong>Status:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : (data.status === 'approved' ? 'success' : 'danger')}">${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</span></p>
+                        <p><strong>Status:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : (data.status === 'approved' ? 'success' : (data.status === 'rejected' ? 'danger' : (data.status === 'cancelled' ? 'secondary' : 'secondary')))}">${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</span></p>
                         <p><strong>Date:</strong> ${new Date(data.created_at).toLocaleString()}</p>
                     </div>
                     <div class="col-md-6">
@@ -306,6 +309,21 @@ $(document).ready(function() {
             showAlert('error', xhr.responseJSON.error || 'An error occurred');
         });
     });
+
+    // Cancel deposit
+    window.cancelDeposit = function(id) {
+        if (confirm('Are you sure you want to cancel this deposit? The associated invoice (if any) will be reset to Unpaid status.')) {
+            $.post("{{ route('admin.deposits.cancel', '') }}/" + id, function(response) {
+                if (response.success) {
+                    table.ajax.reload();
+                    loadStatistics();
+                    showAlert('success', response.success);
+                }
+            }).fail(function(xhr) {
+                showAlert('error', xhr.responseJSON.error || 'An error occurred');
+            });
+        }
+    };
 
     function loadStatistics() {
         $.get("{{ route('admin.deposits.index') }}", function(data) {

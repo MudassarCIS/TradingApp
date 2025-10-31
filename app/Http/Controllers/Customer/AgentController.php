@@ -34,6 +34,7 @@ class AgentController extends Controller
                 $bot->invoice_status = $invoice ? $invoice->status : 'Unknown';
                 $bot->invoice_amount = $invoice ? $invoice->amount : 0;
                 $bot->invoice_due_date = $invoice ? $invoice->due_date : null;
+                $bot->invoice_id = $invoice ? $invoice->id : null;
                 
                 return $bot;
             });

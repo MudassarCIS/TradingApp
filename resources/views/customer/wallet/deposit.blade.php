@@ -131,7 +131,7 @@
                     <div class="address-container">
                         <code id="depositAddress{{ $walletAddress->id }}">{{ $walletAddress->wallet_address }}</code>
                     </div>
-                    <button class="btn btn-primary" onclick="copyToClipboard('{{ $walletAddress->wallet_address }}', 'depositAddress{{ $walletAddress->id }}')">
+                    <button class="btn btn-primary" onclick="copyToClipboard(event, '{{ $walletAddress->wallet_address }}', 'depositAddress{{ $walletAddress->id }}')">
                         <i class="bi bi-copy"></i> Copy Address
                     </button>
                     
@@ -280,19 +280,43 @@
             </div>
             <form id="depositForm" action="{{ route('customer.wallet.deposit.submit') }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" id="invoice_id" name="invoice_id" value="{{ old('invoice_id', $invoiceId) }}">
+                <input type="hidden" id="invoice_title" name="invoice_title" value="{{ old('invoice_title', $selectedInvoice ? $selectedInvoice->invoice_type : '') }}">
                 <div class="modal-body">
+                    <div class="row mb-3" id="invoice-dropdown-container">
+                        <div class="col-12">
+                            <label for="invoice-dropdown" class="form-label">Invoice (Optional)</label>
+                            <select class="form-select" id="invoice-dropdown" name="invoice_dropdown">
+                                <option value="">Select an invoice (optional)</option>
+                                @foreach($unpaidInvoices as $invoice)
+                                    <option value="{{ $invoice->id }}" 
+                                        data-amount="{{ $invoice->amount }}"
+                                        data-invoice-title="{{ $invoice->invoice_type }}"
+                                        {{ old('invoice_id', $invoiceId) == $invoice->id ? 'selected' : '' }}>
+                                        Invoice #{{ $invoice->id }} (${{ number_format($invoice->amount, 2) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Select an unpaid invoice to auto-fill the amount</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3" id="invoice-title-row" style="{{ $selectedInvoice ? '' : 'display: none;' }}">
+                        <div class="col-12">
+                            <label for="invoice_title_display" class="form-label">Invoice Title</label>
+                            <input type="text" class="form-control" id="invoice_title_display" value="{{ $selectedInvoice ? $selectedInvoice->invoice_type : '' }}" readonly>
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" value="{{ old('amount') }}" required>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" value="{{ old('amount', $selectedInvoice ? $selectedInvoice->amount : '') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="currency" class="form-label">Currency <span class="text-danger">*</span></label>
                             <select class="form-select" id="currency" name="currency" required>
-                                <option value="">Select Currency</option>
-                                @foreach($walletAddresses->pluck('symbol')->unique() as $symbol)
-                                    <option value="{{ $symbol }}" {{ old('currency') == $symbol ? 'selected' : '' }}>{{ $symbol }}</option>
-                                @endforeach
+                                <option value="USDT" {{ old('currency', 'USDT') == 'USDT' ? 'selected' : '' }}>USDT</option>
                             </select>
                         </div>
                     </div>
@@ -302,12 +326,20 @@
                             <label for="network" class="form-label">Network <span class="text-danger">*</span></label>
                             <select class="form-select" id="network" name="network" required>
                                 <option value="">Select Network</option>
-                                @foreach($walletAddresses->pluck('network')->filter()->unique() as $network)
-                                    <option value="{{ $network }}" {{ old('network') == $network ? 'selected' : '' }}>{{ $network }}</option>
-                                @endforeach
+                                <option value="TRC20" {{ old('network') == 'TRC20' ? 'selected' : '' }}>TRC20 (USDT)</option>
+                                <option value="ERC20" {{ old('network') == 'ERC20' ? 'selected' : '' }}>ERC20 (USDT)</option>
+                                <option value="BEP20" {{ old('network') == 'BEP20' ? 'selected' : '' }}>BEP20 (USDT)</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label for="trans_id" class="form-label">Transaction ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="trans_id" name="trans_id" value="{{ old('trans_id') }}" placeholder="Enter blockchain transaction ID" required>
+                            <div class="form-text">Enter the transaction hash/ID from your wallet</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
                             <label for="proof_image" class="form-label">Proof Image <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="proof_image" name="proof_image" accept="image/*" required>
                             <div class="form-text">Upload screenshot or receipt of your deposit transaction</div>
@@ -343,10 +375,20 @@
 
 @push('scripts')
 <script>
-    function copyToClipboard(text, elementId) {
+    function copyToClipboard(event, text, elementId) {
+        // Prevent default if event is provided
+        if (event) {
+            event.preventDefault();
+        }
+        
         navigator.clipboard.writeText(text).then(function() {
             // Show success message
-            const btn = event.target;
+            const btn = event ? event.target : document.querySelector(`button[onclick*="${elementId}"]`);
+            if (!btn) {
+                console.warn('Could not find button element');
+                return;
+            }
+            
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
             btn.classList.remove('btn-primary');
@@ -364,6 +406,88 @@
     
     // Handle deposit form submission
     $(document).ready(function() {
+        // Check if invoice_id exists in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceIdFromUrl = urlParams.get('invoice_id');
+        const invoiceIdInput = $('#invoice_id');
+        const invoiceDropdown = $('#invoice-dropdown');
+        const invoiceDropdownContainer = $('#invoice-dropdown-container');
+        const amountInput = $('#amount');
+        
+        const invoiceTitleInput = $('#invoice_title');
+        let invoiceTitleDisplay = $('#invoice_title_display');
+        const currencySelect = $('#currency');
+        
+        // Auto-set currency to USDT (always USDT for invoices)
+        currencySelect.val('USDT');
+        
+        // If invoice_id is in URL, fetch invoice details and auto-fill amount
+        if (invoiceIdFromUrl) {
+            // Fetch invoice details and auto-fill amount
+            fetch(`/customer/invoices/${invoiceIdFromUrl}/details`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.amount) {
+                        amountInput.val(data.amount);
+                        amountInput.prop('readonly', true); // Lock amount field
+                        invoiceIdInput.val(data.id);
+                        invoiceTitleInput.val(data.invoice_title || data.invoice_type);
+                        currencySelect.val('USDT'); // Auto-set to USDT
+                        
+                        // Show invoice title if field exists
+                        if (invoiceTitleDisplay.length) {
+                            invoiceTitleDisplay.val(data.invoice_title || data.invoice_type);
+                            invoiceTitleDisplay.closest('#invoice-title-row').show();
+                        }
+                        
+                        // Ensure the dropdown is set to the correct invoice
+                        invoiceDropdown.val(data.id).trigger('change');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching invoice details:', err);
+                });
+        }
+        
+        // Update amount and invoice details on invoice selection from dropdown
+        invoiceDropdown.on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            const selectedAmount = selectedOption.data('amount');
+            const selectedInvoiceId = $(this).val();
+            const selectedInvoiceTitle = selectedOption.data('invoice-title');
+            
+            if (selectedAmount && selectedInvoiceId) {
+                amountInput.val(selectedAmount);
+                amountInput.prop('readonly', true); // Lock amount when invoice selected
+                invoiceIdInput.val(selectedInvoiceId);
+                invoiceTitleInput.val(selectedInvoiceTitle || '');
+                currencySelect.val('USDT'); // Auto-set to USDT
+                
+                // Show invoice title field
+                if (invoiceTitleDisplay.length) {
+                    invoiceTitleDisplay.val(selectedInvoiceTitle || '');
+                    invoiceTitleDisplay.closest('#invoice-title-row').show();
+                } else {
+                    // Create invoice title display if it doesn't exist
+                    const titleRow = $('<div class="row mb-3" id="invoice-title-row"><div class="col-12"><label for="invoice_title_display" class="form-label">Invoice Title</label><input type="text" class="form-control" id="invoice_title_display" value="' + (selectedInvoiceTitle || '') + '" readonly></div></div>');
+                    invoiceDropdownContainer.after(titleRow);
+                    invoiceTitleDisplay = $('#invoice_title_display');
+                }
+            } else {
+                invoiceIdInput.val('');
+                invoiceTitleInput.val('');
+                amountInput.prop('readonly', false); // Unlock amount if no invoice selected
+                if (invoiceTitleDisplay.length) {
+                    invoiceTitleDisplay.closest('#invoice-title-row').hide();
+                }
+            }
+        });
+        
+        // Auto-open modal if invoice_id is in URL
+        if (invoiceIdFromUrl && $('#depositModal').length) {
+            $('#depositModal').modal('show');
+        }
+        
         $('#depositForm').on('submit', function(e) {
             const form = $(this);
             const submitBtn = form.find('button[type="submit"]');
@@ -414,6 +538,24 @@
         $('#depositModal').on('hidden.bs.modal', function() {
             $('#depositForm')[0].reset();
             $('#depositForm').find('button[type="submit"]').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Submit Deposit');
+            
+            // Reset invoice-related fields
+            invoiceIdInput.val('');
+            invoiceTitleInput.val('');
+            amountInput.prop('readonly', false);
+            currencySelect.val('USDT');
+            
+            // Hide invoice title display if it exists
+            if (invoiceTitleDisplay.length) {
+                invoiceTitleDisplay.closest('#invoice-title-row').hide();
+            }
+            
+            // Clear invoice_id from URL if modal is closed
+            if (invoiceIdFromUrl) {
+                const url = new URL(window.location);
+                url.searchParams.delete('invoice_id');
+                window.history.replaceState({}, '', url);
+            }
         });
         
         // Auto-refresh to check for new deposits (optional - can be disabled)

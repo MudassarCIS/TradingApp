@@ -102,22 +102,7 @@ $(document).ready(function() {
             { data: 'formatted_due_date' },
             { data: 'status_badge' },
             { data: 'formatted_created_at' },
-            {
-                data: 'id',
-                render: function(data, type, row) {
-                    if (row.status === 'Unpaid') {
-                        return `
-                            <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-sm btn-primary">
-                                <i class="bi bi-credit-card"></i> Pay
-                            </a>
-                        `;
-                    } else {
-                        return '<span class="text-success"><i class="bi bi-check-circle"></i> Paid</span>';
-                    }
-                },
-                orderable: false,
-                searchable: false
-            }
+            { data: 'payment_action', orderable: false, searchable: false }
         ],
         order: [[0, 'desc']],
         pageLength: 10,
