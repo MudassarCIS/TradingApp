@@ -17,11 +17,42 @@ class DepositController extends Controller
 {
     public function index(Request $request)
     {
+        // Return statistics if requested
+        if ($request->has('statistics_only')) {
+            return response()->json([
+                'statistics' => [
+                    'total' => Deposit::count(),
+                    'pending' => Deposit::where('status', 'pending')->count(),
+                    'processing' => Deposit::where('status', 'processing')->count(),
+                    'approved' => Deposit::where('status', 'approved')->count(),
+                    'rejected' => Deposit::where('status', 'rejected')->count(),
+                    'cancelled' => Deposit::where('status', 'cancelled')->count(),
+                ]
+            ]);
+        }
+        
         if ($request->ajax()) {
             $query = Deposit::with(['user', 'approver', 'invoice']);
 
             // Get total records count (before any filters)
             $totalRecords = Deposit::count();
+
+            // Apply custom filters
+            if ($request->has('filter_status') && !empty($request->filter_status)) {
+                $query->where('status', $request->filter_status);
+            }
+            
+            if ($request->has('filter_user_id') && !empty($request->filter_user_id)) {
+                $query->where('user_id', $request->filter_user_id);
+            }
+            
+            if ($request->has('filter_date_from') && !empty($request->filter_date_from)) {
+                $query->whereDate('created_at', '>=', $request->filter_date_from);
+            }
+            
+            if ($request->has('filter_date_to') && !empty($request->filter_date_to)) {
+                $query->whereDate('created_at', '<=', $request->filter_date_to);
+            }
 
             // Apply search filter
             if ($request->has('search') && !empty($request->search['value'])) {
@@ -33,6 +64,7 @@ class DepositController extends Controller
                       ->orWhere('network', 'like', "%{$searchValue}%")
                       ->orWhere('status', 'like', "%{$searchValue}%")
                       ->orWhere('notes', 'like', "%{$searchValue}%")
+                      ->orWhere('user_id', 'like', "%{$searchValue}%")
                       ->orWhereHas('user', function($userQuery) use ($searchValue) {
                           $userQuery->where('name', 'like', "%{$searchValue}%")
                                    ->orWhere('email', 'like', "%{$searchValue}%");
@@ -43,9 +75,14 @@ class DepositController extends Controller
             // Get filtered count after search
             $filteredRecords = $query->count();
 
-            // Apply ordering
-            $orderColumn = $request->get('order')[0]['column'] ?? 7;
-            $orderDirection = $request->get('order')[0]['dir'] ?? 'desc';
+            // Apply ordering - Default to created_at desc (latest first)
+            $orderColumn = 8; // Default to created_at
+            $orderDirection = 'desc'; // Default to descending (latest first)
+            
+            if ($request->has('order') && is_array($request->get('order')) && count($request->get('order')) > 0) {
+                $orderColumn = $request->get('order')[0]['column'] ?? 8;
+                $orderDirection = $request->get('order')[0]['dir'] ?? 'desc';
+            }
 
             $columns = [
                 0 => 'deposit_id',
@@ -53,22 +90,26 @@ class DepositController extends Controller
                 2 => 'amount',
                 3 => 'currency',
                 4 => 'network',
-                5 => 'status',
-                6 => 'proof_image',
-                7 => 'created_at'
+                5 => 'trans_id',
+                6 => 'status',
+                7 => 'proof_image',
+                8 => 'created_at'
             ];
 
             if (isset($columns[$orderColumn])) {
                 if ($orderColumn == 1) {
                     // Order by user name using join
-                    $query->join('users', 'deposits.user_id', '=', 'users.id')
-                          ->orderBy('users.name', $orderDirection)
-                          ->select('deposits.*')
-                          ->groupBy('deposits.id');
+                    if (!$query->getQuery()->joins) {
+                        $query->join('users', 'deposits.user_id', '=', 'users.id')
+                              ->select('deposits.*')
+                              ->groupBy('deposits.id');
+                    }
+                    $query->orderBy('users.name', $orderDirection);
                 } else {
                     $query->orderBy($columns[$orderColumn], $orderDirection);
                 }
             } else {
+                // Always default to latest first
                 $query->orderBy('created_at', 'desc');
             }
 
@@ -100,6 +141,7 @@ class DepositController extends Controller
                 ->addColumn('status_badge', function ($deposit) {
                     $badgeClass = match($deposit->status) {
                         'pending' => 'bg-warning',
+                        'processing' => 'bg-info',
                         'approved' => 'bg-success',
                         'rejected' => 'bg-danger',
                         'cancelled' => 'bg-secondary',
@@ -119,21 +161,20 @@ class DepositController extends Controller
                     return $deposit->created_at->format('M d, Y H:i');
                 })
                 ->addColumn('actions', function ($deposit) {
-                    $actions = '';
-                    if ($deposit->status === 'pending') {
-                        $actions .= '<button class="btn btn-sm btn-success me-1" onclick="approveDeposit(' . $deposit->id . ')">
-                                        <i class="bi bi-check"></i> Approve
-                                     </button>';
-                        $actions .= '<button class="btn btn-sm btn-danger me-1" onclick="rejectDeposit(' . $deposit->id . ')">
-                                        <i class="bi bi-x"></i> Reject
-                                     </button>';
-                        $actions .= '<button class="btn btn-sm btn-secondary me-1" onclick="cancelDeposit(' . $deposit->id . ')">
-                                        <i class="bi bi-x-circle"></i> Cancel
-                                     </button>';
-                    }
-                    $actions .= '<button class="btn btn-sm btn-info" onclick="viewDeposit(' . $deposit->id . ')">
+                    $disabled = ($deposit->status === 'approved') ? 'disabled' : '';
+                    $actions = '<select class="form-select form-select-sm status-dropdown" data-deposit-id="' . $deposit->id . '" data-current-status="' . $deposit->status . '" style="width: auto; display: inline-block; min-width: 120px;" ' . $disabled . '>
+                                    <option value="pending" ' . ($deposit->status === 'pending' ? 'selected' : '') . '>Pending</option>
+                                    <option value="processing" ' . ($deposit->status === 'processing' ? 'selected' : '') . '>Processing</option>
+                                    <option value="approved" ' . ($deposit->status === 'approved' ? 'selected' : '') . '>Approved</option>
+                                    <option value="rejected" ' . ($deposit->status === 'rejected' ? 'selected' : '') . '>Rejected</option>
+                                    <option value="cancelled" ' . ($deposit->status === 'cancelled' ? 'selected' : '') . '>Cancelled</option>
+                                </select>';
+                    $actions .= ' <button class="btn btn-sm btn-info ms-1" onclick="viewDeposit(' . $deposit->id . ')">
                                     <i class="bi bi-eye"></i> View
                                  </button>';
+                    $actions .= ' <a href="' . route('admin.deposits.edit', $deposit->id) . '" class="btn btn-sm btn-secondary ms-1">
+                                    <i class="bi bi-pencil"></i> Edit
+                                 </a>';
                     return $actions;
                 })
                 ->rawColumns(['status_badge', 'proof_image', 'actions', 'trans_id'])
@@ -166,8 +207,13 @@ class DepositController extends Controller
 
             // Update invoice status to Paid if deposit is associated with an invoice
             if ($deposit->invoice_id) {
-                $deposit->invoice->update(['status' => 'Paid']);
+                $invoice = $deposit->invoice;
+                $invoice->update(['status' => 'Paid']);
             }
+            
+            // Distribute referral bonuses to 3 levels for all approved deposits
+            // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
+            app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
 
             // Create transaction record
             $transaction = Transaction::create([
@@ -199,9 +245,6 @@ class DepositController extends Controller
 
             $wallet->increment('balance', $deposit->amount);
             $wallet->increment('total_deposited', $deposit->amount);
-
-            // Distribute referral bonuses using ReferralService
-            app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
         });
 
         return response()->json(['success' => 'Deposit approved successfully']);
@@ -256,7 +299,7 @@ class DepositController extends Controller
         $deposit = Deposit::findOrFail($id);
         
         $validated = $request->validate([
-            'status' => 'required|in:pending,approved,rejected,cancelled',
+            'status' => 'required|in:pending,processing,approved,rejected,cancelled',
             'notes' => 'nullable|string|max:1000',
             'rejection_reason' => 'nullable|string|max:1000'
         ]);
@@ -312,15 +355,17 @@ class DepositController extends Controller
 
                     $wallet->increment('balance', $deposit->amount);
                     $wallet->increment('total_deposited', $deposit->amount);
-
-                    // Distribute referral bonuses
-                    app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
                 }
 
                 // Update invoice status to Paid if deposit is associated with an invoice
                 if ($deposit->invoice_id) {
-                    $deposit->invoice->update(['status' => 'Paid']);
+                    $invoice = $deposit->invoice;
+                    $invoice->update(['status' => 'Paid']);
                 }
+                
+                // Distribute referral bonuses to 3 levels for all approved deposits
+                // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
+                app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
             });
         } else if ($validated['status'] === 'rejected') {
             $updateData['rejection_reason'] = $validated['rejection_reason'] ?? null;
@@ -330,5 +375,11 @@ class DepositController extends Controller
         }
 
         return response()->json(['success' => 'Deposit status updated successfully']);
+    }
+
+    public function edit($id)
+    {
+        $deposit = Deposit::with(['user', 'approver', 'invoice'])->findOrFail($id);
+        return view('admin.deposits.edit', compact('deposit'));
     }
 }

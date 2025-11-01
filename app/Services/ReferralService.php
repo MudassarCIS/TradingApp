@@ -67,6 +67,15 @@ class ReferralService
      */
     public function distributeReferralBonuses(User $investor, $deposit): void
     {
+        // Check if bonuses have already been distributed for this deposit to prevent duplicates
+        if ($deposit->id) {
+            $existingBonus = BonusWallet::where('deposit_id', $deposit->id)->first();
+            if ($existingBonus) {
+                // Bonuses already distributed for this deposit
+                return;
+            }
+        }
+        
         $currency = $deposit->currency ?? 'USDT';
         $amount = (float) $deposit->amount;
         $amountInUSDT = $this->convertToUSDT($currency, $amount);

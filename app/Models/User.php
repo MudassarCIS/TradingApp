@@ -173,6 +173,53 @@ class User extends Authenticatable
         return $this->wallets()->where('currency', $currency)->first();
     }
 
+    /**
+     * Get active packages (UserActiveBot with paid invoices)
+     */
+    public function getActivePackages()
+    {
+        return $this->activeBots()
+            ->latest()
+            ->get()
+            ->filter(function($bot) {
+                // Check if there's a paid invoice matching this bot's type
+                $botCreatedAt = $bot->created_at;
+                $startTime = $botCreatedAt->copy()->subMinutes(10);
+                $endTime = $botCreatedAt->copy()->addMinutes(10);
+                
+                $invoice = $this->invoices()
+                    ->where('invoice_type', $bot->buy_type)
+                    ->where('status', 'Paid')
+                    ->where('created_at', '>=', $startTime)
+                    ->where('created_at', '<=', $endTime)
+                    ->first();
+                
+                return $invoice !== null;
+            })
+            ->map(function($bot) {
+                $planDetails = $bot->buy_plan_details ?? [];
+                $packageTitle = $bot->buy_type;
+                
+                // Get number of available bots from plan details
+                $availableBots = 0;
+                if ($bot->buy_type === 'Rent A Bot') {
+                    $availableBots = $planDetails['allowed_bots'] ?? 0;
+                } elseif ($bot->buy_type === 'Sharing Nexa') {
+                    $availableBots = $planDetails['bots_allowed'] ?? 0;
+                }
+                
+                return [
+                    'id' => $bot->id,
+                    'type' => $bot->buy_type,
+                    'title' => $packageTitle,
+                    'available_bots' => $availableBots,
+                    'plan_details' => $planDetails,
+                    'created_at' => $bot->created_at,
+                ];
+            })
+            ->values();
+    }
+
     public function generateReferralCode()
     {
         if (!$this->referral_code) {

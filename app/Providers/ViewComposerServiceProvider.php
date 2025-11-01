@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\UserInvoice;
+use App\Models\Deposit;
 
 class ViewComposerServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,12 @@ class ViewComposerServiceProvider extends ServiceProvider
                 $unpaidCount = Auth::user()->invoices()->where('status', 'Unpaid')->count();
                 $view->with('unpaidCount', $unpaidCount);
             }
+        });
+        
+        // Share pending deposits count with admin layout
+        View::composer('layouts.admin-includes.leftmenu', function ($view) {
+            $pendingDepositsCount = Deposit::where('status', 'pending')->count();
+            $view->with('pendingDepositsCount', $pendingDepositsCount);
         });
     }
 }

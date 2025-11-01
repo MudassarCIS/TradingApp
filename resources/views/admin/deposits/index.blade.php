@@ -81,6 +81,52 @@
     </div>
 </div>
 
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+            </div>
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="filter_status" class="form-label">Status</label>
+                        <select class="form-select" id="filter_status" name="filter_status">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_user_id" class="form-label">User ID</label>
+                        <input type="number" class="form-control" id="filter_user_id" name="filter_user_id" placeholder="User ID">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control" id="filter_date_from" name="filter_date_from">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_date_to" class="form-label">Date To</label>
+                        <input type="date" class="form-control" id="filter_date_to" name="filter_date_to">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="button" class="btn btn-primary" id="applyFilters">
+                            <i class="bi bi-search"></i> Filter
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="resetFilters">
+                            <i class="bi bi-arrow-clockwise"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Deposits Table -->
 <div class="row">
     <div class="col-12">
@@ -207,7 +253,14 @@ $(document).ready(function() {
         serverSide: true,
         ajax: {
             url: "{{ route('admin.deposits.index') }}",
-            type: 'GET'
+            type: 'GET',
+            data: function(d) {
+                // Add custom filters
+                d.filter_status = $('#filter_status').val();
+                d.filter_user_id = $('#filter_user_id').val();
+                d.filter_date_from = $('#filter_date_from').val();
+                d.filter_date_to = $('#filter_date_to').val();
+            }
         },
         columns: [
             { data: 'deposit_id', name: 'deposit_id' },
@@ -221,7 +274,7 @@ $(document).ready(function() {
             { data: 'created_at', name: 'created_at' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],
-        order: [[8, 'desc']],
+        order: [[8, 'desc']], // Order by created_at (column 8) descending - latest first
         pageLength: 25,
         responsive: true,
         dom: 'Bfrtip',
@@ -233,9 +286,75 @@ $(document).ready(function() {
     // Load statistics
     loadStatistics();
 
+    // Apply filters
+    $('#applyFilters').on('click', function() {
+        table.ajax.reload();
+        loadStatistics();
+    });
+    
+    // Reset filters
+    $('#resetFilters').on('click', function() {
+        $('#filter_status').val('');
+        $('#filter_user_id').val('');
+        $('#filter_date_from').val('');
+        $('#filter_date_to').val('');
+        table.ajax.reload();
+        loadStatistics();
+    });
+
+    // Status dropdown change with confirmation
+    $(document).on('change', '.status-dropdown', function() {
+        var $select = $(this);
+        var depositId = $select.data('deposit-id');
+        var currentStatus = $select.data('current-status');
+        var newStatus = $select.val();
+        
+        if (newStatus === currentStatus) {
+            return; // No change needed
+        }
+        
+        if (!confirm('Are you sure you want to change the status from ' + currentStatus.toUpperCase() + ' to ' + newStatus.toUpperCase() + '?')) {
+            // Reset to current status
+            $select.val(currentStatus);
+            return;
+        }
+        
+        // Disable select during update
+        $select.prop('disabled', true);
+        
+        var updateUrl = '/admin/deposits/' + depositId;
+        $.ajax({
+            url: updateUrl,
+            type: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-HTTP-Method-Override': 'PUT'
+            },
+            data: {
+                status: newStatus,
+                _token: '{{ csrf_token() }}',
+                _method: 'PUT'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $select.data('current-status', newStatus);
+                    table.ajax.reload();
+                    loadStatistics();
+                    showAlert('success', response.success);
+                }
+                $select.prop('disabled', false);
+            },
+            error: function(xhr) {
+                showAlert('error', xhr.responseJSON.error || 'An error occurred');
+                $select.val(currentStatus);
+                $select.prop('disabled', false);
+            }
+        });
+    });
+
     // View deposit
     window.viewDeposit = function(id) {
-        $.get("{{ route('admin.deposits.show', '') }}/" + id, function(data) {
+        $.get("/admin/deposits/" + id + "/show", function(data) {
             var html = `
                 <div class="row">
                     <div class="col-md-6">
@@ -244,7 +363,7 @@ $(document).ready(function() {
                         ${data.trans_id ? `<p><strong>Transaction ID:</strong> ${data.trans_id}</p>` : ''}
                         <p><strong>Amount:</strong> $${parseFloat(data.amount).toFixed(2)} ${data.currency}</p>
                         <p><strong>Network:</strong> ${data.network}</p>
-                        <p><strong>Status:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : (data.status === 'approved' ? 'success' : (data.status === 'rejected' ? 'danger' : (data.status === 'cancelled' ? 'secondary' : 'secondary')))}">${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</span></p>
+                        <p><strong>Status:</strong> <span class="badge bg-${data.status === 'pending' ? 'warning' : (data.status === 'processing' ? 'info' : (data.status === 'approved' ? 'success' : (data.status === 'rejected' ? 'danger' : (data.status === 'cancelled' ? 'secondary' : 'secondary'))))}">${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</span></p>
                         <p><strong>Date:</strong> ${new Date(data.created_at).toLocaleString()}</p>
                     </div>
                     <div class="col-md-6">
@@ -275,7 +394,7 @@ $(document).ready(function() {
         var id = $(this).data('deposit-id');
         var formData = $(this).serialize();
         
-        $.post("{{ route('admin.deposits.approve', '') }}/" + id, formData, function(response) {
+        $.post("/admin/deposits/" + id + "/approve", formData, function(response) {
             if (response.success) {
                 $('#approveDepositModal').modal('hide');
                 table.ajax.reload();
@@ -298,7 +417,7 @@ $(document).ready(function() {
         var id = $(this).data('deposit-id');
         var formData = $(this).serialize();
         
-        $.post("{{ route('admin.deposits.reject', '') }}/" + id, formData, function(response) {
+        $.post("/admin/deposits/" + id + "/reject", formData, function(response) {
             if (response.success) {
                 $('#rejectDepositModal').modal('hide');
                 table.ajax.reload();
@@ -313,7 +432,7 @@ $(document).ready(function() {
     // Cancel deposit
     window.cancelDeposit = function(id) {
         if (confirm('Are you sure you want to cancel this deposit? The associated invoice (if any) will be reset to Unpaid status.')) {
-            $.post("{{ route('admin.deposits.cancel', '') }}/" + id, function(response) {
+            $.post("/admin/deposits/" + id + "/cancel", {_token: '{{ csrf_token() }}'}, function(response) {
                 if (response.success) {
                     table.ajax.reload();
                     loadStatistics();
@@ -326,13 +445,30 @@ $(document).ready(function() {
     };
 
     function loadStatistics() {
-        $.get("{{ route('admin.deposits.index') }}", function(data) {
-            // This would need to be implemented in the controller to return statistics
-            // For now, we'll use placeholder values
-            $('#totalDeposits').text('-');
-            $('#pendingDeposits').text('-');
-            $('#approvedDeposits').text('-');
-            $('#rejectedDeposits').text('-');
+        $.ajax({
+            url: "{{ route('admin.deposits.index') }}",
+            type: 'GET',
+            data: {
+                statistics_only: true
+            },
+            success: function(response) {
+                if (response.statistics) {
+                    $('#totalDeposits').text(response.statistics.total || 0);
+                    $('#pendingDeposits').text(response.statistics.pending || 0);
+                    $('#approvedDeposits').text(response.statistics.approved || 0);
+                    $('#rejectedDeposits').text(response.statistics.rejected || 0);
+                }
+            },
+            error: function() {
+                // Fallback - load from table data
+                var stats = {
+                    total: table.page.info().recordsTotal,
+                    pending: 0,
+                    approved: 0,
+                    rejected: 0
+                };
+                $('#totalDeposits').text(stats.total);
+            }
         });
     }
 

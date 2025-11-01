@@ -24,4 +24,23 @@ class UserInvoice extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the formatted invoice ID with prefix
+     * Format: Inv-YYYY-000.id
+     */
+    public function getFormattedInvoiceIdAttribute()
+    {
+        $year = $this->created_at->format('Y');
+        $paddedId = str_pad($this->id, 3, '0', STR_PAD_LEFT);
+        return "Inv-{$year}-{$paddedId}";
+    }
+
+    /**
+     * Accessor for formatted invoice ID (for backward compatibility)
+     */
+    public function getInvoiceNumberAttribute()
+    {
+        return $this->formatted_invoice_id;
+    }
 }

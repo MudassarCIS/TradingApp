@@ -35,7 +35,11 @@ class WalletAddress extends Model
     public function getQrCodeUrlAttribute()
     {
         if ($this->qr_code_image) {
-            return asset('storage/' . $this->qr_code_image);
+            // Remove 'app/public/' prefix if it exists (legacy data)
+            $path = str_replace('app/public/', '', $this->qr_code_image);
+            // Remove leading slash if exists
+            $path = ltrim($path, '/');
+            return asset('storage/' . $path);
         }
         return null;
     }

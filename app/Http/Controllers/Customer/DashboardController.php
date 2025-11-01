@@ -7,6 +7,8 @@ use App\Models\Wallet;
 use App\Models\Trade;
 use App\Models\Agent;
 use App\Models\Transaction;
+use App\Models\UserInvoice;
+use App\Models\Deposit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -67,6 +69,16 @@ class DashboardController extends Controller
         $referralCount = $user->referredUsers()->count();
         $referralEarnings = $user->referrals()->sum('total_commission') ?? 0;
         
+        // Get counts for quick actions
+        $totalInvoices = $user->invoices()->count();
+        $unpaidInvoices = $user->invoices()->where('status', 'Unpaid')->count();
+        $totalDeposits = $user->deposits()->count();
+        $pendingDeposits = $user->deposits()->where('status', 'pending')->count();
+        $totalTransactions = $user->transactions()->count();
+        
+        // Get active packages (with paid invoices)
+        $activePackages = $user->getActivePackages();
+        
         return view('customer.dashboard', compact(
             'wallet',
             'totalTrades',
@@ -78,7 +90,13 @@ class DashboardController extends Controller
             'recentTransactions',
             'recentTrades',
             'referralCount',
-            'referralEarnings'
+            'referralEarnings',
+            'totalInvoices',
+            'unpaidInvoices',
+            'totalDeposits',
+            'pendingDeposits',
+            'totalTransactions',
+            'activePackages'
         ));
     }
 }

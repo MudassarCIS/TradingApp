@@ -34,8 +34,8 @@ class WalletAddressController extends Controller
                         return $walletAddress->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
                     })
                     ->addColumn('qr_code', function ($walletAddress) {
-                        if ($walletAddress->qr_code_image) {
-                            return '<img src="' . $walletAddress->qr_code_url . '" alt="QR Code" style="width: 50px; height: 50px;">';
+                        if ($walletAddress->qr_code_image && $walletAddress->qr_code_url) {
+                            return '<img src="' . $walletAddress->qr_code_url . '" alt="QR Code" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;" onerror="this.onerror=null; this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline\';"><span style="display:none;" class="text-muted">No Image</span>';
                         }
                         return '<span class="text-muted">No QR Code</span>';
                     })

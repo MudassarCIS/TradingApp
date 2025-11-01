@@ -53,6 +53,32 @@
     .activity-item:last-child {
         border-bottom: none;
     }
+    
+    .quick-action-btn {
+        height: 100%;
+        min-height: 90px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .quick-action-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .quick-action-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .quick-action-btn small {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        display: block;
+    }
 </style>
 @endpush
 
@@ -92,9 +118,64 @@
     </div>
 </div>
 
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-primary w-100 quick-action-btn">
+                            <i class="bi bi-people"></i>
+                            <span>Manage Users</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalUsersCount }} Total</small>
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.deposits.index') }}" class="btn btn-success w-100 quick-action-btn">
+                            <i class="bi bi-wallet2"></i>
+                            <span>All Deposits</span>
+                            <small class="badge bg-light text-dark mt-1">
+                                {{ $totalDepositsCount }} Total
+                                @if($pendingDeposits > 0)
+                                    <span class="badge bg-warning ms-1">{{ $pendingDeposits }} Pending</span>
+                                @endif
+                            </small>
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.transactions.index') }}" class="btn btn-info w-100 quick-action-btn">
+                            <i class="bi bi-arrow-left-right"></i>
+                            <span>View Transactions</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalTransactionsCount }} Total</small>
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.trades.index') }}" class="btn btn-warning w-100 quick-action-btn">
+                            <i class="bi bi-graph-up"></i>
+                            <span>View Trades</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalTradesCount }} Total</small>
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.agents.index') }}" class="btn btn-secondary w-100 quick-action-btn">
+                            <i class="bi bi-robot"></i>
+                            <span>Manage Agents</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalAgentsCount }} Total</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- Revenue Overview -->
-    <div class="col-md-8 mb-4">
+    <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue Overview</h5>
@@ -127,32 +208,9 @@
         </div>
     </div>
     
-    <!-- Quick Actions -->
-    <div class="col-md-4 mb-4">
+    <!-- Pending Items -->
+    <div class="col-md-6 mb-4">
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-primary">
-                        <i class="bi bi-people"></i> Manage Users
-                    </a>
-                    <a href="{{ route('admin.transactions.index') }}" class="btn btn-success">
-                        <i class="bi bi-arrow-left-right"></i> View Transactions
-                    </a>
-                    <a href="{{ route('admin.trades.index') }}" class="btn btn-info">
-                        <i class="bi bi-graph-up"></i> View Trades
-                    </a>
-                    <a href="{{ route('admin.agents.index') }}" class="btn btn-warning">
-                        <i class="bi bi-robot"></i> Manage Agents
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Pending Items -->
-        <div class="card mt-3">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-clock"></i> Pending Items</h5>
             </div>

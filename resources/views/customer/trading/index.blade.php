@@ -4,6 +4,49 @@
 @section('page-title', 'Trading')
 
 @section('content')
+@if($activePackages->count() > 0)
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Active Packages</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach($activePackages as $package)
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">
+                                    <i class="bi bi-robot"></i> {{ $package['title'] }}
+                                </h6>
+                                <div class="mb-2">
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                                <div class="mt-3">
+                                    <strong>Available Bots:</strong>
+                                    <span class="text-primary fs-4 ms-2">{{ $package['available_bots'] }}</span>
+                                </div>
+                                @if($package['type'] === 'Rent A Bot' && isset($package['plan_details']['allowed_trades']))
+                                <div class="mt-2">
+                                    <small class="text-muted">Allowed Trades: {{ $package['plan_details']['allowed_trades'] }}</small>
+                                </div>
+                                @elseif($package['type'] === 'Sharing Nexa' && isset($package['plan_details']['trades_per_day']))
+                                <div class="mt-2">
+                                    <small class="text-muted">Trades/Day: {{ $package['plan_details']['trades_per_day'] }}</small>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="row">
     <div class="col-md-8">
         <div class="card">

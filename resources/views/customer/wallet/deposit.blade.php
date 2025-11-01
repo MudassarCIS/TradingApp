@@ -33,6 +33,14 @@
         margin-bottom: 2rem;
     }
     
+    .qr-code-container img {
+        max-width: 200px;
+        max-height: 200px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+    
     .address-container {
         background: #f8f9fa;
         border: 2px dashed #dee2e6;
@@ -121,7 +129,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-wallet2"></i> Deposit {{ $walletAddress->name }} ({{ $walletAddress->symbol }})
+                        <i class="bi bi-wallet2"></i> Admin Deposits Address - {{ $walletAddress->name }} ({{ $walletAddress->symbol }})
                         @if($walletAddress->network)
                             <span class="badge bg-info ms-2">{{ $walletAddress->network }}</span>
                         @endif
@@ -152,12 +160,12 @@
         <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-qr-code"></i> QR Code</h5>
+                    <h5 class="mb-0"><i class="bi bi-qr-code"></i> Admin Deposits Address QR code Scan</h5>
                 </div>
                 <div class="card-body">
                     <div class="qr-code-container">
-                        @if($walletAddress->qr_code_image)
-                            <img src="{{ $walletAddress->qr_code_url }}" alt="Deposit QR Code for {{ $walletAddress->name }}" class="img-fluid">
+                        @if($walletAddress->qr_code_image && $walletAddress->qr_code_url)
+                            <img src="{{ $walletAddress->qr_code_url }}" alt="Deposit QR Code for {{ $walletAddress->name }}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\'%3EQR Code%3C/text%3E%3C/svg%3E';">
                         @else
                             <div class="text-center text-muted">
                                 <i class="bi bi-qr-code" style="font-size: 3rem;"></i>
@@ -182,9 +190,9 @@
     </div>
 @endif
 
-<!-- Instructions -->
+<!-- Instructions and Important Notes -->
 <div class="row">
-    <div class="col-12">
+    <div class="col-md-6 mb-4">
         <div class="instruction-card">
             <h6><i class="bi bi-list-ol"></i> How to Deposit</h6>
             <ol>
@@ -196,11 +204,7 @@
             </ol>
         </div>
     </div>
-</div>
-
-<!-- Important Notes -->
-<div class="row">
-    <div class="col-12">
+    <div class="col-md-6 mb-4">
         <div class="alert alert-warning">
             <h6><i class="bi bi-exclamation-triangle"></i> Important Notes</h6>
             <ul class="mb-0">

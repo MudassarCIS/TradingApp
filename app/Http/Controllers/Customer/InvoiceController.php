@@ -24,6 +24,9 @@ class InvoiceController extends Controller
         $invoices = $user->invoices()->latest()->get();
 
         return DataTables::of($invoices)
+            ->addColumn('formatted_invoice_id', function ($invoice) {
+                return $invoice->formatted_invoice_id;
+            })
             ->addColumn('formatted_amount', function ($invoice) {
                 return '$' . number_format($invoice->amount, 2) . ' USDT';
             })

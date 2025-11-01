@@ -21,6 +21,9 @@ class TradingController extends Controller
             
         $agents = $user->agents()->where('status', 'active')->get();
         
-        return view('customer.trading.index', compact('trades', 'agents'));
+        // Get active packages (with paid invoices)
+        $activePackages = $user->getActivePackages();
+        
+        return view('customer.trading.index', compact('trades', 'agents', 'activePackages'));
     }
 }

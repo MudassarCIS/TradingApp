@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\Agent;
 use App\Models\Wallet;
 use App\Models\Message;
+use App\Models\Deposit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -59,6 +60,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
+        // Get counts for quick links
+        $pendingDeposits = Deposit::where('status', 'pending')->count();
+        $totalDepositsCount = Deposit::count();
+        $totalUsersCount = User::where('user_type', 'customer')->count();
+        $totalTransactionsCount = Transaction::count();
+        $totalTradesCount = Trade::count();
+        $totalAgentsCount = Agent::count();
+        
         // Get trading statistics by day (last 7 days)
         $tradingStats = Trade::select(
                 DB::raw('DATE(created_at) as date'),
@@ -99,7 +108,13 @@ class DashboardController extends Controller
             'recentTransactions',
             'pendingMessages',
             'tradingStats',
-            'userStats'
+            'userStats',
+            'pendingDeposits',
+            'totalDepositsCount',
+            'totalUsersCount',
+            'totalTransactionsCount',
+            'totalTradesCount',
+            'totalAgentsCount'
         ));
     }
 }

@@ -15,6 +15,23 @@
                         <p>Dashboard</p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{route('admin.deposits.index')}}" class="nav-link @if(request()->routeIs('admin.deposits.*')) active @endif">
+                        <i class="nav-icon bi bi-wallet2"></i>
+                        <p>
+                            {{ __('All Deposits') }}
+                            @if(isset($pendingDepositsCount) && $pendingDepositsCount > 0)
+                                <span class="badge bg-warning float-end">{{ $pendingDepositsCount }}</span>
+                            @endif
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{route('admin.invoices.index')}}" class="nav-link @if(request()->routeIs('admin.invoices.*')) active @endif">
+                        <i class="nav-icon bi bi-file-earmark-text"></i>
+                        <p>{{ __('Manage Invoices') }}</p>
+                    </a>
+                </li>
 
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">

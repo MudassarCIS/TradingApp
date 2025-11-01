@@ -83,11 +83,13 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::resource('rent-bot-packages', App\Http\Controllers\Admin\RentBotPackageController::class);
     Route::resource('wallet-addresses', App\Http\Controllers\Admin\WalletAddressController::class);
     Route::resource('deposits', App\Http\Controllers\Admin\DepositController::class)->only(['index']);
+    Route::get('/deposits/{id}/edit', [App\Http\Controllers\Admin\DepositController::class, 'edit'])->name('deposits.edit');
     Route::post('/deposits/{id}/approve', [App\Http\Controllers\Admin\DepositController::class, 'approve'])->name('deposits.approve');
     Route::post('/deposits/{id}/reject', [App\Http\Controllers\Admin\DepositController::class, 'reject'])->name('deposits.reject');
     Route::post('/deposits/{id}/cancel', [App\Http\Controllers\Admin\DepositController::class, 'cancel'])->name('deposits.cancel');
     Route::put('/deposits/{id}', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
+    Route::resource('invoices', App\Http\Controllers\Admin\InvoiceController::class)->only(['index', 'show']);
 });
 
 // Customer Routes (only for customers)

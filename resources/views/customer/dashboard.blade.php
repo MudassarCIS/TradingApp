@@ -71,6 +71,31 @@
     .activity-item:last-child {
         border-bottom: none;
     }
+    
+    .quick-action-btn {
+        height: 100%;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .quick-action-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .quick-action-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .quick-action-btn small {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+    }
 </style>
 @endpush
 
@@ -108,7 +133,7 @@
 
 <div class="row">
     <!-- Trading Overview -->
-    <div class="col-md-8 mb-4">
+    <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-graph-up"></i> Trading Overview</h5>
@@ -169,32 +194,9 @@
         </div>
     </div>
     
-    <!-- Quick Actions -->
-    <div class="col-md-4 mb-4">
+    <!-- Referral Stats -->
+    <div class="col-md-6 mb-4">
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Deposit Funds
-                    </a>
-                    <a href="{{ route('customer.agents.create') }}" class="btn btn-success">
-                        <i class="bi bi-robot"></i> Create AI Agent
-                    </a>
-                    <a href="{{ route('customer.trading.index') }}" class="btn btn-info">
-                        <i class="bi bi-graph-up"></i> View Trading
-                    </a>
-                    <a href="{{ route('customer.referrals.index') }}" class="btn btn-warning">
-                        <i class="bi bi-people"></i> Referrals
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Referral Stats -->
-        <div class="card mt-3">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-people"></i> Referral Stats</h5>
             </div>
@@ -214,6 +216,145 @@
     </div>
 </div>
 
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.wallet.deposit') }}" class="btn btn-primary w-100 quick-action-btn">
+                            <i class="bi bi-plus-circle"></i>
+                            <span>Deposit Funds</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalDeposits }} Total</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.invoices.index') }}" class="btn btn-success w-100 quick-action-btn">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span>Invoices</span>
+                            <small class="badge bg-light text-dark mt-1">
+                                {{ $totalInvoices }} Total
+                                @if($unpaidInvoices > 0)
+                                <span class="badge bg-danger ms-1">{{ $unpaidInvoices }} Unpaid</span>
+                                @endif
+                            </small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.wallet.index') }}" class="btn btn-info w-100 quick-action-btn">
+                            <i class="bi bi-wallet2"></i>
+                            <span>Wallet</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalTransactions }} Transactions</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.agents.create') }}" class="btn btn-warning w-100 quick-action-btn">
+                            <i class="bi bi-robot"></i>
+                            <span>Create AI Agent</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $activeAgents }} Active</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.trading.index') }}" class="btn btn-secondary w-100 quick-action-btn">
+                            <i class="bi bi-graph-up"></i>
+                            <span>View Trading</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $totalTrades }} Trades</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.referrals.index') }}" class="btn btn-dark w-100 quick-action-btn">
+                            <i class="bi bi-people"></i>
+                            <span>Referrals</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $referralCount }} Total</small>
+                        </a>
+                    </div>
+                    @if($pendingDeposits > 0)
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.wallet.index') }}" class="btn btn-danger w-100 quick-action-btn">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Pending Deposits</span>
+                            <small class="badge bg-light text-dark mt-1">{{ $pendingDeposits }} Pending</small>
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Active Packages -->
+@if($activePackages->count() > 0)
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Active Packages</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach($activePackages as $package)
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="card-title text-primary mb-2">
+                                            <i class="bi bi-robot"></i> {{ $package['title'] }}
+                                        </h5>
+                                        <div class="mb-2">
+                                            <span class="badge bg-success">Active</span>
+                                        </div>
+                                        <div>
+                                            <strong>Available Bots:</strong> 
+                                            <span class="text-primary fs-5">{{ $package['available_bots'] }}</span>
+                                        </div>
+                                        @if($package['type'] === 'Rent A Bot')
+                                            @if(isset($package['plan_details']['allowed_trades']))
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    Allowed Trades: {{ $package['plan_details']['allowed_trades'] }}
+                                                </small>
+                                            </div>
+                                            @endif
+                                            @if(isset($package['plan_details']['validity']))
+                                            <div>
+                                                <small class="text-muted">
+                                                    Validity: {{ ucfirst($package['plan_details']['validity']) }}
+                                                </small>
+                                            </div>
+                                            @endif
+                                        @elseif($package['type'] === 'Sharing Nexa')
+                                            @if(isset($package['plan_details']['trades_per_day']))
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    Trades/Day: {{ $package['plan_details']['trades_per_day'] }}
+                                                </small>
+                                            </div>
+                                            @endif
+                                        @endif
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">
+                                            Activated: {{ $package['created_at']->format('M d, Y') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Recent Transactions -->
 @if($recentTransactions->count() > 0)

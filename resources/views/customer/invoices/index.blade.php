@@ -92,9 +92,9 @@ $(document).ready(function() {
         },
         columns: [
             { 
-                data: 'id',
+                data: 'formatted_invoice_id',
                 render: function(data, type, row) {
-                    return '<i class="bi bi-eye"></i> ' + data;
+                    return '<i class="bi bi-receipt"></i> ' + data;
                 }
             },
             { data: 'invoice_type' },
