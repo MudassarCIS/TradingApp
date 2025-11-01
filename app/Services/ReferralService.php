@@ -45,13 +45,24 @@ class ReferralService
      */
     public function assignPlanToUser(User $user, float $usdtAmount): ?Plan
     {
-        // Try matching plan by exact amount field
-        $plan = Plan::where('investment_amount', $usdtAmount)->first();
+        // Try matching plan by exact amount first
+        $plan = Plan::where('investment_amount', $usdtAmount)
+                    ->where('is_active', true)
+                    ->first();
         
+        // If no exact match, find the plan with the closest investment_amount that's <= the amount
+        // This handles cases where user deposits more than exact plan amounts
         if (!$plan) {
-            // Fallback: plans use min_amount & max_amount
-            $plan = Plan::where('min_amount', '<=', $usdtAmount)
-                        ->where('max_amount', '>=', $usdtAmount)
+            $plan = Plan::where('investment_amount', '<=', $usdtAmount)
+                        ->where('is_active', true)
+                        ->orderBy('investment_amount', 'desc')
+                        ->first();
+        }
+
+        // If still no plan found, try to find any active plan (as fallback)
+        if (!$plan) {
+            $plan = Plan::where('is_active', true)
+                        ->orderBy('investment_amount', 'asc')
                         ->first();
         }
 

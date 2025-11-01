@@ -322,30 +322,84 @@ $(document).ready(function() {
         // Disable select during update
         $select.prop('disabled', true);
         
+        // Get CSRF token from meta tag
+        var csrfToken = $('meta[name="csrf-token"]').attr('content');
+        
+        // Use form-urlencoded data for Laravel method spoofing
+        var formData = {
+            status: newStatus,
+            _token: csrfToken,
+            _method: 'PUT'
+        };
+        
         var updateUrl = '/admin/deposits/' + depositId;
+        
         $.ajax({
             url: updateUrl,
-            type: 'PUT',
+            type: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-HTTP-Method-Override': 'PUT'
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
             },
-            data: {
-                status: newStatus,
-                _token: '{{ csrf_token() }}',
-                _method: 'PUT'
-            },
+            data: formData,
+            dataType: 'json',
             success: function(response) {
-                if (response.success) {
-                    $select.data('current-status', newStatus);
-                    table.ajax.reload();
-                    loadStatistics();
-                    showAlert('success', response.success);
+                console.log('Status update response:', response);
+                
+                if (response && response.success) {
+                    // Show success message
+                    showAlert('success', response.success || 'Deposit status updated successfully');
+                    
+                    // Reload the table to refresh all rows with updated data
+                    table.ajax.reload(function() {
+                        // After reload, update statistics
+                        loadStatistics();
+                        $select.prop('disabled', false);
+                    }, false); // false = don't reset pagination
+                } else {
+                    var errorMsg = (response && response.error) || 'Status update failed';
+                    showAlert('error', errorMsg);
+                    $select.val(currentStatus);
+                    $select.prop('disabled', false);
                 }
-                $select.prop('disabled', false);
             },
-            error: function(xhr) {
-                showAlert('error', xhr.responseJSON.error || 'An error occurred');
+            error: function(xhr, status, error) {
+                console.error('Status update error:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    response: xhr.responseJSON || xhr.responseText,
+                    error: error
+                });
+                
+                var errorMsg = 'An error occurred while updating status';
+                
+                // Try to parse error response
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                } else if (xhr.responseText) {
+                    try {
+                        var jsonResponse = JSON.parse(xhr.responseText);
+                        errorMsg = jsonResponse.error || jsonResponse.message || errorMsg;
+                    } catch (e) {
+                        // If it's not JSON, show status text
+                        if (xhr.status === 404) {
+                            errorMsg = 'Deposit not found';
+                        } else if (xhr.status === 403) {
+                            errorMsg = 'Permission denied';
+                        } else if (xhr.status === 422) {
+                            errorMsg = 'Validation error: ' + (xhr.responseJSON?.message || 'Invalid data');
+                        } else if (xhr.status === 500) {
+                            errorMsg = 'Server error occurred. Please check the logs.';
+                        }
+                    }
+                }
+                
+                showAlert('error', errorMsg);
                 $select.val(currentStatus);
                 $select.prop('disabled', false);
             }

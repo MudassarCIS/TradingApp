@@ -296,85 +296,90 @@ class DepositController extends Controller
 
     public function update(Request $request, $id)
     {
-        $deposit = Deposit::findOrFail($id);
-        
-        $validated = $request->validate([
-            'status' => 'required|in:pending,processing,approved,rejected,cancelled',
-            'notes' => 'nullable|string|max:1000',
-            'rejection_reason' => 'nullable|string|max:1000'
-        ]);
+        try {
+            $deposit = Deposit::findOrFail($id);
+            
+            $validated = $request->validate([
+                'status' => 'required|in:pending,processing,approved,rejected,cancelled',
+                'notes' => 'nullable|string|max:1000',
+                'rejection_reason' => 'nullable|string|max:1000'
+            ]);
 
-        if ($deposit->status === 'approved' && $validated['status'] !== 'approved') {
-            return response()->json(['error' => 'Cannot change status of an approved deposit'], 400);
-        }
+            if ($deposit->status === 'approved' && $validated['status'] !== 'approved') {
+                return response()->json(['error' => 'Cannot change status of an approved deposit'], 400);
+            }
 
-        $updateData = [
-            'status' => $validated['status'],
-            'notes' => $validated['notes'] ?? $deposit->notes
-        ];
+            $updateData = [
+                'status' => $validated['status'],
+                'notes' => $validated['notes'] ?? $deposit->notes
+            ];
 
-        if ($validated['status'] === 'approved') {
-            DB::transaction(function () use ($deposit, $updateData) {
-                $deposit->update(array_merge($updateData, [
-                    'approved_by' => Auth::id(),
-                    'approved_at' => now()
-                ]));
+            if ($validated['status'] === 'approved') {
+                DB::transaction(function () use ($deposit, $updateData) {
+                    $deposit->update(array_merge($updateData, [
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now()
+                    ]));
 
-                // Create transaction record if not exists
-                $existingTransaction = Transaction::where('notes', 'like', '%' . $deposit->deposit_id . '%')
-                    ->where('user_id', $deposit->user_id)
-                    ->first();
+                    // Create transaction record if not exists
+                    $existingTransaction = Transaction::where('notes', 'like', '%' . $deposit->deposit_id . '%')
+                        ->where('user_id', $deposit->user_id)
+                        ->first();
 
-                if (!$existingTransaction) {
-                    Transaction::create([
-                        'user_id' => $deposit->user_id,
-                        'transaction_id' => (new Transaction())->generateTransactionId(),
-                        'type' => 'deposit',
-                        'status' => 'completed',
-                        'currency' => $deposit->currency,
-                        'amount' => $deposit->amount,
-                        'fee' => 0,
-                        'net_amount' => $deposit->amount,
-                        'notes' => 'Deposit approved: ' . $deposit->deposit_id,
-                        'processed_at' => now()
-                    ]);
-
-                    // Update user's wallet
-                    $wallet = $deposit->user->getMainWallet($deposit->currency);
-                    if (!$wallet) {
-                        $wallet = Wallet::create([
+                    if (!$existingTransaction) {
+                        Transaction::create([
                             'user_id' => $deposit->user_id,
+                            'transaction_id' => (new Transaction())->generateTransactionId(),
+                            'type' => 'deposit',
+                            'status' => 'completed',
                             'currency' => $deposit->currency,
-                            'balance' => 0,
-                            'total_deposited' => 0,
-                            'total_withdrawn' => 0,
-                            'total_profit' => 0,
-                            'total_loss' => 0,
+                            'amount' => $deposit->amount,
+                            'fee' => 0,
+                            'net_amount' => $deposit->amount,
+                            'notes' => 'Deposit approved: ' . $deposit->deposit_id,
+                            'processed_at' => now()
                         ]);
+
+                        // Update user's wallet
+                        $wallet = $deposit->user->getMainWallet($deposit->currency);
+                        if (!$wallet) {
+                            $wallet = Wallet::create([
+                                'user_id' => $deposit->user_id,
+                                'currency' => $deposit->currency,
+                                'balance' => 0,
+                                'total_deposited' => 0,
+                                'total_withdrawn' => 0,
+                                'total_profit' => 0,
+                                'total_loss' => 0,
+                            ]);
+                        }
+
+                        $wallet->increment('balance', $deposit->amount);
+                        $wallet->increment('total_deposited', $deposit->amount);
                     }
 
-                    $wallet->increment('balance', $deposit->amount);
-                    $wallet->increment('total_deposited', $deposit->amount);
-                }
+                    // Update invoice status to Paid if deposit is associated with an invoice
+                    if ($deposit->invoice_id) {
+                        $invoice = $deposit->invoice;
+                        $invoice->update(['status' => 'Paid']);
+                    }
+                    
+                    // Distribute referral bonuses to 3 levels for all approved deposits
+                    // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
+                    app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+                });
+            } else if ($validated['status'] === 'rejected') {
+                $updateData['rejection_reason'] = $validated['rejection_reason'] ?? null;
+                $deposit->update($updateData);
+            } else {
+                $deposit->update($updateData);
+            }
 
-                // Update invoice status to Paid if deposit is associated with an invoice
-                if ($deposit->invoice_id) {
-                    $invoice = $deposit->invoice;
-                    $invoice->update(['status' => 'Paid']);
-                }
-                
-                // Distribute referral bonuses to 3 levels for all approved deposits
-                // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
-                app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
-            });
-        } else if ($validated['status'] === 'rejected') {
-            $updateData['rejection_reason'] = $validated['rejection_reason'] ?? null;
-            $deposit->update($updateData);
-        } else {
-            $deposit->update($updateData);
+            return response()->json(['success' => 'Deposit status updated successfully'], 200);
+        } catch (\Exception $e) {
+            \Log::error('Deposit status update error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update deposit status: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => 'Deposit status updated successfully']);
     }
 
     public function edit($id)
