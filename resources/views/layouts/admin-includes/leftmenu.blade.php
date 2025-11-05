@@ -1,8 +1,13 @@
+@php
+    $setting = \App\Models\Setting::get();
+    $logoUrl = $setting->logo_url ?? asset('admin-assets/img/AdminLTELogo.png');
+    $projectName = $setting->company_name ?? config('app.name', 'Admin Panel');
+@endphp
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
     <div class="sidebar-brand">
         <a href="{{ url('/') }}" class="brand-link">
-            <img src="{{ asset('admin-assets/img/AdminLTELogo.png') }}" alt="AdminLTE Logo" class="brand-image opacity-75 shadow">
-            <span class="brand-text fw-light">Admin Panel</span>
+            <img src="{{ $logoUrl }}" alt="Logo" class="brand-image opacity-75 shadow">
+            <span class="brand-text fw-light">{{ $projectName }}</span>
         </a>
     </div>
     <div class="sidebar-wrapper">
@@ -70,6 +75,12 @@
                             <a href="{{route('admin.wallet-addresses.index')}}" class="nav-link @if(request()->routeIs('admin.wallet-addresses.*')) active @endif">
                                 <i class="nav-icon bi bi-circle"></i>
                                 <p>{{ __('Deposits Admin Details') }}</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{route('admin.settings.index')}}" class="nav-link @if(request()->routeIs('admin.settings.*')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Logo & Project Name') }}</p>
                             </a>
                         </li>
                     </ul>

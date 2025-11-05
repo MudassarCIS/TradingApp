@@ -1,13 +1,17 @@
 @php
     use App\Models\Plan;
+    use App\Models\Setting;
     $plans = Plan::active()->ordered()->get();
+    $setting = Setting::get();
+    $logoUrl = $setting->logo_url ?? null;
+    $projectName = $setting->company_name ?? 'AI Trading Bot';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Trading Bot System</title>
+    <title>{{ $projectName }}</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -475,8 +479,13 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#home">
-                <i class="bi bi-robot me-2"></i>AI Trading Bot
+            <a class="navbar-brand" href="#home" style="display: flex; align-items: center; gap: 0.5rem;">
+                @if($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">
+                @else
+                    <i class="bi bi-robot me-2"></i>
+                @endif
+                {{ $projectName }}
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">

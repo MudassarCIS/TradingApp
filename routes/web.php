@@ -115,6 +115,8 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::put('/deposits/{id}', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
     Route::resource('invoices', App\Http\Controllers\Admin\InvoiceController::class)->only(['index', 'show']);
+    Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
 });
 
 // Customer Routes (only for customers)

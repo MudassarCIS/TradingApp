@@ -1,9 +1,15 @@
+@php
+    use App\Models\Setting;
+    $setting = Setting::get();
+    $logoUrl = $setting->logo_url ?? null;
+    $projectName = $setting->company_name ?? 'AI Investment Bot System';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - AI Investment Bot System</title>
+    <title>Register - {{ $projectName }}</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -362,11 +368,15 @@
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <div class="auth-logo">
-                    <i class="bi bi-robot"></i>
+                <div class="auth-logo" style="{{ $logoUrl ? 'background: transparent; box-shadow: none;' : '' }}">
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
+                    @else
+                        <i class="bi bi-robot"></i>
+                    @endif
                 </div>
                 <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Join thousands of successful AI traders</p>
+                <p class="auth-subtitle">Join thousands of successful {{ $projectName }} traders</p>
             </div>
 
             <!-- Display Errors -->
