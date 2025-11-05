@@ -318,20 +318,3 @@ class TradingEngineService
     }
 }
 
-class BinanceApiService
-{
-    // Placeholder for Binance API integration
-    public function getMarketData(string $symbol): array
-    {
-        return [];
-    }
-}
-
-class BingXApiService
-{
-    // Placeholder for BingX API integration
-    public function getMarketData(string $symbol): array
-    {
-        return [];
-    }
-}

@@ -12,6 +12,31 @@ use App\Http\Controllers\Customer\AgentController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\ReferralController;
 use App\Http\Controllers\Customer\SupportController;
+use Illuminate\Support\Facades\Artisan;
+// Route to clear all application cache
+Route::get('/cache-clear', function() {
+    Artisan::call('cache:clear');
+    return 'Application cache cleared!';
+});
+
+// Route to clear route cache
+Route::get('/clear-route-cache', function() {
+    Artisan::call('route:clear');
+    return 'Route cache cleared!';
+});
+
+// Route to run database migrations
+Route::get('/migrate', function() {
+    Artisan::call('migrate');
+    return 'Database migrations executed!';
+});
+
+// Route to run database migrations with seeding (optional)
+Route::get('/migrate-seed', function() {
+    Artisan::call('migrate:fresh --seed'); // This will drop all tables and re-run migrations, then seed the database
+    return 'Database migrated and seeded!';
+});
+
 
 Route::get('/', function () {
     return view('home');

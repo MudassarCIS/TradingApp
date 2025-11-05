@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Investment Bot System</title>
+    <title>AI Trading Bot System</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -476,7 +476,7 @@
     <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
         <div class="container">
             <a class="navbar-brand" href="#home">
-                <i class="bi bi-robot me-2"></i>AI Investment Bot
+                <i class="bi bi-robot me-2"></i>AI Trading Bot
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -489,7 +489,7 @@
                         <a class="nav-link" href="#home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#packages">Packages</a>
+                        <a class="nav-link" href="#packages">Plans</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#how-it-works">How It Works</a>
@@ -544,7 +544,7 @@
                         <div class="glass-card">
                             <i class="bi bi-graph-up-arrow" style="font-size: 4rem; color: var(--neon-blue); margin-bottom: 1rem;"></i>
                             <h3>Real-time Performance</h3>
-                            <p>Watch your investments grow with our transparent, real-time tracking system.</p>
+                            <p>Watch your trading grow with our transparent, real-time tracking system.</p>
                         </div>
                     </div>
                 </div>
@@ -565,8 +565,8 @@
                 <div class="col-lg-4">
                     <div class="step-card" data-aos="fade-up" data-aos-delay="100">
                         <div class="step-number">1</div>
-                        <h4>Select Your Investment Plan</h4>
-                        <p>Choose from our carefully crafted investment packages ranging from $100 to $50,000. Each plan offers unique benefits, more AI bots, and higher profit potential.</p>
+                        <h4>Select Your Trading Plan</h4>
+                        <p>Choose from our carefully crafted trading packages ranging from $100 to $50,000. Each plan offers unique benefits, more AI bots, and higher profit potential.</p>
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -580,20 +580,20 @@
                     <div class="step-card" data-aos="fade-up" data-aos-delay="300">
                         <div class="step-number">3</div>
                         <h4>Earn Daily Profits & Bonuses</h4>
-                        <p>Watch your account grow with daily profit distributions, referral commissions, and automatic reinvestments. Build your network and earn from multiple income streams.</p>
+                        <p>Watch your account grow with daily profit distributions, referral commissions, and automatic retrading. Build your network and earn from multiple income streams.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Packages Section -->
+    <!-- Plans Section -->
     <section id="packages" class="py-5">
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Investment Packages</h2>
-                    <p class="lead" data-aos="fade-up" data-aos-delay="200">Select the perfect investment plan that matches your financial goals and risk tolerance</p>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Trading Plans</h2>
+                    <p class="lead" data-aos="fade-up" data-aos-delay="200">Select the perfect trading plan that matches your financial goals and risk tolerance</p>
                 </div>
             </div>
             <div class="row g-4">
@@ -610,9 +610,9 @@
                             <li><i class="bi bi-check-circle"></i>{{ $plan->referral_level_1 }}% - {{ $plan->referral_level_2 }}% - {{ $plan->referral_level_3 }}% Referral Share</li>
                         </ul>
                         @auth
-                            <a href="{{ route('dashboard') }}" class="btn-glow w-100">Choose Package</a>
+                            <a href="{{ route('dashboard') }}" class="btn-glow w-100">Choose Plan</a>
                         @else
-                            <a href="{{ route('register') }}" class="btn-glow w-100">Choose Package</a>
+                            <a href="{{ route('register') }}" class="btn-glow w-100">Choose Plan</a>
                         @endauth
                     </div>
                 </div>
@@ -637,7 +637,7 @@
                         <h3 class="mb-4">Build Your Network & Earn Commissions</h3>
                         <p class="lead mb-4">
                             Our revolutionary 3-level referral system allows you to earn from your direct referrals and their referrals. 
-                            Higher investment packages unlock better referral percentages and unlimited earning potential.
+                            Higher trading packages unlock better referral percentages and unlimited earning potential.
                         </p>
                         <div class="row g-4">
                             <div class="col-md-4">
@@ -712,14 +712,14 @@
                         <h2 class="display-4 fw-bold mb-4">Ready to Transform Your Financial Future?</h2>
                         <p class="lead mb-4">
                             Join thousands of successful investors who are already earning daily profits with our AI trading system. 
-                            Start your automated investment journey today and watch your wealth grow exponentially.
+                            Start your automated trading journey today and watch your wealth grow exponentially.
                         </p>
                         <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
                             <a href="#register" class="btn-glow">
                                 <i class="bi bi-person-plus me-2"></i>Join Now
                             </a>
                             <a href="#packages" class="btn btn-outline-light btn-lg">
-                                <i class="bi bi-eye me-2"></i>View Packages
+                                <i class="bi bi-eye me-2"></i>View Plans
                             </a>
                         </div>
                     </div>
@@ -734,10 +734,10 @@
             <div class="row">
                 <div class="col-lg-4 mb-4">
                     <h5 class="mb-3">
-                        <i class="bi bi-robot me-2"></i>AI Investment Bot System
+                        <i class="bi bi-robot me-2"></i>AI Trading Bot System
                     </h5>
                     <p class="text-muted">
-                        Revolutionizing the investment landscape with cutting-edge AI technology. 
+                        Revolutionizing the trading landscape with cutting-edge AI technology. 
                         Experience automated trading, intelligent market analysis, and guaranteed returns 
                         with our advanced trading algorithms.
                     </p>
@@ -746,7 +746,7 @@
                     <h6 class="mb-3">Quick Links</h6>
                     <ul class="list-unstyled">
                         <li><a href="#home" class="text-muted text-decoration-none">Home</a></li>
-                        <li><a href="#packages" class="text-muted text-decoration-none">Packages</a></li>
+                        <li><a href="#packages" class="text-muted text-decoration-none">Plans</a></li>
                         <li><a href="#how-it-works" class="text-muted text-decoration-none">How It Works</a></li>
                         <li><a href="#referral" class="text-muted text-decoration-none">Referral</a></li>
                     </ul>
@@ -781,7 +781,7 @@
             <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">&copy; 2024 AI Investment Bot System. All rights reserved.</p>
+                    <p class="text-muted mb-0">&copy; 2024 AI Trading Bot System. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="text-muted mb-0">Powered by Advanced AI Technology</p>

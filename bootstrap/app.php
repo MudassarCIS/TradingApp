@@ -27,5 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Handle authentication exceptions - redirect to home with error message
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Token expired. Please login again.'], 401);
+            }
+            
+            return redirect()->route('home')->with('error', 'Your session has expired. Please login again.');
+        });
     })->create();
