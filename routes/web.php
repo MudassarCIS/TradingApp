@@ -37,6 +37,23 @@ Route::get('/migrate-seed', function() {
     return 'Database migrated and seeded!';
 });
 
+// Route to create storage symlink (REMOVE IN PRODUCTION)
+Route::get('/create-storage-link', function() {
+    try {
+        Artisan::call('storage:link');
+        $symlinkPath = public_path('storage');
+        $targetPath = storage_path('app/public');
+        
+        if (is_link($symlinkPath) || file_exists($symlinkPath)) {
+            return 'Storage symlink created successfully!<br>Symlink: ' . $symlinkPath . '<br>Target: ' . $targetPath;
+        } else {
+            return 'Storage symlink may not have been created. Please check manually.';
+        }
+    } catch (\Exception $e) {
+        return 'Error creating storage symlink: ' . $e->getMessage();
+    }
+});
+
 
 Route::get('/', function () {
     return view('home');

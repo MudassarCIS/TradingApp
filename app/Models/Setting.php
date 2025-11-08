@@ -14,11 +14,17 @@ class Setting extends Model
 
     /**
      * Get the logo URL
+     * Logo is stored in public/images/logo directory
      */
     public function getLogoUrlAttribute()
     {
         if ($this->logo_path) {
-            return Storage::disk('public')->url($this->logo_path);
+            // Remove any leading slashes or 'public/' prefix
+            $path = ltrim($this->logo_path, '/');
+            $path = str_replace('public/', '', $path);
+            
+            // Use asset() to generate URL pointing to public directory
+            return asset($path);
         }
         return null;
     }
