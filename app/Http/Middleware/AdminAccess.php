@@ -19,6 +19,9 @@ class AdminAccess
         
         // Only allow staff members (admin, manager, moderator) to access admin panel
         if (!$user || !$user->hasAnyRole(['admin', 'manager', 'moderator'])) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Access denied. You do not have permission to access the admin panel.'], 403);
+            }
             return redirect()->route('customer.dashboard')->with('error', 'Access denied. You do not have permission to access the admin panel.');
         }
         

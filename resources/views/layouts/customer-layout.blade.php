@@ -170,7 +170,10 @@
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="position-sticky pt-3">
                     <div class="text-center mb-4">
-                        <h4 class="text-white">AI Trade App</h4>
+                        <div class="mb-3">
+                            <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa Trades Logo" style="max-width: 80px; height: auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                        </div>
+                        <h4 class="text-white mb-1">Nexa Trades</h4>
                         <small class="text-white-50">Customer Panel</small>
                     </div>
                     

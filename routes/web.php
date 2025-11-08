@@ -113,6 +113,7 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::post('/deposits/{id}/reject', [App\Http\Controllers\Admin\DepositController::class, 'reject'])->name('deposits.reject');
     Route::post('/deposits/{id}/cancel', [App\Http\Controllers\Admin\DepositController::class, 'cancel'])->name('deposits.cancel');
     Route::put('/deposits/{id}', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update');
+    Route::post('/deposits/{id}/update', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update.post');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
     Route::resource('invoices', App\Http\Controllers\Admin\InvoiceController::class)->only(['index', 'show']);
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
@@ -148,6 +149,9 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/agents/{agent}/edit', [AgentController::class, 'edit'])->name('agents.edit');
     Route::put('/agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
     Route::delete('/agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+    
+    // Package Details
+    Route::get('/packages/{bot}', [AgentController::class, 'showPackage'])->name('packages.show');
     
     // Profile
     Route::get('/profile', [CustomerProfileController::class, 'index'])->name('profile.index');

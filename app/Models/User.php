@@ -29,6 +29,23 @@ class User extends Authenticatable
         'active_plan_id',
         'active_investment_amount',
     ];
+    
+    // Dynamically add active_plan_name if column exists
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        
+        // Add active_plan_name to fillable if column exists
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
+                if (!in_array('active_plan_name', $this->fillable)) {
+                    $this->fillable[] = 'active_plan_name';
+                }
+            }
+        } catch (\Exception $e) {
+            // Column doesn't exist yet, skip it
+        }
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -142,6 +159,11 @@ class User extends Authenticatable
         return $this->hasMany(UserInvoice::class);
     }
 
+    public function planHistory()
+    {
+        return $this->hasMany(UserPlanHistory::class);
+    }
+
     // Helper methods - Updated to use Spatie roles instead of user_type
     public function isAdmin()
     {
@@ -240,6 +262,31 @@ class User extends Authenticatable
                     $code = strtoupper(\Illuminate\Support\Str::random(8));
                 } while (User::where('referral_code', $code)->exists());
                 $user->referral_code = $code;
+            }
+            
+            // Set default Starter plan for new customer users
+            // Check if user is customer by checking if they don't have admin/manager/moderator roles
+            if (empty($user->active_plan_id)) {
+                try {
+                    $starterPlan = \App\Models\Plan::where('name', 'Starter')
+                        ->where('is_active', true)
+                        ->first();
+                    
+                    if ($starterPlan) {
+                        $user->active_plan_id = $starterPlan->id;
+                        // Only set active_plan_name if column exists
+                        try {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
+                                $user->active_plan_name = $starterPlan->name;
+                            }
+                        } catch (\Exception $e) {
+                            // Column doesn't exist, skip it
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If there's an error, just continue without setting plan
+                    \Log::warning('Could not set default Starter plan: ' . $e->getMessage());
+                }
             }
         });
     }

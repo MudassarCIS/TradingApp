@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
+use App\Models\UserActiveBot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,7 +38,17 @@ class AgentController extends Controller
                 $bot->invoice_id = $invoice ? $invoice->id : null;
                 
                 return $bot;
-            });
+            })
+            ->sortBy(function($bot) {
+                // Sort: Paid first, then Unpaid, then Unknown
+                $priority = [
+                    'Paid' => 1,
+                    'Unpaid' => 2,
+                    'Unknown' => 3
+                ];
+                return $priority[$bot->invoice_status] ?? 3;
+            })
+            ->values();
         
         return view('customer.agents.index', compact('agents', 'activeBots'));
     }
@@ -178,5 +189,29 @@ class AgentController extends Controller
         
         return redirect()->route('customer.agents.index')
             ->with('success', 'Agent deleted successfully!');
+    }
+    
+    public function showPackage(UserActiveBot $bot)
+    {
+        $user = Auth::user();
+        
+        // Ensure the bot belongs to the authenticated user
+        if ($bot->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to this package.');
+        }
+        
+        // Get the corresponding invoice for this bot
+        $invoice = $user->invoices()
+            ->where('invoice_type', $bot->buy_type)
+            ->where('created_at', '>=', $bot->created_at->subMinutes(5))
+            ->where('created_at', '<=', $bot->created_at->addMinutes(5))
+            ->first();
+        
+        $bot->invoice_status = $invoice ? $invoice->status : 'Unknown';
+        $bot->invoice_amount = $invoice ? $invoice->amount : 0;
+        $bot->invoice_due_date = $invoice ? $invoice->due_date : null;
+        $bot->invoice_id = $invoice ? $invoice->id : null;
+        
+        return view('customer.agents.package-details', compact('bot'));
     }
 }

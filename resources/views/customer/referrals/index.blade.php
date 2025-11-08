@@ -249,8 +249,95 @@
     </div>
 </div>
 
+<!-- Parent Levels Section -->
+
 <div class="row">
-    <!-- Referral Link & QR Code -->
+    <!-- First Parent -->
+    <div class="col-md-4 mb-4">
+        <div class="stats-card">
+            <h6 class="text-muted mb-2">First Parent</h6>
+            @if($parents['first'])
+                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['first']['user']->id }}</code></p>
+                <h4>${{ number_format($parents['first']['bonus_amount'], 2) }}</h4>
+                <p class="text-muted mb-0">Bonus Amount</p>
+            @else
+                <h4 class="text-muted">-</h4>
+                <p class="text-muted mb-0">No parent</p>
+            @endif
+        </div>
+    </div>
+    
+    <!-- Second Parent -->
+    <div class="col-md-4 mb-4">
+        <div class="stats-card">
+            <h6 class="text-muted mb-2">Second Parent</h6>
+            @if($parents['second'])
+                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['second']['user']->id }}</code></p>
+                <h4>${{ number_format($parents['second']['bonus_amount'], 2) }}</h4>
+                <p class="text-muted mb-0">Bonus Amount</p>
+            @else
+                <h4 class="text-muted">-</h4>
+                <p class="text-muted mb-0">No parent</p>
+            @endif
+        </div>
+    </div>
+    
+    <!-- Third Parent -->
+    <div class="col-md-4 mb-4">
+        <div class="stats-card">
+            <h6 class="text-muted mb-2">Third Parent</h6>
+            @if($parents['third'])
+                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['third']['user']->id }}</code></p>
+                <h4>${{ number_format($parents['third']['bonus_amount'], 2) }}</h4>
+                <p class="text-muted mb-0">Bonus Amount</p>
+            @else
+                <h4 class="text-muted">-</h4>
+                <p class="text-muted mb-0">No parent</p>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Referral Link & QR Code -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Your Referral Link & QR Code</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <!-- Referral Link - Left Side -->
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h6 class="mb-3"><i class="bi bi-link-45deg"></i> Referral Link</h6>
+                        <div class="address-container" style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 0.75rem; word-break: break-all; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <code id="modal-deposit-address" style="font-size: 0.85rem; flex: 1; margin: 0; color: #495057; padding-right: 0.5rem; min-width: 0;">{{ $referralLink }}</code>
+                            <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('{{ $referralLink }}')">
+                                <i class="bi bi-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QR Code - Right Side -->
+                    <div class="col-md-6 text-center">
+                        <h6 class="mb-3"><i class="bi bi-qr-code"></i> QR Code</h6>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; display: inline-block;">
+                            <div id="qrCodeContainer" style="max-width: 150px; margin: 0 auto;">
+                                {!! $qrCode !!}
+                            </div>
+                            <p class="mt-2 mb-0 text-muted" style="font-size: 0.85rem;">Share this QR code to invite friends</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>  
+    
+
+<!--
+<div class="row">
+   
     <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header">
@@ -285,7 +372,7 @@
             </div>
         </div>
     </div>
-</div>
+</div>-->
 
 <!-- Referral Tree (Up to 3 Levels) -->
 <div class="row">

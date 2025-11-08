@@ -239,6 +239,68 @@
             opacity: 1;
         }
 
+        /* Hero Robot Image Styling */
+        .hero-robot-card {
+            padding: 1.5rem;
+        }
+
+        .robot-image-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(139, 92, 246, 0.1));
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.15), inset 0 0 30px rgba(0, 212, 255, 0.05);
+        }
+
+        .hero-robot-image {
+            max-width: 220px;
+            height: auto;
+            border-radius: 15px;
+            filter: drop-shadow(0 5px 15px rgba(0, 212, 255, 0.4));
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-robot-card:hover .hero-robot-image {
+            transform: scale(1.05);
+            filter: drop-shadow(0 8px 20px rgba(0, 212, 255, 0.6));
+        }
+
+        .robot-image-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-blue));
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .hero-robot-card:hover .robot-image-wrapper::before {
+            opacity: 0.3;
+        }
+
+        .robot-image-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
+            border-radius: 20px;
+            z-index: 0;
+        }
+
         /* Package Cards */
         .package-card {
             background: var(--glass-bg);
@@ -483,7 +545,7 @@
                 @if($logoUrl)
                     <img src="{{ $logoUrl }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">
                 @else
-                    <i class="bi bi-robot me-2"></i>
+                    <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa AI Robot" style="height: 40px; width: auto; object-fit: contain; border-radius: 8px;">
                 @endif
                 {{ $projectName }}
             </a>
@@ -550,10 +612,12 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="text-center" data-aos="fade-left" data-aos-duration="1000">
-                        <div class="glass-card">
-                            <i class="bi bi-graph-up-arrow" style="font-size: 4rem; color: var(--neon-blue); margin-bottom: 1rem;"></i>
-                            <h3>Real-time Performance</h3>
-                            <p>Watch your trading grow with our transparent, real-time tracking system.</p>
+                        <div class="glass-card hero-robot-card">
+                            <div class="robot-image-wrapper">
+                                <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa AI Robot" class="hero-robot-image">
+                            </div>
+                            <h3>Nexa AI Trading Robot</h3>
+                            <p>Watch your trading grow with our transparent, real-time tracking system powered by advanced AI technology.</p>
                         </div>
                     </div>
                 </div>

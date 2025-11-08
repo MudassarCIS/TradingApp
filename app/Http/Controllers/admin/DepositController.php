@@ -213,7 +213,16 @@ class DepositController extends Controller
             
             // Distribute referral bonuses to 3 levels for all approved deposits
             // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
-            app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+            try {
+                app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+            } catch (\Exception $e) {
+                // Log error but don't fail the deposit approval
+                \Log::error('Error distributing referral bonuses: ' . $e->getMessage(), [
+                    'deposit_id' => $deposit->id,
+                    'user_id' => $deposit->user_id,
+                    'error' => $e->getTraceAsString()
+                ]);
+            }
 
             // Create transaction record
             $transaction = Transaction::create([
@@ -316,6 +325,9 @@ class DepositController extends Controller
 
             if ($validated['status'] === 'approved') {
                 DB::transaction(function () use ($deposit, $updateData) {
+                    // Reload deposit with user relationship to ensure we have fresh data
+                    $deposit->load('user');
+                    
                     $deposit->update(array_merge($updateData, [
                         'approved_by' => Auth::id(),
                         'approved_at' => now()
@@ -360,13 +372,38 @@ class DepositController extends Controller
 
                     // Update invoice status to Paid if deposit is associated with an invoice
                     if ($deposit->invoice_id) {
+                        $deposit->load('invoice');
                         $invoice = $deposit->invoice;
                         $invoice->update(['status' => 'Paid']);
                     }
                     
                     // Distribute referral bonuses to 3 levels for all approved deposits
                     // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
-                    app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+                    try {
+                        // Ensure user relationship is loaded
+                        if (!$deposit->relationLoaded('user')) {
+                            $deposit->load('user');
+                        }
+                        
+                        // Distribute bonuses to parents
+                        $referralService = app(ReferralService::class);
+                        $referralService->distributeReferralBonuses($deposit->user, $deposit);
+                        
+                        // Log success for verification
+                        \Log::info('Referral bonuses distributed successfully', [
+                            'deposit_id' => $deposit->id,
+                            'user_id' => $deposit->user_id,
+                            'amount' => $deposit->amount,
+                            'currency' => $deposit->currency
+                        ]);
+                    } catch (\Exception $e) {
+                        // Log error but don't fail the deposit approval
+                        \Log::error('Error distributing referral bonuses: ' . $e->getMessage(), [
+                            'deposit_id' => $deposit->id,
+                            'user_id' => $deposit->user_id,
+                            'error' => $e->getTraceAsString()
+                        ]);
+                    }
                 });
             } else if ($validated['status'] === 'rejected') {
                 $updateData['rejection_reason'] = $validated['rejection_reason'] ?? null;

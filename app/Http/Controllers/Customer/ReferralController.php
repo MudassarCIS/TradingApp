@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Referral;
 use App\Models\User;
+use App\Models\CustomersWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -30,7 +31,7 @@ class ReferralController extends Controller
         
         // Generate referral link and QR code
         $referralLink = route('register', ['ref' => $user->referral_code]);
-        $qrCode = QrCode::size(200)->generate($referralLink);
+        $qrCode = QrCode::size(150)->generate($referralLink);
         
         // Get referrals by level with pagination
         $level1Referrals = $this->getReferralsByLevel($user, 1, $request);
@@ -41,6 +42,9 @@ class ReferralController extends Controller
         $level1Count = $this->getReferralCountByLevel($user, 1);
         $level2Count = $this->getReferralCountByLevel($user, 2);
         $level3Count = $this->getReferralCountByLevel($user, 3);
+        
+        // Get 3 levels of parents with bonus amounts
+        $parents = $this->getParentsWithBonuses($user);
         
         return view('customer.referrals.index', compact(
             'referralCount',
@@ -54,7 +58,8 @@ class ReferralController extends Controller
             'level2Count',
             'level3Count',
             'referralLink',
-            'qrCode'
+            'qrCode',
+            'parents'
         ));
     }
     
@@ -165,5 +170,74 @@ class ReferralController extends Controller
         }
         
         return $userIds;
+    }
+    
+    /**
+     * Get 3 levels of parents with their bonus wallet amounts
+     */
+    protected function getParentsWithBonuses(User $user): array
+    {
+        $parents = [
+            'first' => null,
+            'second' => null,
+            'third' => null
+        ];
+        
+        // Get first parent
+        $firstParent = $this->getParent($user->id);
+        if ($firstParent) {
+            $firstParentBonus = CustomersWallet::where('user_id', $firstParent->id)
+                ->where('payment_type', 'bonus')
+                ->where('transaction_type', 'debit')
+                ->sum('amount');
+            
+            $parents['first'] = [
+                'user' => $firstParent,
+                'bonus_amount' => (float) $firstParentBonus
+            ];
+            
+            // Get second parent
+            $secondParent = $this->getParent($firstParent->id);
+            if ($secondParent) {
+                $secondParentBonus = CustomersWallet::where('user_id', $secondParent->id)
+                    ->where('payment_type', 'bonus')
+                    ->where('transaction_type', 'debit')
+                    ->sum('amount');
+                
+                $parents['second'] = [
+                    'user' => $secondParent,
+                    'bonus_amount' => (float) $secondParentBonus
+                ];
+                
+                // Get third parent
+                $thirdParent = $this->getParent($secondParent->id);
+                if ($thirdParent) {
+                    $thirdParentBonus = CustomersWallet::where('user_id', $thirdParent->id)
+                        ->where('payment_type', 'bonus')
+                        ->where('transaction_type', 'debit')
+                        ->sum('amount');
+                    
+                    $parents['third'] = [
+                        'user' => $thirdParent,
+                        'bonus_amount' => (float) $thirdParentBonus
+                    ];
+                }
+            }
+        }
+        
+        return $parents;
+    }
+    
+    /**
+     * Get parent user from referral chain
+     */
+    protected function getParent($userId): ?User
+    {
+        // Use referrals table: find the active ref where referred_id = $userId
+        $ref = Referral::where('referred_id', $userId)->where('status', 'active')->first();
+        if (!$ref) {
+            return null;
+        }
+        return User::find($ref->referrer_id);
     }
 }

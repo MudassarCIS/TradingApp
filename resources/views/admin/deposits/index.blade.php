@@ -325,14 +325,14 @@ $(document).ready(function() {
         // Get CSRF token from meta tag
         var csrfToken = $('meta[name="csrf-token"]').attr('content');
         
-        // Use form-urlencoded data for Laravel method spoofing
+        // Prepare form data
         var formData = {
             status: newStatus,
-            _token: csrfToken,
-            _method: 'PUT'
+            _token: csrfToken
         };
         
-        var updateUrl = '/admin/deposits/' + depositId;
+        // Use POST route directly for better compatibility
+        var updateUrl = '/admin/deposits/' + depositId + '/update';
         
         $.ajax({
             url: updateUrl,
