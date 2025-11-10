@@ -286,12 +286,12 @@
 <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <!--<div class="modal-header">
                 <h5 class="modal-title" id="depositModalLabel">
                     <i class="bi bi-plus-circle"></i> Submit New Deposit
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+            </div>-->
             <form id="depositForm" action="{{ route('customer.wallet.deposit.submit') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" id="invoice_id" name="invoice_id" value="{{ old('invoice_id', $invoiceId) }}">
@@ -303,12 +303,20 @@
                         <div class="card border-primary">
                             <div class="card-header bg-primary text-white py-2">
                                 <h6 class="mb-0" style="font-size: 0.95rem;">
-                                    <i class="bi bi-wallet2"></i> Admin Deposits Address
+                                    <i class="bi bi-wallet2"></i> Add New Deposit
                                 </h6>
+                            
                             </div>
                             <div class="card-body p-3">
                                 <div class="row align-items-center">
-                                    
+                                <div class="alert alert-info mb-0" style="font-size: 0.85rem;">
+                                    <h6 style="font-size: 0.9rem; margin-bottom: 0.5rem;"><i class="bi bi-info-circle"></i> Important Information</h6>
+                                    <ul class="mb-0" style="font-size: 0.8rem;">
+                                        <li>After Pay amount on admin address, You have to create deposit record by filling the form below.</li>
+                                        <li> Your deposit will be reviewed by our team and Processing time: 1-24 hours</li>
+                                        <li>Make sure the proof image clearly shows the transaction details. Only send the exact amount specified</li>
+                                    </ul>
+                                </div>
                                     <!-- Address Display - Right Side -->
                                     <div class="col-md-8">
                                         <label class="form-label fw-bold mb-2" style="font-size: 0.9rem;">Admin Deposit Address:</label>
@@ -327,7 +335,7 @@
                                                 @if($walletAddresses->first())
                                                     @php $firstAddress = $walletAddresses->first(); @endphp
                                                     @if($firstAddress->qr_code_image && $firstAddress->qr_code_url)
-                                                        <img src="{{ $firstAddress->qr_code_url }}" alt="Deposit QR Code" style="max-width: 120px; max-height: 120px; width: auto; height: auto; object-fit: contain;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                        <img src="{{ $firstAddress->qr_code_url }}" alt="Deposit QR Code" style="max-width: 100px; max-height: 100px; width: auto; height: auto; object-fit: contain;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
                                                         <div style="display: none; color: #999;">
                                                             <i class="bi bi-qr-code" style="font-size: 2rem;"></i>
                                                             <p class="mt-1 mb-0" style="font-size: 0.75rem;">QR Code not available</p>
@@ -344,19 +352,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-
-                                <div class="alert alert-info py-2 mb-0" style="font-size: 0.85rem;">
-                                    <h6 style="font-size: 0.9rem; margin-bottom: 0.5rem;"><i class="bi bi-info-circle"></i> Important Information</h6>
-                                    <ul class="mb-0" style="font-size: 0.8rem;">
-                                        <li>After Pay amount on admin address, You have to create deposit record by filling the form below.</li>
-                                        <li> Your deposit will be reviewed by our team and Processing time: 1-24 hours</li>
-                                        <li>Make sure the proof image clearly shows the transaction details. Only send the exact amount specified</li>
-                                    </ul>
-                                </div>
-
-                                
-                                <hr>
 
                                 <div class="row mb-2" id="invoice-dropdown-container">
                                     <div class="col-12">
@@ -398,19 +393,21 @@
                                 
                                 <div class="row">
                                     <div class="col-md-6 mb-2">
+                                        <label for="trans_id" class="form-label" style="font-size: 0.9rem;">Transaction ID <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="trans_id" name="trans_id" value="{{ old('trans_id') }}" placeholder="Enter blockchain transaction ID" required>
+                                        <div class="form-text" style="font-size: 0.75rem;">Enter the transaction hash/ID from your wallet</div>
+                                    </div>
+                                
+                                    <div class="col-md-6 mb-2">
                                         <label for="network" class="form-label" style="font-size: 0.9rem;">Network <span class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" id="network" name="network" required>
-                                            <option value="">Select Network</option>
+                                            <!-- <option value="">Select Network</option> -->
                                             <option value="TRC20" {{ old('network') == 'TRC20' ? 'selected' : '' }}>TRC20 (USDT)</option>
                                             <option value="ERC20" {{ old('network') == 'ERC20' ? 'selected' : '' }}>ERC20 (USDT)</option>
                                             <option value="BEP20" {{ old('network') == 'BEP20' ? 'selected' : '' }}>BEP20 (USDT)</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label for="trans_id" class="form-label" style="font-size: 0.9rem;">Transaction ID <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control form-control-sm" id="trans_id" name="trans_id" value="{{ old('trans_id') }}" placeholder="Enter blockchain transaction ID" required>
-                                        <div class="form-text" style="font-size: 0.75rem;">Enter the transaction hash/ID from your wallet</div>
-                                    </div>
+                                    
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-2">

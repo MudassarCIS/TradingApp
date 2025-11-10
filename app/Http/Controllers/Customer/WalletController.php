@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\WalletAddress;
 use App\Models\Deposit;
 use App\Models\UserInvoice;
+use App\Models\CustomersWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -22,7 +23,25 @@ class WalletController extends Controller
     {
         $user = Auth::user();
         
-        // Ensure user has a main wallet
+        // Calculate total deposits (sum of all debit amounts)
+        $totalDeposits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'debit')
+            ->sum('amount');
+        
+        // Calculate total withdrawals (sum of all credit amounts)
+        $totalWithdrawals = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'credit')
+            ->sum('amount');
+        
+        // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
+        $availableBalance = max(0, round($totalDeposits - $totalWithdrawals, 2));
+        
+        // Get wallet history from customers_wallets table
+        $walletHistory = CustomersWallet::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+        
+        // Ensure user has a main wallet (for backward compatibility)
         $mainWallet = $user->getMainWallet('USDT');
         if (!$mainWallet) {
             $mainWallet = Wallet::create([
@@ -38,7 +57,7 @@ class WalletController extends Controller
         
         $wallets = $user->wallets()->get();
         
-        return view('customer.wallet.index', compact('wallets'));
+        return view('customer.wallet.index', compact('wallets', 'totalDeposits', 'totalWithdrawals', 'availableBalance', 'walletHistory'));
     }
 
     public function deposit(Request $request)

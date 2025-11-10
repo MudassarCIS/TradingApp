@@ -35,7 +35,7 @@ class Setting extends Model
     public static function get()
     {
         return static::firstOrCreate([], [
-            'company_name' => config('app.name', 'AI Trading Bot'),
+            'company_name' => 'TSG Trades - THE SMART GROWTH',
             'logo_path' => null,
         ]);
     }

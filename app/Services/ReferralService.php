@@ -142,7 +142,7 @@ class ReferralService
     }
 
     /**
-     * Distribute referral bonuses up to 3 levels
+     * Distribute referral bonuses based on deposit/invoice type
      */
     public function distributeReferralBonuses(User $investor, $deposit): void
     {
@@ -158,6 +158,139 @@ class ReferralService
                 }
             }
             
+            // Get invoice type if deposit is associated with an invoice
+            $invoiceType = null;
+            if ($deposit->invoice_id && $deposit->relationLoaded('invoice')) {
+                $invoice = $deposit->invoice;
+                $invoiceType = $invoice->invoice_type ?? null;
+            } elseif ($deposit->invoice_id) {
+                $invoice = \App\Models\UserInvoice::find($deposit->invoice_id);
+                $invoiceType = $invoice->invoice_type ?? null;
+            }
+            
+            // Route to appropriate bonus distribution method based on invoice type
+            // "Rent A Bot" and "Sharing Nexa" are treated as package buy (direct_bonus to level 1 only)
+            // "profit invoice" uses 3-level bonuses
+            if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa', 'package buy'])) {
+                // Type 1: Package buy (Rent A Bot, Sharing Nexa, or package buy) - give direct_bonus to first level parent only
+                $this->distributePackageBuyBonus($investor, $deposit);
+            } elseif ($invoiceType === 'profit invoice') {
+                // Type 2: Profit invoice - give 3-level bonuses using referral_level percentages
+                $this->distributeProfitInvoiceBonus($investor, $deposit);
+            } else {
+                // Default: For deposits without invoice or unknown type, use package buy logic
+                // This treats deposits without invoices as package purchases
+                $this->distributePackageBuyBonus($investor, $deposit);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error in distributeReferralBonuses: ' . $e->getMessage(), [
+                'deposit_id' => $deposit->id ?? null,
+                'user_id' => $investor->id,
+                'invoice_type' => $invoiceType ?? 'none'
+            ]);
+            throw $e; // Re-throw to be caught by controller
+        }
+    }
+
+    /**
+     * Distribute package buy bonus - gives direct_bonus to first level parent only
+     * Used when invoice_type is "Rent A Bot", "Sharing Nexa", or "package buy"
+     */
+    public function distributePackageBuyBonus(User $investor, $deposit): void
+    {
+        try {
+            $currency = $deposit->currency ?? 'USDT';
+            $amount = (float) $deposit->amount;
+            $amountInUSDT = $this->convertToUSDT($currency, $amount);
+            
+            // Assign plan to investor
+            $plan = $this->assignPlanToUser($investor, $amountInUSDT);
+            
+            if (!$plan) {
+                \Log::warning('No plan found for package buy deposit', [
+                    'deposit_id' => $deposit->id,
+                    'user_id' => $investor->id,
+                    'amount' => $amountInUSDT
+                ]);
+                return;
+            }
+            
+            // Get direct_bonus from plan
+            $directBonus = (float) ($plan->direct_bonus ?? 0);
+            
+            if ($directBonus <= 0) {
+                \Log::info('No direct_bonus configured for plan', [
+                    'plan_id' => $plan->id,
+                    'plan_name' => $plan->name
+                ]);
+                return;
+            }
+            
+            // Get first level parent only
+            $parent = $this->getParent($investor->id);
+            
+            if (!$parent) {
+                \Log::info('No parent found for package buy bonus', [
+                    'investor_id' => $investor->id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            // Get parent's active plan to check if they qualify
+            $parentActivePlan = $this->getParentActivePlan($parent);
+            
+            if ($parentActivePlan) {
+                // Convert direct_bonus to USDT if needed (assuming direct_bonus is in USDT)
+                $bonusUSDT = $directBonus;
+                
+                if ($bonusUSDT > 0) {
+                    DB::transaction(function () use ($deposit, $investor, $parent, $bonusUSDT, $directBonus) {
+                        // Insert into customers_wallets with deposit id as related_id
+                        $walletEntry = CustomersWallet::create([
+                            'user_id' => $parent->id,
+                            'amount' => $bonusUSDT,
+                            'currency' => 'USDT',
+                            'payment_type' => 'bonus',
+                            'transaction_type' => 'debit',
+                            'related_id' => $deposit->id,
+                        ]);
+
+                        // Update parent's wallet summary
+                        $this->creditParentWallet($parent->id, $bonusUSDT);
+
+                        // Update referral totals
+                        $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
+                        
+                        // Log bonus distribution for verification
+                        \Log::info('Package buy bonus distributed', [
+                            'level' => 1,
+                            'parent_id' => $parent->id,
+                            'investor_id' => $investor->id,
+                            'deposit_id' => $deposit->id,
+                            'bonus_amount' => $bonusUSDT,
+                            'direct_bonus' => $directBonus,
+                            'wallet_entry_id' => $walletEntry->id
+                        ]);
+                    });
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error in distributePackageBuyBonus: ' . $e->getMessage(), [
+                'deposit_id' => $deposit->id ?? null,
+                'user_id' => $investor->id
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Distribute profit invoice bonus - gives 3-level bonuses using referral_level percentages
+     * Used when invoice_type is "profit invoice"
+     */
+    public function distributeProfitInvoiceBonus(User $investor, $deposit): void
+    {
+        try {
             $currency = $deposit->currency ?? 'USDT';
             $amount = (float) $deposit->amount;
             $amountInUSDT = $this->convertToUSDT($currency, $amount);
@@ -165,8 +298,8 @@ class ReferralService
             // Assign plan to investor
             $this->assignPlanToUser($investor, $amountInUSDT);
         } catch (\Exception $e) {
-            \Log::error('Error in distributeReferralBonuses (initial setup): ' . $e->getMessage());
-            throw $e; // Re-throw to be caught by controller
+            \Log::error('Error in distributeProfitInvoiceBonus (initial setup): ' . $e->getMessage());
+            throw $e;
         }
 
         try {
@@ -175,7 +308,7 @@ class ReferralService
 
             while ($level <= 3 && $parent) {
                 try {
-                    // Check if parent has an active "Sharing Nexa" plan with paid invoice
+                    // Check if parent has an active plan with paid invoice
                     $parentActivePlan = $this->getParentActivePlan($parent);
                     
                     if ($parentActivePlan) {
@@ -204,7 +337,7 @@ class ReferralService
                                     $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
                                     
                                     // Log bonus distribution for verification
-                                    \Log::info('Referral bonus distributed', [
+                                    \Log::info('Profit invoice bonus distributed', [
                                         'level' => $level,
                                         'parent_id' => $parent->id,
                                         'investor_id' => $investor->id,
@@ -219,7 +352,7 @@ class ReferralService
                     }
                 } catch (\Exception $e) {
                     // Log error for this level but continue to next level
-                    \Log::error("Error processing referral bonus for level {$level}: " . $e->getMessage(), [
+                    \Log::error("Error processing profit invoice bonus for level {$level}: " . $e->getMessage(), [
                         'parent_id' => $parent->id ?? null,
                         'investor_id' => $investor->id,
                         'level' => $level
@@ -230,8 +363,8 @@ class ReferralService
                 $parent = $this->getParent($parent->id);
             }
         } catch (\Exception $e) {
-            \Log::error('Error in distributeReferralBonuses (parent loop): ' . $e->getMessage());
-            throw $e; // Re-throw to be caught by controller
+            \Log::error('Error in distributeProfitInvoiceBonus (parent loop): ' . $e->getMessage());
+            throw $e;
         }
     }
 

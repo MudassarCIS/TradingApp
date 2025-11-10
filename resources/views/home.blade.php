@@ -121,6 +121,57 @@
             padding-top: 80px; /* Account for fixed navbar */
         }
 
+        .hero-container-wrapper {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 80px);
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .hero-video-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(12, 12, 12, 0.3) 0%, transparent 50%, transparent 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .hero-video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .hero-video-background.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 992px) {
+            .hero-video-container {
+                width: 100%;
+            }
+        }
+
         .hero-section::before {
             content: '';
             position: absolute;
@@ -128,10 +179,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-                        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.15) 0%, transparent 50%);
             animation: float 6s ease-in-out infinite;
+            z-index: 0;
         }
 
         @keyframes float {
@@ -141,7 +193,30 @@
 
         .hero-content {
             position: relative;
-            z-index: 2;
+            z-index: 3;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4rem 3rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 700px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            margin-left: 8%;
+        }
+
+        @media (max-width: 992px) {
+            .hero-content {
+                margin-left: 5%;
+                max-width: 85%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content {
+                padding: 3rem 2rem;
+                max-width: 90%;
+                margin-left: 5%;
+            }
         }
 
         .hero-title {
@@ -154,6 +229,8 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             animation: glow 2s ease-in-out infinite alternate;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
         @keyframes glow {
@@ -163,9 +240,10 @@
 
         .hero-subtitle {
             font-size: 1.25rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.95);
             margin-bottom: 2rem;
             line-height: 1.6;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
         }
 
         .btn-glow {
@@ -239,67 +317,6 @@
             opacity: 1;
         }
 
-        /* Hero Robot Image Styling */
-        .hero-robot-card {
-            padding: 1.5rem;
-        }
-
-        .robot-image-wrapper {
-            position: relative;
-            display: inline-block;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(139, 92, 246, 0.1));
-            border-radius: 20px;
-            border: 1px solid rgba(0, 212, 255, 0.2);
-            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.15), inset 0 0 30px rgba(0, 212, 255, 0.05);
-        }
-
-        .hero-robot-image {
-            max-width: 220px;
-            height: auto;
-            border-radius: 15px;
-            filter: drop-shadow(0 5px 15px rgba(0, 212, 255, 0.4));
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-robot-card:hover .hero-robot-image {
-            transform: scale(1.05);
-            filter: drop-shadow(0 8px 20px rgba(0, 212, 255, 0.6));
-        }
-
-        .robot-image-wrapper::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-blue));
-            border-radius: 20px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 0;
-        }
-
-        .hero-robot-card:hover .robot-image-wrapper::before {
-            opacity: 0.3;
-        }
-
-        .robot-image-wrapper::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
-            border-radius: 20px;
-            z-index: 0;
-        }
 
         /* Package Cards */
         .package-card {
@@ -505,11 +522,11 @@
         /* Responsive Design */
         @media (max-width: 768px) {
             .hero-title {
-                font-size: 2.5rem;
+                font-size: 2rem;
             }
             
             .hero-subtitle {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
             
             .package-card {
@@ -518,6 +535,20 @@
             
             .stat-number {
                 font-size: 2.5rem;
+            }
+
+            .hero-content {
+                padding: 1.5rem;
+            }
+
+            .hero-video-background {
+                opacity: 0.3;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-video-background {
+                opacity: 0.15;
             }
         }
 
@@ -595,32 +626,31 @@
 
     <!-- Hero Section -->
     <section id="home" class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <div class="hero-content" data-aos="fade-right" data-aos-duration="1000">
-                        <h1 class="hero-title">Revolutionary AI Trading System</h1>
-                        <p class="hero-subtitle">
-                            Experience the future of investing with our cutting-edge AI trading bots. 
-                            Automated 24/7 trading, intelligent market analysis, and guaranteed returns. 
-                            Join over 15,000 successful investors earning passive income daily.
-                        </p>
-                        <a href="#packages" class="btn-glow">
-                            <i class="bi bi-rocket-takeoff me-2"></i>Get Started Now
-                        </a>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="text-center" data-aos="fade-left" data-aos-duration="1000">
-                        <div class="glass-card hero-robot-card">
-                            <div class="robot-image-wrapper">
-                                <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa AI Robot" class="hero-robot-image">
-                            </div>
-                            <h3>Nexa AI Trading Robot</h3>
-                            <p>Watch your trading grow with our transparent, real-time tracking system powered by advanced AI technology.</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="hero-container-wrapper">
+            <!-- Video Container on Right Side -->
+            <div class="hero-video-container">
+                <!-- First Video -->
+                <video autoplay muted loop playsinline class="hero-video-background active" id="video1">
+                    <source src="{{ asset('videos/robot1.mp4') }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <!-- Second Video -->
+                <video autoplay muted loop playsinline class="hero-video-background" id="video2">
+                    <source src="{{ asset('videos/robot2.mp4') }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <!-- Text Content on Left Side -->
+            <div class="hero-content" data-aos="fade-right" data-aos-duration="1000">
+                <h1 class="hero-title">Revolutionary AI Trading System</h1>
+                <p class="hero-subtitle">
+                    Experience the future of investing with our cutting-edge AI trading bots. 
+                    Automated 24/7 trading, intelligent market analysis, and guaranteed returns. 
+                    Join over 15,000 successful traders earning passive income daily.
+                </p>
+                <a href="#packages" class="btn-glow">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Get Started Now
+                </a>
             </div>
         </div>
     </section>
@@ -676,11 +706,11 @@
                         <h3 class="package-name">{{ $plan->name }}</h3>
                         <div class="package-price">${{ number_format($plan->investment_amount) }}</div>
                         <ul class="package-features">
-                            <li><i class="bi bi-check-circle"></i>{{ $plan->bots_allowed }} AI Trading Bot{{ $plan->bots_allowed > 1 ? 's' : '' }}</li>
+                            <li><i class="bi bi-check-circle"></i>{{ $plan->bots_allowed }} BOT{{ $plan->bots_allowed > 1 ? 's' : '' }}</li>
                             <li><i class="bi bi-check-circle"></i>{{ $plan->trades_per_day }} Trades per Day</li>
                             <li><i class="bi bi-check-circle"></i>${{ number_format($plan->joining_fee, 2) }} Joining Fee</li>
                             <li><i class="bi bi-check-circle"></i>${{ number_format($plan->direct_bonus, 2) }} Direct Bonus</li>
-                            <li><i class="bi bi-check-circle"></i>{{ $plan->referral_level_1 }}% - {{ $plan->referral_level_2 }}% - {{ $plan->referral_level_3 }}% Referral Share</li>
+                            <li><i class="bi bi-check-circle"></i>{{ $plan->referral_level_1 }}% - {{ $plan->referral_level_2 }}% - {{ $plan->referral_level_3 }}% Referral ROI Share</li>
                         </ul>
                         @auth
                             <a href="{{ route('dashboard') }}" class="btn-glow w-100">Choose Plan</a>
@@ -939,9 +969,49 @@
             observer.observe(statsSection);
         }
 
-        // Add loading animation
+        // Add loading animation and video rotation
         document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('loading');
+            
+            // Get all videos
+            const heroVideos = document.querySelectorAll('.hero-video-background');
+            let currentVideoIndex = 0;
+            const rotationInterval = 5000; // 5 seconds per video
+            
+            // Ensure all videos play
+            heroVideos.forEach(function(heroVideo) {
+                if (heroVideo) {
+                    heroVideo.play().catch(function(error) {
+                        // Video autoplay was prevented, try to play on user interaction
+                        console.log('Video autoplay prevented:', error);
+                        document.addEventListener('click', function playVideo() {
+                            heroVideos.forEach(function(video) {
+                                video.play().catch(console.error);
+                            });
+                            document.removeEventListener('click', playVideo);
+                        }, { once: true });
+                    });
+                }
+            });
+            
+            // Video rotation function
+            function rotateVideos() {
+                // Remove active class from all videos
+                heroVideos.forEach(function(video) {
+                    video.classList.remove('active');
+                });
+                
+                // Add active class to current video
+                heroVideos[currentVideoIndex].classList.add('active');
+                
+                // Move to next video
+                currentVideoIndex = (currentVideoIndex + 1) % heroVideos.length;
+            }
+            
+            // Start rotation after initial load
+            setTimeout(function() {
+                setInterval(rotateVideos, rotationInterval);
+            }, rotationInterval);
         });
     </script>
 </body>

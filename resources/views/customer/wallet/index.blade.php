@@ -69,11 +69,41 @@
         <div class="wallet-card">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h2>${{ number_format($wallets->where('currency', 'USDT')->first()->balance ?? 0, 2) }}</h2>
+                    <h2>${{ number_format($availableBalance, 2) }}</h2>
                     <p>Available Balance (USDT)</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <i class="bi bi-wallet2" style="font-size: 4rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Deposits</h6>
+                        <h4 class="mb-0 text-success">${{ number_format($totalDeposits, 2) }}</h4>
+                    </div>
+                    <i class="bi bi-arrow-down-circle text-success" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Withdrawals</h6>
+                        <h4 class="mb-0 text-danger">${{ number_format($totalWithdrawals, 2) }}</h4>
+                    </div>
+                    <i class="bi bi-arrow-up-circle text-danger" style="font-size: 2.5rem; opacity: 0.3;"></i>
                 </div>
             </div>
         </div>
@@ -195,58 +225,73 @@
     </div>
 </div>
 
-<!-- Recent Transactions -->
+<!-- Wallet History -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Transactions</h5>
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Wallet History</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="table table-sm table-hover">
                         <thead>
                             <tr>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Status</th>
                                 <th>Date</th>
+                                <th>Type</th>
+                                <th>Payment Type</th>
+                                <th>Amount</th>
+                                <th>Currency</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($wallets->first()->user->transactions()->latest()->limit(5)->get() as $transaction)
+                            @forelse($walletHistory as $transaction)
                             <tr>
-                                <td>
-                                    <span class="badge bg-{{ $transaction->type === 'deposit' ? 'success' : ($transaction->type === 'withdrawal' ? 'danger' : 'info') }}">
-                                        {{ ucfirst($transaction->type) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="{{ $transaction->type === 'deposit' ? 'text-success' : 'text-danger' }}">
-                                        {{ $transaction->type === 'deposit' ? '+' : '-' }}${{ number_format($transaction->amount, 2) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : ($transaction->status === 'pending' ? 'warning' : 'secondary') }}">
-                                        {{ ucfirst($transaction->status) }}
-                                    </span>
-                                </td>
                                 <td>{{ $transaction->created_at->format('M d, Y H:i') }}</td>
+                                <td>
+                                    @if($transaction->transaction_type === 'debit')
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-arrow-down"></i> Debit
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-arrow-up"></i> Credit
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ ucfirst(str_replace('_', ' ', $transaction->payment_type)) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="{{ $transaction->transaction_type === 'debit' ? 'text-success' : 'text-danger' }} fw-bold">
+                                        {{ $transaction->transaction_type === 'debit' ? '+' : '-' }}${{ number_format($transaction->amount, 2) }}
+                                    </span>
+                                </td>
+                                <td>{{ $transaction->currency }}</td>
+                                <td>
+                                    @if($transaction->related_id)
+                                        <small class="text-muted">Related ID: {{ $transaction->related_id }}</small>
+                                    @else
+                                        <small class="text-muted">-</small>
+                                    @endif
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted">
-                                    No transactions found
+                                <td colspan="6" class="text-center text-muted">
+                                    No wallet transactions found
                                 </td>
                             </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
-                <div class="text-center mt-3">
-                    <a href="{{ route('customer.wallet.history') }}" class="btn btn-primary">
-                        View All Transactions
-                    </a>
+                <!-- Pagination -->
+                <div class="mt-3">
+                    {{ $walletHistory->links() }}
                 </div>
             </div>
         </div>

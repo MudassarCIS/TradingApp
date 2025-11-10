@@ -150,13 +150,53 @@
             color: var(--info-color) !important;
         }
         
+        .mobile-menu-btn {
+            display: none;
+        }
+
+        .mobile-menu-offcanvas {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .mobile-menu-offcanvas .offcanvas-header {
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .mobile-menu-offcanvas .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-offcanvas .nav-link:hover,
+        .mobile-menu-offcanvas .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .mobile-menu-offcanvas .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
-                min-height: auto;
+                display: none !important;
             }
-            
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
             .main-content {
                 padding: 10px;
+                width: 100%;
+            }
+
+            .top-nav-section {
+                width: 100%;
             }
         }
     </style>
@@ -248,19 +288,23 @@
             <!-- Main content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
                 <!-- Top Navigation -->
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom top-nav-section">
                     <h1 class="h2">@yield('page-title', 'Dashboard')</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
+                        <!-- Mobile Menu Button -->
+                        <button class="btn btn-primary mobile-menu-btn me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-controls="mobileMenu">
+                            <i class="bi bi-list"></i>
+                        </button>
                         <div class="btn-group me-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-bell"></i>
-                                Notifications
+                                <span class="d-none d-md-inline">Notifications</span>
                             </button>
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle"></i>
-                                {{ Auth::user()->name }}
+                                <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('customer.profile.index') }}">Profile</a></li>
@@ -283,10 +327,125 @@
         </div>
     </div>
 
+    <!-- Mobile Menu Offcanvas -->
+    <div class="offcanvas offcanvas-end mobile-menu-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+        <div class="offcanvas-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa Trades Logo" style="max-width: 50px; height: auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin-right: 10px;">
+                <div>
+                    <h5 class="offcanvas-title text-white mb-0" id="mobileMenuLabel">Nexa Trades</h5>
+                    <small class="text-white-50">Customer Panel</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.dashboard') ? 'active' : '' }}" href="{{ route('customer.dashboard') }}">
+                        <i class="bi bi-house-door"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.trading.*') ? 'active' : '' }}" href="{{ route('customer.trading.index') }}">
+                        <i class="bi bi-graph-up"></i>
+                        Trading
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.market.*') ? 'active' : '' }}" href="{{ route('customer.market.index') }}">
+                        <i class="bi bi-currency-exchange"></i>
+                        Market
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.wallet.*') ? 'active' : '' }}" href="{{ route('customer.wallet.index') }}">
+                        <i class="bi bi-wallet2"></i>
+                        Wallet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
+                        <i class="bi bi-cash-coin"></i>
+                        Deposits
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
+                        <i class="bi bi-robot"></i>
+                        AI Agents
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
+                        <i class="bi bi-people"></i>
+                        Referrals
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
+                        <i class="bi bi-receipt"></i>
+                        Invoices
+                        @if(isset($unpaidCount) && $unpaidCount > 0)
+                            <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
+                        @endif
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
+                        <i class="bi bi-headset"></i>
+                        Support
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.profile.*') ? 'active' : '' }}" href="{{ route('customer.profile.index') }}">
+                        <i class="bi bi-person"></i>
+                        Profile
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        // Ensure mobile menu links work correctly and close menu after navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            mobileMenuLinks.forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    // Get the href to ensure it's a valid link
+                    const href = this.getAttribute('href');
+                    
+                    // Only close menu if it's not a hash or empty link
+                    if (href && href !== '#' && href !== '') {
+                        // Close the menu after navigation starts
+                        setTimeout(function() {
+                            const offcanvas = bootstrap.Offcanvas.getInstance(mobileMenu);
+                            if (offcanvas) {
+                                offcanvas.hide();
+                            }
+                        }, 150);
+                    }
+                });
+            });
+            
+            // Also handle menu close on page navigation
+            window.addEventListener('popstate', function() {
+                const offcanvas = bootstrap.Offcanvas.getInstance(mobileMenu);
+                if (offcanvas) {
+                    offcanvas.hide();
+                }
+            });
+        });
+    </script>
     
     @stack('scripts')
 </body>

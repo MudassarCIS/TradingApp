@@ -197,6 +197,11 @@ class DepositController extends Controller
         }
 
         DB::transaction(function () use ($deposit, $request) {
+            // Load invoice relationship if exists
+            if ($deposit->invoice_id) {
+                $deposit->load('invoice');
+            }
+            
             // Update deposit status
             $deposit->update([
                 'status' => 'approved',
@@ -206,13 +211,13 @@ class DepositController extends Controller
             ]);
 
             // Update invoice status to Paid if deposit is associated with an invoice
-            if ($deposit->invoice_id) {
-                $invoice = $deposit->invoice;
-                $invoice->update(['status' => 'Paid']);
+            if ($deposit->invoice_id && $deposit->invoice) {
+                $deposit->invoice->update(['status' => 'Paid']);
             }
             
-            // Distribute referral bonuses to 3 levels for all approved deposits
-            // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
+            // Distribute referral bonuses based on invoice type
+            // - "package buy": direct_bonus to first level parent only
+            // - "profit invoice": 3-level bonuses using referral_level percentages
             try {
                 app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
             } catch (\Exception $e) {
@@ -220,6 +225,8 @@ class DepositController extends Controller
                 \Log::error('Error distributing referral bonuses: ' . $e->getMessage(), [
                     'deposit_id' => $deposit->id,
                     'user_id' => $deposit->user_id,
+                    'invoice_id' => $deposit->invoice_id,
+                    'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
                     'error' => $e->getTraceAsString()
                 ]);
             }
@@ -373,19 +380,21 @@ class DepositController extends Controller
                     // Update invoice status to Paid if deposit is associated with an invoice
                     if ($deposit->invoice_id) {
                         $deposit->load('invoice');
-                        $invoice = $deposit->invoice;
-                        $invoice->update(['status' => 'Paid']);
+                        if ($deposit->invoice) {
+                            $deposit->invoice->update(['status' => 'Paid']);
+                        }
                     }
                     
-                    // Distribute referral bonuses to 3 levels for all approved deposits
-                    // This fetches bonus percentages from plans table and saves to bonus_wallets and customers_wallets
+                    // Distribute referral bonuses based on invoice type
+                    // - "package buy": direct_bonus to first level parent only
+                    // - "profit invoice": 3-level bonuses using referral_level percentages
                     try {
                         // Ensure user relationship is loaded
                         if (!$deposit->relationLoaded('user')) {
                             $deposit->load('user');
                         }
                         
-                        // Distribute bonuses to parents
+                        // Distribute bonuses to parents based on invoice type
                         $referralService = app(ReferralService::class);
                         $referralService->distributeReferralBonuses($deposit->user, $deposit);
                         
@@ -393,6 +402,8 @@ class DepositController extends Controller
                         \Log::info('Referral bonuses distributed successfully', [
                             'deposit_id' => $deposit->id,
                             'user_id' => $deposit->user_id,
+                            'invoice_id' => $deposit->invoice_id,
+                            'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
                             'amount' => $deposit->amount,
                             'currency' => $deposit->currency
                         ]);
@@ -401,6 +412,8 @@ class DepositController extends Controller
                         \Log::error('Error distributing referral bonuses: ' . $e->getMessage(), [
                             'deposit_id' => $deposit->id,
                             'user_id' => $deposit->user_id,
+                            'invoice_id' => $deposit->invoice_id,
+                            'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
                             'error' => $e->getTraceAsString()
                         ]);
                     }
