@@ -130,21 +130,21 @@
     <!-- Balance Info -->
     <div class="col-md-4 mb-4">
         <div class="balance-card">
-            <h4>${{ number_format($wallet->available_balance, 2) }}</h4>
+            <h4>${{ number_format($availableBalance ?? 0, 2) }}</h4>
             <p>Available Balance</p>
         </div>
     </div>
     
     <div class="col-md-4 mb-4">
         <div class="balance-card">
-            <h4>${{ number_format($wallet->locked_balance, 2) }}</h4>
+            <h4>$0.00</h4>
             <p>Locked Balance</p>
         </div>
     </div>
     
     <div class="col-md-4 mb-4">
         <div class="balance-card">
-            <h4>${{ number_format($wallet->total_withdrawn, 2) }}</h4>
+            <h4>${{ number_format($totalWithdrawals ?? 0, 2) }}</h4>
             <p>Total Withdrawn</p>
         </div>
     </div>
@@ -177,11 +177,11 @@
                            name="amount" 
                            step="0.01" 
                            min="10" 
-                           max="{{ $wallet->available_balance }}" 
+                           max="{{ $availableBalance ?? 0 }}" 
                            value="{{ old('amount') }}" 
                            required>
                     <div class="form-text">
-                        Minimum: 10 USDT | Maximum: {{ number_format($wallet->available_balance, 2) }} USDT
+                        Minimum: 10 USDT | Maximum: {{ number_format($availableBalance ?? 0, 2) }} USDT
                     </div>
                 </div>
                 
@@ -297,7 +297,7 @@
         const amount = parseFloat(this.value) || 0;
         const fee = 5;
         const total = amount + fee;
-        const available = {{ $wallet->available_balance }};
+        const available = {{ $availableBalance ?? 0 }};
         
         if (amount > available) {
             this.setCustomValidity('Amount exceeds available balance');

@@ -9,6 +9,7 @@ use App\Models\Agent;
 use App\Models\Transaction;
 use App\Models\UserInvoice;
 use App\Models\Deposit;
+use App\Models\CustomersWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,7 +27,20 @@ class DashboardController extends Controller
             ]);
         }
         
-        // Ensure user has a main wallet
+        // Calculate balance from customers_wallets table
+        // Sum of all debit amounts minus sum of all credit amounts
+        $totalDebits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'debit')
+            ->sum('amount');
+        
+        $totalCredits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'credit')
+            ->sum('amount');
+        
+        // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
+        $availableBalance = max(0, round($totalDebits - $totalCredits, 2));
+        
+        // Ensure user has a main wallet (for backward compatibility, but we won't use its balance)
         $wallet = $user->getMainWallet('USDT');
         if (!$wallet) {
             $wallet = Wallet::create([
@@ -81,6 +95,7 @@ class DashboardController extends Controller
         
         return view('customer.dashboard', compact(
             'wallet',
+            'availableBalance',
             'totalTrades',
             'activeTrades',
             'profitableTrades',

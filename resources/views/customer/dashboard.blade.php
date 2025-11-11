@@ -104,7 +104,7 @@
     <!-- Statistics Cards -->
     <div class="col-md-3 mb-4">
         <div class="stats-card balance-card">
-            <h3>${{ number_format($wallet->balance ?? 0, 2) }}</h3>
+            <h3>${{ number_format($availableBalance ?? 0, 2) }}</h3>
             <p>Available Balance</p>
         </div>
     </div>

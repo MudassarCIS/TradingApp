@@ -23,12 +23,12 @@ class WalletController extends Controller
     {
         $user = Auth::user();
         
-        // Calculate total deposits (sum of all debit amounts)
+        // Calculate total deposits from customers_wallets table (sum of all debit amounts)
         $totalDeposits = CustomersWallet::where('user_id', $user->id)
             ->where('transaction_type', 'debit')
             ->sum('amount');
         
-        // Calculate total withdrawals (sum of all credit amounts)
+        // Calculate total withdrawals from customers_wallets table (sum of all credit amounts)
         $totalWithdrawals = CustomersWallet::where('user_id', $user->id)
             ->where('transaction_type', 'credit')
             ->sum('amount');
@@ -36,7 +36,7 @@ class WalletController extends Controller
         // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
         $availableBalance = max(0, round($totalDeposits - $totalWithdrawals, 2));
         
-        // Get wallet history from customers_wallets table
+        // Get wallet history from customers_wallets table (all transactions for the user)
         $walletHistory = CustomersWallet::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -208,9 +208,37 @@ class WalletController extends Controller
     public function withdraw()
     {
         $user = Auth::user();
-        $wallet = $user->getMainWallet('USDT');
         
-        return view('customer.wallet.withdraw', compact('wallet'));
+        // Calculate balance from customers_wallets table
+        $totalDebits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'debit')
+            ->sum('amount');
+        
+        $totalCredits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'credit')
+            ->sum('amount');
+        
+        // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
+        $availableBalance = max(0, round($totalDebits - $totalCredits, 2));
+        
+        // Calculate total withdrawals for display
+        $totalWithdrawals = $totalCredits;
+        
+        // Get wallet for backward compatibility (but we won't use its balance)
+        $wallet = $user->getMainWallet('USDT');
+        if (!$wallet) {
+            $wallet = Wallet::create([
+                'user_id' => $user->id,
+                'currency' => 'USDT',
+                'balance' => 0,
+                'total_deposited' => 0,
+                'total_withdrawn' => 0,
+                'total_profit' => 0,
+                'total_loss' => 0,
+            ]);
+        }
+        
+        return view('customer.wallet.withdraw', compact('wallet', 'availableBalance', 'totalWithdrawals'));
     }
 
     public function processWithdrawal(Request $request)
@@ -222,17 +250,31 @@ class WalletController extends Controller
         ]);
 
         $user = Auth::user();
-        $wallet = $user->getMainWallet('USDT');
+        
+        // Calculate balance from customers_wallets table
+        $totalDebits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'debit')
+            ->sum('amount');
+        
+        $totalCredits = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'credit')
+            ->sum('amount');
+        
+        // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
+        $availableBalance = max(0, round($totalDebits - $totalCredits, 2));
         
         // Verify transaction password
         if (!Hash::check($request->transaction_password, $user->profile->transaction_password)) {
             return back()->withErrors(['transaction_password' => 'Invalid transaction password']);
         }
 
-        // Check if user has sufficient balance
-        if (!$wallet->canWithdraw($request->amount)) {
+        // Check if user has sufficient balance from customers_wallets
+        if ($request->amount > $availableBalance) {
             return back()->withErrors(['amount' => 'Insufficient balance']);
         }
+        
+        // Get wallet for backward compatibility
+        $wallet = $user->getMainWallet('USDT');
 
         // Create withdrawal transaction
         $transaction = Transaction::create([
