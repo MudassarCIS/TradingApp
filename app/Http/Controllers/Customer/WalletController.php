@@ -139,12 +139,24 @@ class WalletController extends Controller
                 }
             }
 
+            // Get invoice_type from invoice if invoice_id is provided
+            $invoiceType = null;
+            if ($request->filled('invoice_id')) {
+                $invoice = UserInvoice::where('id', $request->invoice_id)
+                    ->where('user_id', $user->id)
+                    ->first();
+                if ($invoice) {
+                    $invoiceType = $invoice->invoice_type;
+                }
+            }
+
             // Use database transaction to ensure atomicity
-            $deposit = DB::transaction(function () use ($user, $request, $validated, $proofImagePath) {
+            $deposit = DB::transaction(function () use ($user, $request, $validated, $proofImagePath, $invoiceType) {
                 // Create deposit record first (without deposit_id, it's nullable now)
                 $deposit = Deposit::create([
                     'user_id' => $user->id,
                     'invoice_id' => $request->invoice_id ?? null,
+                    'invoice_type' => $invoiceType,
                     'trans_id' => $validated['trans_id'],
                     'deposit_id' => null, // Will be set after creation
                     'amount' => $validated['amount'],

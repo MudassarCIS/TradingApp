@@ -7,6 +7,10 @@ use App\Models\Deposit;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Models\UserInvoice;
+use App\Models\Plan;
+use App\Models\UserPlanHistory;
+use App\Models\CustomersWallet;
+use App\Models\Referral;
 use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,11 +67,15 @@ class DepositController extends Controller
                       ->orWhere('currency', 'like', "%{$searchValue}%")
                       ->orWhere('network', 'like', "%{$searchValue}%")
                       ->orWhere('status', 'like', "%{$searchValue}%")
+                      ->orWhere('invoice_type', 'like', "%{$searchValue}%")
                       ->orWhere('notes', 'like', "%{$searchValue}%")
                       ->orWhere('user_id', 'like', "%{$searchValue}%")
                       ->orWhereHas('user', function($userQuery) use ($searchValue) {
                           $userQuery->where('name', 'like', "%{$searchValue}%")
                                    ->orWhere('email', 'like', "%{$searchValue}%");
+                      })
+                      ->orWhereHas('invoice', function($invoiceQuery) use ($searchValue) {
+                          $invoiceQuery->where('invoice_type', 'like', "%{$searchValue}%");
                       });
                 });
             }
@@ -76,11 +84,11 @@ class DepositController extends Controller
             $filteredRecords = $query->count();
 
             // Apply ordering - Default to created_at desc (latest first)
-            $orderColumn = 8; // Default to created_at
+            $orderColumn = 9; // Default to created_at (updated index after adding invoice_type column)
             $orderDirection = 'desc'; // Default to descending (latest first)
             
             if ($request->has('order') && is_array($request->get('order')) && count($request->get('order')) > 0) {
-                $orderColumn = $request->get('order')[0]['column'] ?? 8;
+                $orderColumn = $request->get('order')[0]['column'] ?? 9;
                 $orderDirection = $request->get('order')[0]['dir'] ?? 'desc';
             }
 
@@ -90,10 +98,11 @@ class DepositController extends Controller
                 2 => 'amount',
                 3 => 'currency',
                 4 => 'network',
-                5 => 'trans_id',
-                6 => 'status',
-                7 => 'proof_image',
-                8 => 'created_at'
+                5 => 'invoice_type',
+                6 => 'trans_id',
+                7 => 'status',
+                8 => 'proof_image',
+                9 => 'created_at'
             ];
 
             if (isset($columns[$orderColumn])) {
@@ -105,6 +114,9 @@ class DepositController extends Controller
                               ->groupBy('deposits.id');
                     }
                     $query->orderBy('users.name', $orderDirection);
+                } elseif ($orderColumn == 5) {
+                    // Order by invoice_type (from deposits table or invoice relationship)
+                    $query->orderBy('deposits.invoice_type', $orderDirection);
                 } else {
                     $query->orderBy($columns[$orderColumn], $orderDirection);
                 }
@@ -128,6 +140,24 @@ class DepositController extends Controller
                 })
                 ->addColumn('amount_formatted', function ($deposit) {
                     return '$' . number_format($deposit->amount, 2) . ' ' . $deposit->currency;
+                })
+                ->addColumn('invoice_type', function ($deposit) {
+                    // Get invoice_type from deposit or invoice relationship
+                    $invoiceType = $deposit->invoice_type;
+                    if (!$invoiceType && $deposit->invoice) {
+                        $invoiceType = $deposit->invoice->invoice_type;
+                    }
+                    if ($invoiceType) {
+                        $badgeClass = match($invoiceType) {
+                            'Rent A Bot' => 'bg-primary',
+                            'Sharing Nexa' => 'bg-info',
+                            'package buy' => 'bg-success',
+                            'profit invoice' => 'bg-warning',
+                            default => 'bg-secondary'
+                        };
+                        return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($invoiceType) . '</span>';
+                    }
+                    return '<span class="text-muted">-</span>';
                 })
                 ->addColumn('trans_id', function ($deposit) {
                     if ($deposit->trans_id) {
@@ -177,7 +207,7 @@ class DepositController extends Controller
                                  </a>';
                     return $actions;
                 })
-                ->rawColumns(['status_badge', 'proof_image', 'actions', 'trans_id'])
+                ->rawColumns(['status_badge', 'invoice_type', 'proof_image', 'actions', 'trans_id'])
                 ->with([
                     'recordsTotal' => $totalRecords,
                     'recordsFiltered' => $filteredRecords
@@ -186,6 +216,143 @@ class DepositController extends Controller
         }
 
         return view('admin.deposits.index');
+    }
+
+    /**
+     * Distribute bonus for Rent A Bot and Sharing Nexa deposits
+     * Gets parent's active_plan_id and uses parent's plan direct_bonus
+     */
+    private function distributeRentBotBonus($deposit): void
+    {
+        try {
+            $user = $deposit->user;
+            
+            // Get first level parent
+            $referral = Referral::where('referred_id', $user->id)
+                ->where('status', 'active')
+                ->first();
+            
+            if (!$referral) {
+                \Log::info('No parent found for Rent A Bot/Sharing Nexa bonus', [
+                    'user_id' => $user->id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            $parent = \App\Models\User::find($referral->referrer_id);
+            
+            if (!$parent) {
+                \Log::warning('Parent user not found', [
+                    'referrer_id' => $referral->referrer_id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            // Get parent's active_plan_id from users table
+            if (!$parent->active_plan_id) {
+                \Log::info('Parent has no active plan', [
+                    'parent_id' => $parent->id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            // Get parent's plan and direct_bonus
+            $parentPlan = Plan::find($parent->active_plan_id);
+            
+            if (!$parentPlan) {
+                \Log::warning('Parent plan not found', [
+                    'parent_id' => $parent->id,
+                    'plan_id' => $parent->active_plan_id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            $directBonus = (float) ($parentPlan->direct_bonus ?? 0);
+            
+            if ($directBonus <= 0) {
+                \Log::info('Parent plan has no direct_bonus configured', [
+                    'parent_id' => $parent->id,
+                    'plan_id' => $parentPlan->id,
+                    'plan_name' => $parentPlan->name,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
+            }
+            
+            // Check if bonus already distributed for this deposit
+            $existingBonus = CustomersWallet::where('related_id', $deposit->id)
+                ->where('payment_type', 'bonus')
+                ->where('user_id', $parent->id)
+                ->first();
+            
+            if ($existingBonus) {
+                \Log::info('Bonus already distributed for this deposit', [
+                    'deposit_id' => $deposit->id,
+                    'parent_id' => $parent->id
+                ]);
+                return;
+            }
+            
+            // Add bonus to customers_wallet
+            DB::transaction(function () use ($deposit, $user, $parent, $parentPlan, $directBonus) {
+                // Insert into customers_wallets with deposit id as related_id
+                $walletEntry = CustomersWallet::create([
+                    'user_id' => $parent->id,
+                    'amount' => $directBonus,
+                    'currency' => 'USDT',
+                    'payment_type' => 'bonus',
+                    'transaction_type' => 'debit',
+                    'related_id' => $deposit->id,
+                ]);
+
+                // Update parent's wallet summary
+                $wallet = Wallet::where('user_id', $parent->id)->where('currency', 'USDT')->first();
+                if (!$wallet) {
+                    $wallet = Wallet::create([
+                        'user_id' => $parent->id,
+                        'currency' => 'USDT',
+                        'balance' => $directBonus,
+                        'total_profit' => $directBonus,
+                        'total_deposited' => 0,
+                        'total_withdrawn' => 0,
+                        'total_loss' => 0,
+                    ]);
+                } else {
+                    $wallet->increment('balance', $directBonus);
+                    $wallet->increment('total_profit', $directBonus);
+                }
+
+                // Update referral totals
+                $ref = Referral::where('referrer_id', $parent->id)
+                    ->where('referred_id', $user->id)
+                    ->first();
+                if ($ref) {
+                    $ref->increment('total_commission', $directBonus);
+                    $ref->increment('pending_commission', $directBonus);
+                }
+                
+                // Log bonus distribution for verification
+                \Log::info('Rent A Bot/Sharing Nexa bonus distributed', [
+                    'parent_id' => $parent->id,
+                    'parent_plan_id' => $parentPlan->id,
+                    'parent_plan_name' => $parentPlan->name,
+                    'investor_id' => $user->id,
+                    'deposit_id' => $deposit->id,
+                    'bonus_amount' => $directBonus,
+                    'wallet_entry_id' => $walletEntry->id
+                ]);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error in distributeRentBotBonus: ' . $e->getMessage(), [
+                'deposit_id' => $deposit->id ?? null,
+                'user_id' => $deposit->user_id ?? null
+            ]);
+            throw $e;
+        }
     }
 
     public function approve(Request $request, $id)
@@ -213,13 +380,49 @@ class DepositController extends Controller
             // Update invoice status to Paid if deposit is associated with an invoice
             if ($deposit->invoice_id && $deposit->invoice) {
                 $deposit->invoice->update(['status' => 'Paid']);
+                
+                // If invoice has plan_id, update user's plan and plan history
+                if ($deposit->invoice->plan_id) {
+                    $plan = Plan::find($deposit->invoice->plan_id);
+                    if ($plan) {
+                        $user = $deposit->user;
+                        $oldPlanId = $user->active_plan_id;
+                        $oldPlanName = $user->active_plan_name ?? null;
+                        
+                        // Update user's active plan
+                        $user->active_plan_id = $plan->id;
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
+                            $user->active_plan_name = $plan->name;
+                        }
+                        $user->active_investment_amount = $deposit->amount;
+                        $user->save();
+                        
+                        // Save to plan history
+                        UserPlanHistory::create([
+                            'user_id' => $user->id,
+                            'plan_id' => $plan->id,
+                            'plan_name' => $plan->name,
+                            'joining_fee' => $plan->joining_fee ?? 0,
+                            'investment_amount' => $deposit->amount,
+                            'notes' => $oldPlanName ? "Changed from {$oldPlanName} to {$plan->name}" : "Plan purchased: {$plan->name}",
+                        ]);
+                    }
+                }
             }
             
             // Distribute referral bonuses based on invoice type
-            // - "package buy": direct_bonus to first level parent only
-            // - "profit invoice": 3-level bonuses using referral_level percentages
+            // For "Rent A Bot" and "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only
+            // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
-                app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+                $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
+                
+                if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa'])) {
+                    // Special handling for Rent A Bot and Sharing Nexa - get parent's plan direct_bonus
+                    $this->distributeRentBotBonus($deposit);
+                } else {
+                    // Use existing referral service for other types
+                    app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+                }
             } catch (\Exception $e) {
                 // Log error but don't fail the deposit approval
                 \Log::error('Error distributing referral bonuses: ' . $e->getMessage(), [
@@ -382,28 +585,63 @@ class DepositController extends Controller
                         $deposit->load('invoice');
                         if ($deposit->invoice) {
                             $deposit->invoice->update(['status' => 'Paid']);
+                            
+                            // If invoice has plan_id, update user's plan and plan history
+                            if ($deposit->invoice->plan_id) {
+                                $plan = Plan::find($deposit->invoice->plan_id);
+                                if ($plan) {
+                                    $user = $deposit->user;
+                                    $oldPlanId = $user->active_plan_id;
+                                    $oldPlanName = $user->active_plan_name ?? null;
+                                    
+                                    // Update user's active plan
+                                    $user->active_plan_id = $plan->id;
+                                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
+                                        $user->active_plan_name = $plan->name;
+                                    }
+                                    $user->active_investment_amount = $deposit->amount;
+                                    $user->save();
+                                    
+                                    // Save to plan history
+                                    UserPlanHistory::create([
+                                        'user_id' => $user->id,
+                                        'plan_id' => $plan->id,
+                                        'plan_name' => $plan->name,
+                                        'joining_fee' => $plan->joining_fee ?? 0,
+                                        'investment_amount' => $deposit->amount,
+                                        'notes' => $oldPlanName ? "Changed from {$oldPlanName} to {$plan->name}" : "Plan purchased: {$plan->name}",
+                                    ]);
+                                }
+                            }
                         }
                     }
                     
                     // Distribute referral bonuses based on invoice type
-                    // - "package buy": direct_bonus to first level parent only
-                    // - "profit invoice": 3-level bonuses using referral_level percentages
+                    // For "Rent A Bot" and "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only
+                    // For "profit invoice": 3-level bonuses using referral_level percentages
                     try {
                         // Ensure user relationship is loaded
                         if (!$deposit->relationLoaded('user')) {
                             $deposit->load('user');
                         }
                         
-                        // Distribute bonuses to parents based on invoice type
-                        $referralService = app(ReferralService::class);
-                        $referralService->distributeReferralBonuses($deposit->user, $deposit);
+                        $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
+                        
+                        if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa'])) {
+                            // Special handling for Rent A Bot and Sharing Nexa - get parent's plan direct_bonus
+                            $this->distributeRentBotBonus($deposit);
+                        } else {
+                            // Use existing referral service for other types
+                            $referralService = app(ReferralService::class);
+                            $referralService->distributeReferralBonuses($deposit->user, $deposit);
+                        }
                         
                         // Log success for verification
                         \Log::info('Referral bonuses distributed successfully', [
                             'deposit_id' => $deposit->id,
                             'user_id' => $deposit->user_id,
                             'invoice_id' => $deposit->invoice_id,
-                            'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
+                            'invoice_type' => $invoiceType ?? 'none',
                             'amount' => $deposit->amount,
                             'currency' => $deposit->currency
                         ]);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
 use App\Models\UserActiveBot;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -120,7 +121,24 @@ class AgentController extends Controller
             $amount = $botType === 'rent-bot' ? $planData['amount'] : $planData['joining_fee'];
             $invoiceType = $botType === 'rent-bot' ? 'Rent A Bot' : 'Sharing Nexa';
             
+            // Find plan_id if available in plan_data or by matching plan details
+            $planId = null;
+            if (isset($planData['id'])) {
+                // If plan_id is directly in plan_data
+                $planId = $planData['id'];
+            } elseif ($botType === 'sharing-nexa' && isset($planData['investment_amount']) && isset($planData['joining_fee'])) {
+                // For Sharing Nexa, try to find plan by matching investment_amount and joining_fee
+                $plan = Plan::where('investment_amount', $planData['investment_amount'])
+                    ->where('joining_fee', $planData['joining_fee'])
+                    ->where('is_active', true)
+                    ->first();
+                if ($plan) {
+                    $planId = $plan->id;
+                }
+            }
+            
             $invoice = $user->invoices()->create([
+                'plan_id' => $planId,
                 'invoice_type' => $invoiceType,
                 'amount' => $amount,
                 'due_date' => now()->addDays(7),

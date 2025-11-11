@@ -9,6 +9,7 @@ class UserInvoice extends Model
 {
     protected $fillable = [
         'user_id',
+        'plan_id',
         'invoice_type',
         'amount',
         'due_date',
@@ -23,6 +24,11 @@ class UserInvoice extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
     }
 
     /**

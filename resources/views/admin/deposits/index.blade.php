@@ -146,6 +146,7 @@
                                 <th>Amount</th>
                                 <th>Currency</th>
                                 <th>Network</th>
+                                <th>Invoice Type</th>
                                 <th>Transaction ID</th>
                                 <th>Status</th>
                                 <th>Proof</th>
@@ -268,13 +269,14 @@ $(document).ready(function() {
             { data: 'amount_formatted', name: 'amount' },
             { data: 'currency', name: 'currency' },
             { data: 'network', name: 'network' },
+            { data: 'invoice_type', name: 'invoice_type' },
             { data: 'trans_id', name: 'trans_id' },
             { data: 'status_badge', name: 'status' },
             { data: 'proof_image', name: 'proof_image' },
             { data: 'created_at', name: 'created_at' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],
-        order: [[8, 'desc']], // Order by created_at (column 8) descending - latest first
+        order: [[9, 'desc']], // Order by created_at (column 9) descending - latest first
         pageLength: 25,
         responsive: true,
         dom: 'Bfrtip',

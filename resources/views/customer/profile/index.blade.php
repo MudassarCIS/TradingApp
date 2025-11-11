@@ -64,6 +64,21 @@
                     </div>
                 </div>
                 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Active Plan</label>
+                            <div class="form-control-plaintext">
+                                @if($user->active_plan_name)
+                                    <span class="badge bg-info">{{ $user->active_plan_name }}</span>
+                                @else
+                                    <span class="text-muted">No active plan</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="d-flex gap-2">
                     <a href="{{ route('customer.profile.edit') }}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> Edit Profile

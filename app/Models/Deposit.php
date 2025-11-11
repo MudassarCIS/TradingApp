@@ -10,6 +10,7 @@ class Deposit extends Model
     protected $fillable = [
         'user_id',
         'invoice_id',
+        'invoice_type',
         'trans_id',
         'deposit_id',
         'amount',
