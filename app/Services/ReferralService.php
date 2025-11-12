@@ -118,7 +118,7 @@ class ReferralService
 
     /**
      * Save plan change to history
-     */
+    */
     protected function savePlanHistory(User $user, Plan $plan, float $investmentAmount, ?string $oldPlanName = null): void
     {
         if (!$user || !$plan) {
@@ -143,7 +143,7 @@ class ReferralService
 
     /**
      * Distribute referral bonuses based on deposit/invoice type
-     */
+    */
     public function distributeReferralBonuses(User $investor, $deposit): void
     {
         try {
@@ -195,7 +195,7 @@ class ReferralService
     /**
      * Distribute package buy bonus - gives direct_bonus to first level parent only
      * Used when invoice_type is "Rent A Bot", "Sharing Nexa", or "package buy"
-     */
+    */
     public function distributePackageBuyBonus(User $investor, $deposit): void
     {
         try {
@@ -287,7 +287,7 @@ class ReferralService
     /**
      * Distribute profit invoice bonus - gives 3-level bonuses using referral_level percentages
      * Used when invoice_type is "profit invoice"
-     */
+    */
     public function distributeProfitInvoiceBonus(User $investor, $deposit): void
     {
         try {
@@ -372,7 +372,7 @@ class ReferralService
      * Get parent's active plan (Sharing Nexa with paid invoice)
      * Determines plan based on joining_fee amount from plans table
      * If parent has no payment, returns Starter plan as default
-     */
+    */
     protected function getParentActivePlan(User $parent): ?Plan
     {
         // Get active Sharing Nexa bots with paid invoices
@@ -432,9 +432,7 @@ class ReferralService
         
         // If parent has no active Sharing Nexa plan with paid invoice, 
         // return Starter plan as default so they can still receive referral bonuses
-        $starterPlan = Plan::where('name', 'Starter')
-            ->where('is_active', true)
-            ->first();
+        $starterPlan = Plan::where('name', 'Starter')->where('is_active', true)->first();
         
         if ($starterPlan) {
             // Update parent's plan to Starter if they don't have one set
@@ -535,6 +533,7 @@ class ReferralService
      */
     protected function creditParentWallet($parentId, $amount): void
     {
+
         $wallet = Wallet::where('user_id', $parentId)->where('currency', 'USDT')->first();
         
         if (!$wallet) {
@@ -548,11 +547,13 @@ class ReferralService
                 'total_withdrawn' => 0,
                 'total_loss' => 0,
             ]);
+
         } else {
             // Increment balance and profit totals
             $wallet->balance = bcadd($wallet->balance, $amount, 8);
             $wallet->total_profit = bcadd($wallet->total_profit, $amount, 8);
             $wallet->save();
+
         }
     }
 
@@ -561,10 +562,11 @@ class ReferralService
      */
     protected function updateReferralTotals($parentId, $investorId, $bonusAmount): void
     {
-        $ref = Referral::where('referrer_id', $parentId)
-                      ->where('referred_id', $investorId)
-                      ->first();
-                      
+        
+        $ref    =   Referral::where('referrer_id', $parentId)
+                    ->where('referred_id', $investorId)
+                    ->first();
+
         if ($ref) {
             $ref->total_commission = bcadd($ref->total_commission, $bonusAmount, 8);
             $ref->pending_commission = bcadd($ref->pending_commission, $bonusAmount, 8);
