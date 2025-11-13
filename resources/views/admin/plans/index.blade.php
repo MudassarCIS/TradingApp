@@ -1,6 +1,6 @@
 @extends('layouts.admin-layout')
 
-@section('title', 'Manage Plans')
+@section('title', 'Manage NEXA Plans')
 
 @section('content')
 <div class="container-fluid">
@@ -8,9 +8,9 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">Investment Plans Management</h3>
+                    <h3 class="card-title">NEXA Plans Management</h3>
                     <a href="{{ route('admin.plans.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add New Plan
+                        <i class="fas fa-plus"></i> Add New NEXA Plan
                     </a>
                 </div>
                 <div class="card-body">

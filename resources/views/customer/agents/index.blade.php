@@ -202,12 +202,12 @@
     <div class="row">
         @foreach($activeBots as $bot)
         <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100 bot-plan-card {{ $bot->buy_type === 'Rent A Bot' ? 'rent-bot' : 'sharing-nexa' }}">
+            <div class="card h-100 bot-plan-card {{ $bot->buy_type === 'PEX' ? 'rent-bot' : 'sharing-nexa' }}">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="flex-grow-1">
                             <h5 class="mb-0 text-dark fw-bold">
-                                <i class="bi {{ $bot->buy_type === 'Rent A Bot' ? 'bi-robot' : 'bi-share' }} me-1"></i>
+                                <i class="bi {{ $bot->buy_type === 'PEX' ? 'bi-robot' : 'bi-share' }} me-1"></i>
                                 {{ $bot->buy_type }}
                             </h5>
                             <small class="text-muted">{{ $bot->created_at->format('M d, Y') }}</small>
@@ -231,7 +231,7 @@
                 </div>
                 
                 <div class="card-body">
-                    @if($bot->buy_type === 'Rent A Bot')
+                    @if($bot->buy_type === 'PEX')
                         @php $details = $bot->buy_plan_details; @endphp
                         <div class="row g-2">
                             <div class="col-6">

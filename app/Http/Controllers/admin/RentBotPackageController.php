@@ -41,7 +41,7 @@ class RentBotPackageController extends Controller
         RentBotPackage::create($validated);
 
         return redirect()->route('admin.rent-bot-packages.index')
-            ->with('success', 'Rent a Bot package created successfully.');
+            ->with('success', 'PEX package created successfully.');
     }
 
     /**
@@ -70,7 +70,7 @@ class RentBotPackageController extends Controller
         $rent_bot_package->update($validated);
 
         return redirect()->route('admin.rent-bot-packages.index')
-            ->with('success', 'Rent a Bot package updated successfully.');
+            ->with('success', 'PEX package updated successfully.');
     }
 
     /**
@@ -81,7 +81,7 @@ class RentBotPackageController extends Controller
         $rent_bot_package->delete();
 
         return redirect()->route('admin.rent-bot-packages.index')
-            ->with('success', 'Rent a Bot package deleted successfully.');
+            ->with('success', 'PEX package deleted successfully.');
     }
 }
 

@@ -224,9 +224,9 @@ class User extends Authenticatable
                 
                 // Get number of available bots from plan details
                 $availableBots = 0;
-                if ($bot->buy_type === 'Rent A Bot') {
+                if ($bot->buy_type === 'PEX') {
                     $availableBots = $planDetails['allowed_bots'] ?? 0;
-                } elseif ($bot->buy_type === 'Sharing Nexa') {
+                } elseif ($bot->buy_type === 'NEXA') {
                     $availableBots = $planDetails['bots_allowed'] ?? 0;
                 }
                 

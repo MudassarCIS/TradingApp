@@ -1,6 +1,6 @@
 @extends('layouts.admin-layout')
 
-@section('title', 'Manage Rent a Bot Plans')
+@section('title', 'Manage PEX Plans')
 
 @section('content')
 <div class="container-fluid">
@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">Rent a Bot Packages</h3>
+                    <h3 class="card-title">PEX Packages</h3>
                     <a href="{{ route('admin.rent-bot-packages.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add Package
                     </a>

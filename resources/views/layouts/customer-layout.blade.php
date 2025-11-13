@@ -225,35 +225,41 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
+                                <i class="bi bi-robot"></i>
+                                Buy AI Bot
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.trading.*') ? 'active' : '' }}" href="{{ route('customer.trading.index') }}">
                                 <i class="bi bi-graph-up"></i>
                                 Trading
                             </a>
                         </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
+                                <i class="bi bi-cash-coin"></i>
+                                Add Deposits
+                            </a>
+                        </li> 
+
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.market.*') ? 'active' : '' }}" href="{{ route('customer.market.index') }}">
                                 <i class="bi bi-currency-exchange"></i>
                                 Market
                             </a>
                         </li>
+
+                          
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.wallet.*') ? 'active' : '' }}" href="{{ route('customer.wallet.index') }}">
                                 <i class="bi bi-wallet2"></i>
                                 Wallet
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
-                                <i class="bi bi-cash-coin"></i>
-                                Deposits
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
-                                <i class="bi bi-robot"></i>
-                                AI Agents
-                            </a>
-                        </li>
+                        
+                       
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
                                 <i class="bi bi-people"></i>
@@ -347,12 +353,28 @@
                         Dashboard
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
+                        <i class="bi bi-robot"></i>
+                        Buy AI Bot
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.trading.*') ? 'active' : '' }}" href="{{ route('customer.trading.index') }}">
                         <i class="bi bi-graph-up"></i>
                         Trading
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
+                        <i class="bi bi-cash-coin"></i>
+                        Add Deposits
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.market.*') ? 'active' : '' }}" href="{{ route('customer.market.index') }}">
                         <i class="bi bi-currency-exchange"></i>
@@ -365,18 +387,8 @@
                         Wallet
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
-                        <i class="bi bi-cash-coin"></i>
-                        Deposits
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
-                        <i class="bi bi-robot"></i>
-                        AI Agents
-                    </a>
-                </li>
+                
+                
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
                         <i class="bi bi-people"></i>

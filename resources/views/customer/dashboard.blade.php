@@ -314,7 +314,7 @@
                                             <strong>Available Bots:</strong> 
                                             <span class="text-primary fs-5">{{ $package['available_bots'] }}</span>
                                         </div>
-                                        @if($package['type'] === 'Rent A Bot')
+                                        @if($package['type'] === 'PEX')
                                             @if(isset($package['plan_details']['allowed_trades']))
                                             <div class="mt-2">
                                                 <small class="text-muted">
@@ -329,7 +329,7 @@
                                                 </small>
                                             </div>
                                             @endif
-                                        @elseif($package['type'] === 'Sharing Nexa')
+                                        @elseif($package['type'] === 'NEXA')
                                             @if(isset($package['plan_details']['trades_per_day']))
                                             <div class="mt-2">
                                                 <small class="text-muted">

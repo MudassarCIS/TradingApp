@@ -149,8 +149,8 @@ class DepositController extends Controller
                     }
                     if ($invoiceType) {
                         $badgeClass = match($invoiceType) {
-                            'Rent A Bot' => 'bg-primary',
-                            'Sharing Nexa' => 'bg-info',
+                            'PEX' => 'bg-primary',
+                            'NEXA' => 'bg-info',
                             'package buy' => 'bg-success',
                             'profit invoice' => 'bg-warning',
                             default => 'bg-secondary'
@@ -219,7 +219,7 @@ class DepositController extends Controller
     }
 
     /**
-     * Distribute bonus for Rent A Bot and Sharing Nexa deposits
+     * Distribute bonus for PEX and NEXA deposits
      * Gets parent's active_plan_id and uses parent's plan direct_bonus
      */
     private function distributeRentBotBonus($deposit): void
@@ -233,7 +233,7 @@ class DepositController extends Controller
                 ->first();
             
             if (!$referral) {
-                \Log::info('No parent found for Rent A Bot/Sharing Nexa bonus', [
+                \Log::info('No parent found for PEX/NEXA bonus', [
                     'user_id' => $user->id,
                     'deposit_id' => $deposit->id
                 ]);
@@ -336,7 +336,7 @@ class DepositController extends Controller
                 }
                 
                 // Log bonus distribution for verification
-                \Log::info('Rent A Bot/Sharing Nexa bonus distributed', [
+                \Log::info('PEX/NEXA bonus distributed', [
                     'parent_id' => $parent->id,
                     'parent_plan_id' => $parentPlan->id,
                     'parent_plan_name' => $parentPlan->name,
@@ -411,13 +411,13 @@ class DepositController extends Controller
             }
             
             // Distribute referral bonuses based on invoice type
-            // For "Rent A Bot" and "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only
+            // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
             // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
                 $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                 
-                if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa'])) {
-                    // Special handling for Rent A Bot and Sharing Nexa - get parent's plan direct_bonus
+                if (in_array($invoiceType, ['PEX', 'NEXA'])) {
+                    // Special handling for PEX and NEXA - get parent's plan direct_bonus
                     $this->distributeRentBotBonus($deposit);
                 } else {
                     // Use existing referral service for other types
@@ -617,7 +617,7 @@ class DepositController extends Controller
                     }
                     
                     // Distribute referral bonuses based on invoice type
-                    // For "Rent A Bot" and "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only
+                    // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
                     // For "profit invoice": 3-level bonuses using referral_level percentages
                     try {
                         // Ensure user relationship is loaded
@@ -627,8 +627,8 @@ class DepositController extends Controller
                         
                         $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                         
-                        if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa'])) {
-                            // Special handling for Rent A Bot and Sharing Nexa - get parent's plan direct_bonus
+                        if (in_array($invoiceType, ['PEX', 'NEXA'])) {
+                            // Special handling for PEX and NEXA - get parent's plan direct_bonus
                             $this->distributeRentBotBonus($deposit);
                         } else {
                             // Use existing referral service for other types

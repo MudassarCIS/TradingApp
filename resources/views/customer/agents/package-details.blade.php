@@ -6,12 +6,12 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <div class="card bot-plan-card {{ $bot->buy_type === 'Rent A Bot' ? 'rent-bot' : 'sharing-nexa' }}">
+        <div class="card bot-plan-card {{ $bot->buy_type === 'PEX' ? 'rent-bot' : 'sharing-nexa' }}">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h4 class="mb-1 text-dark fw-bold">
-                            <i class="bi {{ $bot->buy_type === 'Rent A Bot' ? 'bi-robot' : 'bi-share' }} me-2"></i>
+                            <i class="bi {{ $bot->buy_type === 'PEX' ? 'bi-robot' : 'bi-share' }} me-2"></i>
                             {{ $bot->buy_type }} - Package Details
                         </h4>
                         <small class="text-muted">Purchased on {{ $bot->created_at->format('M d, Y') }}</small>
@@ -25,7 +25,7 @@
             </div>
             
             <div class="card-body">
-                @if($bot->buy_type === 'Rent A Bot')
+                @if($bot->buy_type === 'PEX')
                     @php $details = $bot->buy_plan_details; @endphp
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
