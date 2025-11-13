@@ -1,7 +1,7 @@
 @extends('layouts.customer-layout')
 
-@section('title', 'AI Agents - AI Trade App')
-@section('page-title', 'AI Agents')
+@section('title', 'AI BOT - AI Trade App')
+@section('page-title', 'AI BOT')
 
 @section('content')
 <style>
@@ -187,7 +187,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>All Bot Plans</h2>
     <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Create New Agent
+        <i class="bi bi-plus-circle"></i> Create New BOT
     </a>
 </div>
 
