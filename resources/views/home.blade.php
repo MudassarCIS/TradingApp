@@ -1,7 +1,9 @@
 @php
     use App\Models\Plan;
+    use App\Models\RentBotPackage;
     use App\Models\Setting;
     $plans = Plan::active()->ordered()->get();
+    $pexPlans = RentBotPackage::active()->ordered()->get();
     $setting = Setting::get();
     $logoUrl = $setting->logo_url ?? null;
     $projectName = $setting->company_name ?? 'AI Trading Bot';
@@ -566,6 +568,259 @@
         @keyframes fadeIn {
             to { opacity: 1; }
         }
+
+        /* PEX AI Plans Section */
+        .pex-plans-section {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(12, 12, 12, 0.85) 0%, rgba(26, 26, 46, 0.8) 50%, rgba(22, 33, 62, 0.85) 100%);
+        }
+
+        .pex-plans-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('{{ asset("images/pex_images/pex2.jpeg") }}');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            opacity: 0.7;
+            z-index: 0;
+            filter: brightness(0.75) contrast(1.2) saturate(1.1);
+        }
+
+        .pex-plans-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, 
+                        rgba(12, 12, 12, 0.4) 0%, 
+                        rgba(26, 26, 46, 0.3) 30%,
+                        rgba(22, 33, 62, 0.3) 70%,
+                        rgba(12, 12, 12, 0.4) 100%),
+                        radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .pex-plans-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .pex-package-card {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 30px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .pex-package-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-blue));
+            border-radius: 30px;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.4s ease;
+        }
+
+        .pex-package-card:hover::before {
+            opacity: 0.5;
+        }
+
+        .pex-package-card:hover {
+            transform: translateY(-20px) scale(1.03);
+            box-shadow: 0 30px 60px rgba(0, 212, 255, 0.4);
+            border-color: var(--neon-blue);
+        }
+
+        .pex-package-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+            z-index: 0;
+        }
+
+        .pex-package-card:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .pex-package-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .pex-package-name {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pex-package-price {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--neon-blue);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            position: relative;
+        }
+
+        .pex-package-price::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+        }
+
+        .pex-package-validity {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pex-package-features {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .pex-package-features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .pex-package-features li:hover {
+            color: var(--neon-blue);
+            padding-left: 10px;
+        }
+
+        .pex-package-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pex-package-features i {
+            color: var(--neon-blue);
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .pex-section-title {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-blue) 50%, var(--neon-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1rem;
+        }
+
+        .pex-section-subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 3rem;
+        }
+
+        .pex-robot-badge {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+            z-index: 2;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @media (max-width: 768px) {
+            .pex-section-title {
+                font-size: 2rem;
+            }
+            
+            .pex-package-card {
+                min-height: 480px;
+                margin-bottom: 2rem;
+            }
+            
+            .pex-package-price {
+                font-size: 2.5rem;
+            }
+
+            .pex-robot-badge {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+                top: -10px;
+                right: -10px;
+            }
+
+            .pex-plans-section::before {
+                background-attachment: scroll;
+                opacity: 0.65;
+            }
+        }
     </style>
 </head>
 <body>
@@ -591,7 +846,10 @@
                         <a class="nav-link" href="#home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#packages">Plans</a>
+                        <a class="nav-link" href="#packages">Nexa AI Plans</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pex-plans">PEX AI Plans</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#how-it-works">How It Works</a>
@@ -695,7 +953,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Trading Plans</h2>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Nexa AI Trading Plans</h2>
                     <p class="lead" data-aos="fade-up" data-aos-delay="200">Select the perfect trading plan that matches your financial goals and risk tolerance</p>
                 </div>
             </div>
@@ -720,6 +978,84 @@
                     </div>
                 </div>
                 @endforeach
+            </div>
+        </div>
+    </section>
+
+    <!-- PEX AI Plans Section -->
+    <section id="pex-plans" class="pex-plans-section py-5">
+        <div class="pex-plans-container">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 text-center mb-5">
+                        <h2 class="pex-section-title" data-aos="fade-up">PEX AI Trading Plans</h2>
+                        <p class="pex-section-subtitle" data-aos="fade-up" data-aos-delay="200">
+                            Rent powerful AI trading bots and unlock unlimited trading potential. 
+                            Choose the perfect package that fits your trading strategy and budget.
+                        </p>
+                    </div>
+                </div>
+                <div class="row g-4">
+                    @forelse($pexPlans as $index => $pexPlan)
+                    <div class="col-lg-4 col-md-6">
+                        <div class="pex-package-card" data-aos="fade-up" data-aos-delay="{{ ($index + 1) * 100 }}">
+                            <div class="pex-robot-badge">
+                                <i class="bi bi-robot"></i>
+                            </div>
+                            <div class="pex-package-content">
+                                <h3 class="pex-package-name">PEX Package {{ $index + 1 }}</h3>
+                                <div class="pex-package-price">${{ number_format($pexPlan->amount, 2) }}</div>
+                                <div class="pex-package-validity">
+                                    <i class="bi bi-calendar-check me-2"></i>
+                                    {{ ucfirst($pexPlan->validity) }}ly Subscription
+                                </div>
+                                <ul class="pex-package-features">
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>{{ $pexPlan->allowed_bots }} AI Bot{{ $pexPlan->allowed_bots > 1 ? 's' : '' }}</span>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>{{ $pexPlan->allowed_trades }} Trade{{ $pexPlan->allowed_trades > 1 ? 's' : '' }} Allowed</span>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>24/7 Automated Trading</span>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Real-time Market Analysis</span>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Advanced AI Algorithms</span>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Full Dashboard Access</span>
+                                    </li>
+                                </ul>
+                                @auth
+                                    <a href="{{ route('dashboard') }}" class="btn-glow w-100 mt-3">
+                                        <i class="bi bi-rocket-takeoff me-2"></i>Rent Now
+                                    </a>
+                                @else
+                                    <a href="{{ route('register') }}" class="btn-glow w-100 mt-3">
+                                        <i class="bi bi-rocket-takeoff me-2"></i>Get Started
+                                    </a>
+                                @endauth
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="col-12">
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox" style="font-size: 4rem; color: rgba(255, 255, 255, 0.3);"></i>
+                            <p class="lead mt-3" style="color: rgba(255, 255, 255, 0.6);">No PEX AI plans available at the moment.</p>
+                        </div>
+                    </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </section>
@@ -850,6 +1186,7 @@
                     <ul class="list-unstyled">
                         <li><a href="#home" class="text-muted text-decoration-none">Home</a></li>
                         <li><a href="#packages" class="text-muted text-decoration-none">Plans</a></li>
+                        <li><a href="#pex-plans" class="text-muted text-decoration-none">PEX AI Plans</a></li>
                         <li><a href="#how-it-works" class="text-muted text-decoration-none">How It Works</a></li>
                         <li><a href="#referral" class="text-muted text-decoration-none">Referral</a></li>
                     </ul>
