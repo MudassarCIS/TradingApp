@@ -1,3 +1,9 @@
+@php
+    use App\Models\Setting;
+    $setting = Setting::get();
+    $logoUrl = $setting->logo_url ?? null;
+    $projectName = $setting->company_name ?? 'AI Trading Bot';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,6 +188,17 @@
         }
 
         @media (max-width: 768px) {
+            .mobile-menu-offcanvas .nav {
+                text-align: center;
+            }
+
+            .mobile-menu-offcanvas .nav-link {
+                text-align: center;
+                justify-content: center;
+                display: flex;
+                align-items: center;
+            }
+
             .sidebar {
                 display: none !important;
             }
@@ -211,9 +228,13 @@
                 <div class="position-sticky pt-3">
                     <div class="text-center mb-4">
                         <div class="mb-3">
-                            <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa Trades Logo" style="max-width: 80px; height: auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @if($logoUrl)
+                                <img src="{{ $logoUrl }}" alt="{{ $projectName }} Logo" style="max-width: 80px; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @else
+                                <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="{{ $projectName }} Logo" style="max-width: 80px; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @endif
                         </div>
-                        <h4 class="text-white mb-1">Nexa Trades</h4>
+                        <h4 class="text-white mb-1">{{ $projectName }}</h4>
                         <small class="text-white-50">Customer Panel</small>
                     </div>
                     
@@ -227,7 +248,7 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
                                 <i class="bi bi-robot"></i>
-                                Buy AI Bot
+                                Bots
                             </a>
                         </li>
                         <li class="nav-item">
@@ -236,13 +257,30 @@
                                 Trading
                             </a>
                         </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
+                                <i class="bi bi-receipt"></i>
+                                Invoices
+                                @if(isset($unpaidCount) && $unpaidCount > 0)
+                                    <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
+                                @endif
+                            </a>
+                        </li>
 
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
+                                <i class="bi bi-people"></i>
+                                Referrals
+                            </a>
+                        </li>
+
+                        <!-- <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
                                 <i class="bi bi-cash-coin"></i>
                                 Add Deposits
                             </a>
-                        </li> 
+                        </li>  -->
 
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.market.*') ? 'active' : '' }}" href="{{ route('customer.market.index') }}">
@@ -260,21 +298,7 @@
                         </li>
                         
                        
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
-                                <i class="bi bi-people"></i>
-                                Referrals
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
-                                <i class="bi bi-receipt"></i>
-                                Invoices
-                                @if(isset($unpaidCount) && $unpaidCount > 0)
-                                    <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
-                                @endif
-                            </a>
-                        </li>
+                        
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
                                 <i class="bi bi-headset"></i>
@@ -337,9 +361,13 @@
     <div class="offcanvas offcanvas-end mobile-menu-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
         <div class="offcanvas-header">
             <div class="d-flex align-items-center">
-                <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa Trades Logo" style="max-width: 50px; height: auto; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin-right: 10px;">
+                @if($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="{{ $projectName }} Logo" style="max-width: 50px; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin-right: 10px;">
+                @else
+                    <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="{{ $projectName }} Logo" style="max-width: 50px; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin-right: 10px;">
+                @endif
                 <div>
-                    <h5 class="offcanvas-title text-white mb-0" id="mobileMenuLabel">Nexa Trades</h5>
+                    <h5 class="offcanvas-title text-white mb-0" id="mobileMenuLabel">{{ $projectName }}</h5>
                     <small class="text-white-50">Customer Panel</small>
                 </div>
             </div>
@@ -357,7 +385,7 @@
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
                         <i class="bi bi-robot"></i>
-                        Buy AI Bot
+                        Bots
                     </a>
                 </li>
 
@@ -369,11 +397,28 @@
                 </li>
 
                 <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
+                        <i class="bi bi-receipt"></i>
+                        Invoices
+                        @if(isset($unpaidCount) && $unpaidCount > 0)
+                            <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
+                        @endif
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
+                        <i class="bi bi-people"></i>
+                        Referrals
+                    </a>
+                </li>
+
+                <!-- <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.wallet.deposit') ? 'active' : '' }}" href="{{ route('customer.wallet.deposit') }}">
                         <i class="bi bi-cash-coin"></i>
                         Add Deposits
                     </a>
-                </li>
+                </li> -->
 
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.market.*') ? 'active' : '' }}" href="{{ route('customer.market.index') }}">
@@ -389,21 +434,8 @@
                 </li>
                 
                 
-                <li class="nav-item">
-                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.referrals.*') ? 'active' : '' }}" href="{{ route('customer.referrals.index') }}">
-                        <i class="bi bi-people"></i>
-                        Referrals
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
-                        <i class="bi bi-receipt"></i>
-                        Invoices
-                        @if(isset($unpaidCount) && $unpaidCount > 0)
-                            <span class="badge bg-danger ms-2">{{ $unpaidCount }}</span>
-                        @endif
-                    </a>
-                </li>
+                
+                
                 <li class="nav-item">
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
                         <i class="bi bi-headset"></i>

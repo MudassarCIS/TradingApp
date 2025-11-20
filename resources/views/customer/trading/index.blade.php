@@ -18,7 +18,7 @@
                         <div class="card h-100">
                             <div class="card-body">
                                 <h6 class="card-title text-primary">
-                                    <i class="bi bi-robot"></i> {{ $package['title'] }}
+                                    <i class="bi bi-robot"></i> {{ $package['title'] }}@if(isset($package['plan_name']) && $package['plan_name'])<span class="text-muted"> ({{ $package['plan_name'] }})</span>@endif
                                 </h6>
                                 <div class="mb-2">
                                     <span class="badge bg-success">Active</span>

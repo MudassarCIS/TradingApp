@@ -84,6 +84,22 @@
             background-clip: text;
         }
 
+        .navbar-toggler {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: transparent;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.5' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+            width: 1.5em;
+            height: 1.5em;
+        }
+
         .nav-link {
             color: white !important;
             font-weight: 500;
@@ -110,6 +126,41 @@
         .nav-link:hover::after {
             width: 100%;
             left: 0;
+        }
+
+        .dropdown-menu {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        /* Show dropdown on hover */
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .dropdown-item {
+            color: white !important;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--neon-blue) !important;
+        }
+
+        .dropdown-toggle::after {
+            margin-left: 0.5rem;
         }
 
         /* Hero Section */
@@ -283,6 +334,14 @@
 
         .btn-glow:hover::before {
             left: 100%;
+        }
+
+        .btn-glow.nav-link::after {
+            display: none;
+        }
+
+        button.btn-glow {
+            cursor: pointer;
         }
 
         /* Glassmorphism Cards */
@@ -845,11 +904,14 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#home">Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#packages">Nexa AI Plans</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#pex-plans">PEX AI Plans</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="plansDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Plans
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="plansDropdown">
+                            <li><a class="dropdown-item" href="#packages">Nexa</a></li>
+                            <li><a class="dropdown-item" href="#pex-plans">Pex</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#how-it-works">How It Works</a>
@@ -864,7 +926,7 @@
                         <li class="nav-item">
                             <form method="POST" action="{{ route('logout') }}" class="d-inline">
                                 @csrf
-                                <button type="submit" class="nav-link btn btn-link text-decoration-none p-0 border-0 bg-transparent">
+                                <button type="submit" class="nav-link btn-glow ms-2 border-0 bg-transparent text-white">
                                     Logout
                                 </button>
                             </form>
@@ -889,20 +951,20 @@
             <div class="hero-video-container">
                 <!-- First Video -->
                 <video autoplay muted loop playsinline class="hero-video-background active" id="video1">
-                    <source src="{{ asset('videos/robot1.mp4') }}" type="video/mp4">
+                    <source src="{{ asset('videos/robot2.mp4') }}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
                 <!-- Second Video -->
                 <video autoplay muted loop playsinline class="hero-video-background" id="video2">
-                    <source src="{{ asset('videos/robot2.mp4') }}" type="video/mp4">
+                    <source src="{{ asset('videos/robot1.mp4') }}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
             </div>
             <!-- Text Content on Left Side -->
             <div class="hero-content" data-aos="fade-right" data-aos-duration="1000">
-                <h1 class="hero-title">Revolutionary AI Trading System</h1>
+                <h1 class="hero-title">Revolutionary Trading Bots</h1>
                 <p class="hero-subtitle">
-                    Experience the future of investing with our cutting-edge AI trading bots. 
+                    Experience the future of trading with our cutting-edge trading bots. 
                     Automated 24/7 trading, intelligent market analysis, and guaranteed returns. 
                     Join over 15,000 successful traders earning passive income daily.
                 </p>
@@ -918,7 +980,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">How Our AI System Works</h2>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">How Our Bots Works</h2>
                     <p class="lead" data-aos="fade-up" data-aos-delay="200">Three simple steps to start your automated trading journey</p>
                 </div>
             </div>
@@ -927,14 +989,14 @@
                     <div class="step-card" data-aos="fade-up" data-aos-delay="100">
                         <div class="step-number">1</div>
                         <h4>Select Your Trading Plan</h4>
-                        <p>Choose from our carefully crafted trading packages ranging from $100 to $50,000. Each plan offers unique benefits, more AI bots, and higher profit potential.</p>
+                        <p>Choose from our carefully crafted trading packages ranging from $100 to $50,000. Each plan offers unique benefits, more bots, and higher profit potential.</p>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="step-card" data-aos="fade-up" data-aos-delay="200">
                         <div class="step-number">2</div>
-                        <h4>AI Bots Begin Trading</h4>
-                        <p>Our sophisticated AI trading algorithms instantly start analyzing global markets, executing profitable trades, and managing your portfolio 24/7 without any manual intervention.</p>
+                        <h4>Bots Begin Trading</h4>
+                        <p>Our sophisticated trading algorithms instantly start analyzing global markets, executing profitable trades, and managing your portfolio 24/7 without any manual intervention.</p>
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -953,7 +1015,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Nexa AI Trading Plans</h2>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Nexa Bot Plans</h2>
                     <p class="lead" data-aos="fade-up" data-aos-delay="200">Select the perfect trading plan that matches your financial goals and risk tolerance</p>
                 </div>
             </div>
@@ -968,7 +1030,7 @@
                             <li><i class="bi bi-check-circle"></i>{{ $plan->trades_per_day }} Trades per Day</li>
                             <li><i class="bi bi-check-circle"></i>${{ number_format($plan->joining_fee, 2) }} Joining Fee</li>
                             <li><i class="bi bi-check-circle"></i>${{ number_format($plan->direct_bonus, 2) }} Direct Bonus</li>
-                            <li><i class="bi bi-check-circle"></i>{{ $plan->referral_level_1 }}% - {{ $plan->referral_level_2 }}% - {{ $plan->referral_level_3 }}% Referral ROI Share</li>
+                            <li><i class="bi bi-check-circle"></i>Upto 3% Referral ROI Share</li>
                         </ul>
                         @auth
                             <a href="{{ route('dashboard') }}" class="btn-glow w-100">Choose Plan</a>
@@ -988,9 +1050,9 @@
             <div class="container">
                 <div class="row">
                     <div class="col-12 text-center mb-5">
-                        <h2 class="pex-section-title" data-aos="fade-up">PEX AI Trading Plans</h2>
+                        <h2 class="pex-section-title" data-aos="fade-up">PEX Bot Plans</h2>
                         <p class="pex-section-subtitle" data-aos="fade-up" data-aos-delay="200">
-                            Rent powerful AI trading bots and unlock unlimited trading potential. 
+                            Rent powerful trading bots and unlock unlimited trading potential. 
                             Choose the perfect package that fits your trading strategy and budget.
                         </p>
                     </div>
@@ -1003,7 +1065,7 @@
                                 <i class="bi bi-robot"></i>
                             </div>
                             <div class="pex-package-content">
-                                <h3 class="pex-package-name">PEX Package {{ $index + 1 }}</h3>
+                                <h3 class="pex-package-name">PEX-{{ $index + 1 }}</h3>
                                 <div class="pex-package-price">${{ number_format($pexPlan->amount, 2) }}</div>
                                 <div class="pex-package-validity">
                                     <i class="bi bi-calendar-check me-2"></i>
@@ -1012,7 +1074,7 @@
                                 <ul class="pex-package-features">
                                     <li>
                                         <i class="bi bi-check-circle-fill"></i>
-                                        <span>{{ $pexPlan->allowed_bots }} AI Bot{{ $pexPlan->allowed_bots > 1 ? 's' : '' }}</span>
+                                        <span>{{ $pexPlan->allowed_bots }} Bot{{ $pexPlan->allowed_bots > 1 ? 's' : '' }}</span>
                                     </li>
                                     <li>
                                         <i class="bi bi-check-circle-fill"></i>
@@ -1032,7 +1094,7 @@
                                     </li>
                                     <li>
                                         <i class="bi bi-check-circle-fill"></i>
-                                        <span>Full Dashboard Access</span>
+                                        <span>No Wallet Access</span>
                                     </li>
                                 </ul>
                                 @auth
@@ -1051,7 +1113,7 @@
                     <div class="col-12">
                         <div class="text-center py-5">
                             <i class="bi bi-inbox" style="font-size: 4rem; color: rgba(255, 255, 255, 0.3);"></i>
-                            <p class="lead mt-3" style="color: rgba(255, 255, 255, 0.6);">No PEX AI plans available at the moment.</p>
+                            <p class="lead mt-3" style="color: rgba(255, 255, 255, 0.6);">No PEX Bot plans available at the moment.</p>
                         </div>
                     </div>
                     @endforelse
@@ -1221,7 +1283,7 @@
             <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">&copy; 2024 AI Trading Bot System. All rights reserved.</p>
+                    <p class="text-muted mb-0">&copy; {{ date('Y') }} AI Trading Bot System. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="text-muted mb-0">Powered by Advanced AI Technology</p>
@@ -1312,12 +1374,23 @@
             
             // Get all videos
             const heroVideos = document.querySelectorAll('.hero-video-background');
-            let currentVideoIndex = 0;
             const rotationInterval = 5000; // 5 seconds per video
+            let rotationTimer = null;
             
-            // Ensure all videos play
+            // Find which video is currently active (should be the first one)
+            let currentVideoIndex = 0;
+            heroVideos.forEach(function(video, index) {
+                if (video.classList.contains('active')) {
+                    currentVideoIndex = index;
+                }
+            });
+            
+            // Ensure all videos play and are ready
             heroVideos.forEach(function(heroVideo) {
                 if (heroVideo) {
+                    // Preload all videos
+                    heroVideo.load();
+                    
                     heroVideo.play().catch(function(error) {
                         // Video autoplay was prevented, try to play on user interaction
                         console.log('Video autoplay prevented:', error);
@@ -1333,22 +1406,44 @@
             
             // Video rotation function
             function rotateVideos() {
-                // Remove active class from all videos
+                // Remove active class from all videos and pause them
                 heroVideos.forEach(function(video) {
                     video.classList.remove('active');
+                    video.pause();
                 });
-                
-                // Add active class to current video
-                heroVideos[currentVideoIndex].classList.add('active');
                 
                 // Move to next video
                 currentVideoIndex = (currentVideoIndex + 1) % heroVideos.length;
+                
+                // Add active class to current video and play it
+                const currentVideo = heroVideos[currentVideoIndex];
+                currentVideo.classList.add('active');
+                currentVideo.currentTime = 0; // Reset to start
+                currentVideo.play().catch(function(error) {
+                    console.log('Video play error:', error);
+                });
             }
             
-            // Start rotation after initial load
-            setTimeout(function() {
-                setInterval(rotateVideos, rotationInterval);
-            }, rotationInterval);
+            // Start continuous rotation immediately
+            // First video (index 0) is already active and playing
+            // After rotationInterval, it will switch to next video and continue rotating
+            rotationTimer = setInterval(rotateVideos, rotationInterval);
+        });
+
+        // Handle Plans dropdown hover behavior (desktop only)
+        document.addEventListener('DOMContentLoaded', function() {
+            const plansDropdown = document.getElementById('plansDropdown');
+            const navItem = plansDropdown?.closest('.nav-item');
+            
+            if (plansDropdown && navItem) {
+                // Only prevent click on desktop, allow hover
+                if (window.innerWidth > 768) {
+                    plansDropdown.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        return false;
+                    });
+                }
+            }
         });
     </script>
 </body>

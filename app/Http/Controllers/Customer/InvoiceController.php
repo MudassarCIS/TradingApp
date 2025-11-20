@@ -21,11 +21,20 @@ class InvoiceController extends Controller
     public function getInvoicesData()
     {
         $user = Auth::user();
-        $invoices = $user->invoices()->latest()->get();
+        $invoices = $user->invoices()->with('plan')->latest()->get();
 
         return DataTables::of($invoices)
             ->addColumn('formatted_invoice_id', function ($invoice) {
                 return $invoice->formatted_invoice_id;
+            })
+            ->addColumn('formatted_invoice_type', function ($invoice) {
+                $type = $invoice->invoice_type;
+                $planName = $invoice->plan ? $invoice->plan->name : null;
+                
+                if ($planName) {
+                    return $type . ' <span class="text-muted">(' . $planName . ')</span>';
+                }
+                return $type;
             })
             ->addColumn('formatted_amount', function ($invoice) {
                 return '$' . number_format($invoice->amount, 2) . ' USDT';
@@ -39,11 +48,16 @@ class InvoiceController extends Controller
             ->addColumn('status_badge', function ($invoice) {
                 $badgeClass = match($invoice->status) {
                     'Paid' => 'success',
-                    'Processing' => 'warning',
+                    'Processing' => 'info',
+                    'payment_pending' => 'warning',
                     'Unpaid' => 'danger',
                     default => 'secondary'
                 };
-                return '<span class="badge bg-' . $badgeClass . '">' . $invoice->status . '</span>';
+                if($invoice->status === 'payment_pending') {
+                    return '<span class="badge bg-' . $badgeClass . '">Pending For Approval</span>';
+                }else{
+                    return '<span class="badge bg-' . $badgeClass . '">' . $invoice->status . '</span>';
+                }
             })
             ->addColumn('payment_action', function ($invoice) {
                 // Hide payment button if status is not Unpaid
@@ -52,10 +66,17 @@ class InvoiceController extends Controller
                                 <i class="bi bi-credit-card"></i> Pay
                             </a>';
                 } else {
-                    return '<span class="text-muted"><i class="bi bi-info-circle"></i> ' . $invoice->status . '</span>';
+
+                    if($invoice->status === 'payment_pending') {
+                        
+                        return '<span class="text-muted"><i class="bi bi-info-circle"></i> Pending </span>';
+                    }else{
+                        return '<span class="text-muted"><i class="bi bi-info-circle"></i> ' . $invoice->status . '</span>';
+                    }
+                    
                 }
             })
-            ->rawColumns(['status_badge', 'payment_action'])
+            ->rawColumns(['status_badge', 'payment_action', 'formatted_invoice_type'])
             ->make(true);
     }
 }

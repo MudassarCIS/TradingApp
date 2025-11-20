@@ -203,24 +203,30 @@ class User extends Authenticatable
         return $this->activeBots()
             ->latest()
             ->get()
-            ->filter(function($bot) {
+            ->map(function($bot) {
                 // Check if there's a paid invoice matching this bot's type
                 $botCreatedAt = $bot->created_at;
                 $startTime = $botCreatedAt->copy()->subMinutes(10);
                 $endTime = $botCreatedAt->copy()->addMinutes(10);
                 
                 $invoice = $this->invoices()
+                    ->with('plan')
                     ->where('invoice_type', $bot->buy_type)
                     ->where('status', 'Paid')
                     ->where('created_at', '>=', $startTime)
                     ->where('created_at', '<=', $endTime)
                     ->first();
                 
-                return $invoice !== null;
-            })
-            ->map(function($bot) {
+                // Return null if no paid invoice found (will be filtered out)
+                if (!$invoice) {
+                    return null;
+                }
+                
                 $planDetails = $bot->buy_plan_details ?? [];
                 $packageTitle = $bot->buy_type;
+                
+                // Get plan name from invoice
+                $planName = $invoice->plan ? $invoice->plan->name : null;
                 
                 // Get number of available bots from plan details
                 $availableBots = 0;
@@ -234,10 +240,14 @@ class User extends Authenticatable
                     'id' => $bot->id,
                     'type' => $bot->buy_type,
                     'title' => $packageTitle,
+                    'plan_name' => $planName,
                     'available_bots' => $availableBots,
                     'plan_details' => $planDetails,
                     'created_at' => $bot->created_at,
                 ];
+            })
+            ->filter(function($package) {
+                return $package !== null;
             })
             ->values();
     }
