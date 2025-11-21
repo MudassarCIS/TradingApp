@@ -150,8 +150,8 @@ class DepositController extends Controller
                     }
                     if ($invoiceType) {
                         $badgeClass = match($invoiceType) {
-                            'Rent A Bot' => 'bg-primary',
-                            'Sharing Nexa' => 'bg-info',
+                            'PEX' => 'bg-primary',
+                            'NEXA' => 'bg-info',
                             'package buy' => 'bg-success',
                             'profit invoice' => 'bg-warning',
                             default => 'bg-secondary'
@@ -220,6 +220,7 @@ class DepositController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Distribute profit bonus to 3 levels of parents
      * Uses each parent's active plan referral_level percentages
      * Only gives bonus if parent has active_plan_id
@@ -432,8 +433,13 @@ class DepositController extends Controller
      * Distribute bonus for Sharing Nexa deposits only
      * Gets parent's active_plan_id and uses parent's plan direct_bonus
      * Only gives bonus to level-1 parent if parent has active plan
+=======
+     * Distribute bonus for NEXA deposits only
+     * Gets parent's active_plan_id and uses parent's plan direct_bonus
+     * If parent has no active plan, uses Starter plan's direct_bonus
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
      */
-    private function distributeRentBotBonus($deposit): void
+    private function distributeNexaBonus($deposit): void
     {
         try {
             // Get invoice_type from deposit or invoice relationship
@@ -456,7 +462,11 @@ class DepositController extends Controller
                 ->first();
             
             if (!$referral) {
+<<<<<<< HEAD
                 \Log::info('No level-1 parent found for Sharing Nexa bonus', [
+=======
+                \Log::info('No parent found for NEXA bonus', [
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                     'user_id' => $user->id,
                     'deposit_id' => $deposit->id
                 ]);
@@ -473,25 +483,32 @@ class DepositController extends Controller
                 return;
             }
             
-            // Get parent's active_plan_id from users table
-            if (!$parent->active_plan_id) {
-                \Log::info('Parent has no active plan', [
-                    'parent_id' => $parent->id,
-                    'deposit_id' => $deposit->id
-                ]);
-                return;
+            // Get parent's plan and direct_bonus
+            // If parent has no active plan, use Starter plan
+            $parentPlan = null;
+            if ($parent->active_plan_id) {
+                $parentPlan = Plan::find($parent->active_plan_id);
             }
             
-            // Get parent's plan and direct_bonus
-            $parentPlan = Plan::find($parent->active_plan_id);
-            
+            // If parent has no active plan, get Starter plan
             if (!$parentPlan) {
-                \Log::warning('Parent plan not found', [
+                $parentPlan = Plan::where('name', 'Starter')
+                    ->where('is_active', true)
+                    ->first();
+                
+                if (!$parentPlan) {
+                    \Log::warning('Starter plan not found for NEXA bonus', [
+                        'parent_id' => $parent->id,
+                        'deposit_id' => $deposit->id
+                    ]);
+                    return;
+                }
+                
+                \Log::info('Using Starter plan for parent with no active plan', [
                     'parent_id' => $parent->id,
-                    'plan_id' => $parent->active_plan_id,
-                    'deposit_id' => $deposit->id
+                    'deposit_id' => $deposit->id,
+                    'starter_plan_id' => $parentPlan->id
                 ]);
-                return;
             }
             
             $directBonus = (float) ($parentPlan->direct_bonus ?? 0);
@@ -559,7 +576,11 @@ class DepositController extends Controller
                 }
                 
                 // Log bonus distribution for verification
+<<<<<<< HEAD
                 \Log::info('Sharing Nexa bonus distributed to level-1 parent', [
+=======
+                \Log::info('NEXA bonus distributed', [
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                     'parent_id' => $parent->id,
                     'parent_plan_id' => $parentPlan->id,
                     'parent_plan_name' => $parentPlan->name,
@@ -570,7 +591,7 @@ class DepositController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
-            \Log::error('Error in distributeRentBotBonus: ' . $e->getMessage(), [
+            \Log::error('Error in distributeNexaBonus: ' . $e->getMessage(), [
                 'deposit_id' => $deposit->id ?? null,
                 'user_id' => $deposit->user_id ?? null
             ]);
@@ -634,6 +655,7 @@ class DepositController extends Controller
             }
             
             // Distribute referral bonuses based on invoice type
+<<<<<<< HEAD
             // For "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only (if parent has active plan)
             // For "Rent A Bot": No bonus distribution
             // For "profit invoice" or "trade profit": Give bonus to 3 levels of parents using their active plan referral percentages
@@ -662,6 +684,28 @@ class DepositController extends Controller
                         'user_id' => $deposit->user_id,
                         'invoice_type' => $invoiceType ?? 'none'
                     ]);
+=======
+            // For "NEXA" only: Get parent's plan direct_bonus and give to first level parent only
+            // For "profit invoice": 3-level bonuses using referral_level percentages
+            // PEX deposits do not trigger referral bonuses - skip entirely
+            try {
+                $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
+                
+                if ($invoiceType === 'NEXA') {
+                    // Special handling for NEXA only - get parent's plan direct_bonus
+                    $this->distributeNexaBonus($deposit);
+                } elseif ($invoiceType === 'PEX') {
+                    // PEX deposits - no bonus distribution at all
+                    \Log::info('PEX deposit approved - no bonus distribution', [
+                        'deposit_id' => $deposit->id,
+                        'user_id' => $deposit->user_id,
+                        'invoice_type' => $invoiceType
+                    ]);
+                    // Do nothing - skip bonus distribution for PEX
+                } else {
+                    // Use existing referral service for other types (profit invoice, etc.)
+                    app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                 }
             } catch (\Exception $e) {
                 // Log error but don't fail the deposit approval
@@ -857,10 +901,16 @@ class DepositController extends Controller
                     }
                     
                     // Distribute referral bonuses based on invoice type
+<<<<<<< HEAD
                     // For "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only (if parent has active plan)
                     // For "Rent A Bot": No bonus distribution
                     // For "profit invoice" or "trade profit": Give bonus to 3 levels of parents using their active plan referral percentages
                     // For other types: No bonus distribution
+=======
+                    // For "NEXA" only: Get parent's plan direct_bonus and give to first level parent only
+                    // For "profit invoice": 3-level bonuses using referral_level percentages
+                    // PEX deposits do not trigger referral bonuses - skip entirely
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                     try {
                         // Ensure user relationship is loaded
                         if (!$deposit->relationLoaded('user')) {
@@ -869,6 +919,7 @@ class DepositController extends Controller
                         
                         $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                         
+<<<<<<< HEAD
                         if ($invoiceType === 'Sharing Nexa') {
                             // Special handling for Sharing Nexa - get parent's plan direct_bonus (only if parent has active plan)
                             // Only gives bonus to level-1 parent if parent has active plan
@@ -890,6 +941,23 @@ class DepositController extends Controller
                                 'user_id' => $deposit->user_id,
                                 'invoice_type' => $invoiceType ?? 'none'
                             ]);
+=======
+                        if ($invoiceType === 'NEXA') {
+                            // Special handling for NEXA only - get parent's plan direct_bonus
+                            $this->distributeNexaBonus($deposit);
+                        } elseif ($invoiceType === 'PEX') {
+                            // PEX deposits - no bonus distribution at all
+                            \Log::info('PEX deposit approved - no bonus distribution', [
+                                'deposit_id' => $deposit->id,
+                                'user_id' => $deposit->user_id,
+                                'invoice_type' => $invoiceType
+                            ]);
+                            // Do nothing - skip bonus distribution for PEX
+                        } else {
+                            // Use existing referral service for other types (profit invoice, etc.)
+                            $referralService = app(ReferralService::class);
+                            $referralService->distributeReferralBonuses($deposit->user, $deposit);
+>>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                         }
                         
                         // Log success for verification

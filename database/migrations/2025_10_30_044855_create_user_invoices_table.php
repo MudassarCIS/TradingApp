@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('user_invoices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('invoice_type'); // "Rent A Bot" or "Sharing Nexa"
+            $table->string('invoice_type'); // "PEX" or "NEXA"
             $table->decimal('amount', 10, 2); // Amount to be paid
             $table->date('due_date'); // Default: current_date + 7 days
             $table->string('status')->default('Unpaid'); // Default "Unpaid"

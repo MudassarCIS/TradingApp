@@ -113,13 +113,13 @@ class AgentController extends Controller
 
             // Create user active bot record
             $activeBot = $user->activeBots()->create([
-                'buy_type' => $botType === 'rent-bot' ? 'Rent A Bot' : 'Sharing Nexa',
+                'buy_type' => $botType === 'rent-bot' ? 'PEX' : 'NEXA',
                 'buy_plan_details' => $planData,
             ]);
 
             // Create invoice
             $amount = $botType === 'rent-bot' ? $planData['amount'] : $planData['joining_fee'];
-            $invoiceType = $botType === 'rent-bot' ? 'Rent A Bot' : 'Sharing Nexa';
+            $invoiceType = $botType === 'rent-bot' ? 'PEX' : 'NEXA';
             
             // Find plan_id if available in plan_data or by matching plan details
             $planId = null;
@@ -127,7 +127,7 @@ class AgentController extends Controller
                 // If plan_id is directly in plan_data
                 $planId = $planData['id'];
             } elseif ($botType === 'sharing-nexa' && isset($planData['investment_amount']) && isset($planData['joining_fee'])) {
-                // For Sharing Nexa, try to find plan by matching investment_amount and joining_fee
+                // For NEXA, try to find plan by matching investment_amount and joining_fee
                 $plan = Plan::where('investment_amount', $planData['investment_amount'])
                     ->where('joining_fee', $planData['joining_fee'])
                     ->where('is_active', true)

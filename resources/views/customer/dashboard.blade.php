@@ -126,7 +126,7 @@
     <div class="col-md-3 mb-4">
         <div class="stats-card">
             <h3>{{ $activeAgents }}</h3>
-            <p>Active Agents</p>
+            <p>Active Bots</p>
         </div>
     </div>
 </div>
@@ -254,7 +254,7 @@
                     <div class="col-md-3 col-sm-6">
                         <a href="{{ route('customer.agents.create') }}" class="btn btn-warning w-100 quick-action-btn">
                             <i class="bi bi-robot"></i>
-                            <span>Create AI Agent</span>
+                            <span>Create AI Bot</span>
                             <small class="badge bg-light text-dark mt-1">{{ $activeAgents }} Active</small>
                         </a>
                     </div>
@@ -305,7 +305,7 @@
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h5 class="card-title text-primary mb-2">
-                                            <i class="bi bi-robot"></i> {{ $package['title'] }}
+                                            <i class="bi bi-robot"></i> {{ $package['title'] }}@if(isset($package['plan_name']) && $package['plan_name'])<span class="text-muted"> ({{ $package['plan_name'] }})</span>@endif
                                         </h5>
                                         <div class="mb-2">
                                             <span class="badge bg-success">Active</span>
@@ -314,7 +314,7 @@
                                             <strong>Available Bots:</strong> 
                                             <span class="text-primary fs-5">{{ $package['available_bots'] }}</span>
                                         </div>
-                                        @if($package['type'] === 'Rent A Bot')
+                                        @if($package['type'] === 'PEX')
                                             @if(isset($package['plan_details']['allowed_trades']))
                                             <div class="mt-2">
                                                 <small class="text-muted">
@@ -329,7 +329,7 @@
                                                 </small>
                                             </div>
                                             @endif
-                                        @elseif($package['type'] === 'Sharing Nexa')
+                                        @elseif($package['type'] === 'NEXA')
                                             @if(isset($package['plan_details']['trades_per_day']))
                                             <div class="mt-2">
                                                 <small class="text-muted">

@@ -118,7 +118,7 @@ class ReferralService
 
     /**
      * Save plan change to history
-    */
+     */
     protected function savePlanHistory(User $user, Plan $plan, float $investmentAmount, ?string $oldPlanName = null): void
     {
         if (!$user || !$plan) {
@@ -143,7 +143,7 @@ class ReferralService
 
     /**
      * Distribute referral bonuses based on deposit/invoice type
-    */
+     */
     public function distributeReferralBonuses(User $investor, $deposit): void
     {
         try {
@@ -169,17 +169,29 @@ class ReferralService
             }
             
             // Route to appropriate bonus distribution method based on invoice type
-            // "Rent A Bot" and "Sharing Nexa" are treated as package buy (direct_bonus to level 1 only)
+            // "NEXA" and "package buy" are treated as package buy (direct_bonus to level 1 only)
+            // "PEX" deposits do NOT trigger any bonus distribution
             // "profit invoice" uses 3-level bonuses
-            if (in_array($invoiceType, ['Rent A Bot', 'Sharing Nexa', 'package buy'])) {
-                // Type 1: Package buy (Rent A Bot, Sharing Nexa, or package buy) - give direct_bonus to first level parent only
+            if (in_array($invoiceType, ['NEXA', 'package buy'])) {
+                // Type 1: Package buy (NEXA or package buy) - give direct_bonus to first level parent only
+                // Note: PEX is excluded - no bonus for PEX deposits
                 $this->distributePackageBuyBonus($investor, $deposit);
             } elseif ($invoiceType === 'profit invoice') {
                 // Type 2: Profit invoice - give 3-level bonuses using referral_level percentages
                 $this->distributeProfitInvoiceBonus($investor, $deposit);
+            } elseif ($invoiceType === 'PEX') {
+                // PEX deposits - explicitly skip bonus distribution
+                \Log::info('PEX deposit - skipping bonus distribution in ReferralService', [
+                    'deposit_id' => $deposit->id ?? null,
+                    'user_id' => $investor->id,
+                    'invoice_type' => $invoiceType
+                ]);
+                // Do nothing - return without distributing any bonus
+                return;
             } else {
                 // Default: For deposits without invoice or unknown type, use package buy logic
                 // This treats deposits without invoices as package purchases
+                // Note: PEX is explicitly excluded above
                 $this->distributePackageBuyBonus($investor, $deposit);
             }
         } catch (\Exception $e) {
@@ -194,8 +206,8 @@ class ReferralService
 
     /**
      * Distribute package buy bonus - gives direct_bonus to first level parent only
-     * Used when invoice_type is "Rent A Bot", "Sharing Nexa", or "package buy"
-    */
+     * Used when invoice_type is "PEX", "NEXA", or "package buy"
+     */
     public function distributePackageBuyBonus(User $investor, $deposit): void
     {
         try {
@@ -287,7 +299,7 @@ class ReferralService
     /**
      * Distribute profit invoice bonus - gives 3-level bonuses using referral_level percentages
      * Used when invoice_type is "profit invoice"
-    */
+     */
     public function distributeProfitInvoiceBonus(User $investor, $deposit): void
     {
         try {
@@ -369,15 +381,15 @@ class ReferralService
     }
 
     /**
-     * Get parent's active plan (Sharing Nexa with paid invoice)
+     * Get parent's active plan (NEXA with paid invoice)
      * Determines plan based on joining_fee amount from plans table
      * If parent has no payment, returns Starter plan as default
-    */
+     */
     protected function getParentActivePlan(User $parent): ?Plan
     {
-        // Get active Sharing Nexa bots with paid invoices
+        // Get active NEXA bots with paid invoices
         $activeBots = $parent->activeBots()
-            ->where('buy_type', 'Sharing Nexa')
+            ->where('buy_type', 'NEXA')
             ->latest()
             ->get();
 
@@ -388,7 +400,7 @@ class ReferralService
             $endTime = $botCreatedAt->copy()->addMinutes(10);
             
             $invoice = $parent->invoices()
-                ->where('invoice_type', 'Sharing Nexa')
+                ->where('invoice_type', 'NEXA')
                 ->where('status', 'Paid')
                 ->where('created_at', '>=', $startTime)
                 ->where('created_at', '<=', $endTime)
@@ -430,9 +442,11 @@ class ReferralService
             }
         }
         
-        // If parent has no active Sharing Nexa plan with paid invoice, 
+        // If parent has no active NEXA plan with paid invoice, 
         // return Starter plan as default so they can still receive referral bonuses
-        $starterPlan = Plan::where('name', 'Starter')->where('is_active', true)->first();
+        $starterPlan = Plan::where('name', 'Starter')
+            ->where('is_active', true)
+            ->first();
         
         if ($starterPlan) {
             // Update parent's plan to Starter if they don't have one set
@@ -533,7 +547,6 @@ class ReferralService
      */
     protected function creditParentWallet($parentId, $amount): void
     {
-
         $wallet = Wallet::where('user_id', $parentId)->where('currency', 'USDT')->first();
         
         if (!$wallet) {
@@ -547,13 +560,11 @@ class ReferralService
                 'total_withdrawn' => 0,
                 'total_loss' => 0,
             ]);
-
         } else {
             // Increment balance and profit totals
             $wallet->balance = bcadd($wallet->balance, $amount, 8);
             $wallet->total_profit = bcadd($wallet->total_profit, $amount, 8);
             $wallet->save();
-
         }
     }
 
@@ -562,11 +573,10 @@ class ReferralService
      */
     protected function updateReferralTotals($parentId, $investorId, $bonusAmount): void
     {
-        
-        $ref    =   Referral::where('referrer_id', $parentId)
-                    ->where('referred_id', $investorId)
-                    ->first();
-
+        $ref = Referral::where('referrer_id', $parentId)
+                      ->where('referred_id', $investorId)
+                      ->first();
+                      
         if ($ref) {
             $ref->total_commission = bcadd($ref->total_commission, $bonusAmount, 8);
             $ref->pending_commission = bcadd($ref->pending_commission, $bonusAmount, 8);

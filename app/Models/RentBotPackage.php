@@ -18,6 +18,16 @@ class RentBotPackage extends Model
         'validity',
         'status',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('amount', 'asc');
+    }
 }
 
 

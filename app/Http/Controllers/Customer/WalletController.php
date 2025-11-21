@@ -182,7 +182,7 @@ class WalletController extends Controller
                     ->update(['status' => 'payment_pending']);
             }
             
-            return redirect()->route('customer.wallet.deposit')
+            return redirect()->route('customer.agents.index')
                 ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $deposit->deposit_id . '. We will review it within 24 hours.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->route('customer.wallet.deposit')

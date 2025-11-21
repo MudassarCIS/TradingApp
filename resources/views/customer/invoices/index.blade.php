@@ -97,7 +97,7 @@ $(document).ready(function() {
                     return '<i class="bi bi-receipt"></i> ' + data;
                 }
             },
-            { data: 'invoice_type' },
+            { data: 'formatted_invoice_type' },
             { data: 'formatted_amount' },
             { data: 'formatted_due_date' },
             { data: 'status_badge' },

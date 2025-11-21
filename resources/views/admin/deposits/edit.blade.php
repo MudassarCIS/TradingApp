@@ -97,7 +97,7 @@
                         <ul class="mb-0 mt-2">
                             <li>Credit the user's wallet</li>
                             <li>Update associated invoice status to "Paid" (if any)</li>
-                            <li>Distribute referral bonuses to 3 levels (if invoice is Sharing Nexa or Rent A Bot)</li>
+                            <li>Distribute referral bonuses to 3 levels (if invoice is NEXA or PEX)</li>
                         </ul>
                     </div>
                     

@@ -23,7 +23,7 @@
                                             <i class="bi bi-robot" style="font-size: 3rem; color: #fd7e14;"></i>
                                         </div>
                                         <div>
-                                            <h4 class="mb-1">RENT A BOT</h4>
+                                            <h4 class="mb-1">PEX</h4>
                                             <small class="text-muted">Details</small>
                                         </div>
                                     </div>
@@ -38,7 +38,7 @@
                                             <i class="bi bi-share" style="font-size: 3rem; color: #fd7e14;"></i>
                                         </div>
                                         <div>
-                                            <h4 class="mb-1">Sharing NEXA</h4>
+                                            <h4 class="mb-1">NEXA</h4>
                                             <small class="text-muted">Details</small>
                                         </div>
                                     </div>
@@ -211,7 +211,7 @@ $(document).ready(function() {
         if (selectedBotType === 'rent-bot') {
             detailsHtml = `
                 <div class="alert alert-info">
-                    <h6>Rent A Bot Package</h6>
+                    <h6>PEX Package</h6>
                     <p><strong>Bots:</strong> ${selectedPlan.allowed_bots}</p>
                     <p><strong>Trades:</strong> ${selectedPlan.allowed_trades}</p>
                     <p><strong>Validity:</strong> ${selectedPlan.validity}</p>
@@ -221,7 +221,7 @@ $(document).ready(function() {
         } else {
             detailsHtml = `
                 <div class="alert alert-info">
-                    <h6>Sharing NEXA Plan</h6>
+                    <h6>NEXA Plan</h6>
                     <p><strong>Bots Allowed:</strong> ${selectedPlan.bots_allowed}</p>
                     <p><strong>Joining Fee:</strong> $${selectedPlan.joining_fee} USDT</p>
                     <p><strong>Investment:</strong> $${selectedPlan.investment_amount} USDT</p>

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('user_active_bots', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('buy_type'); // "Rent A Bot" or "Sharing Nexa"
+            $table->string('buy_type'); // "PEX" or "NEXA"
             $table->json('buy_plan_details'); // Store selected plan info
             $table->timestamps();
         });

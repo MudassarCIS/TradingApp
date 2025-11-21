@@ -18,7 +18,7 @@
                         <div class="card h-100">
                             <div class="card-body">
                                 <h6 class="card-title text-primary">
-                                    <i class="bi bi-robot"></i> {{ $package['title'] }}
+                                    <i class="bi bi-robot"></i> {{ $package['title'] }}@if(isset($package['plan_name']) && $package['plan_name'])<span class="text-muted"> ({{ $package['plan_name'] }})</span>@endif
                                 </h6>
                                 <div class="mb-2">
                                     <span class="badge bg-success">Active</span>
@@ -27,11 +27,11 @@
                                     <strong>Available Bots:</strong>
                                     <span class="text-primary fs-4 ms-2">{{ $package['available_bots'] }}</span>
                                 </div>
-                                @if($package['type'] === 'Rent A Bot' && isset($package['plan_details']['allowed_trades']))
+                                @if($package['type'] === 'PEX' && isset($package['plan_details']['allowed_trades']))
                                 <div class="mt-2">
                                     <small class="text-muted">Allowed Trades: {{ $package['plan_details']['allowed_trades'] }}</small>
                                 </div>
-                                @elseif($package['type'] === 'Sharing Nexa' && isset($package['plan_details']['trades_per_day']))
+                                @elseif($package['type'] === 'NEXA' && isset($package['plan_details']['trades_per_day']))
                                 <div class="mt-2">
                                     <small class="text-muted">Trades/Day: {{ $package['plan_details']['trades_per_day'] }}</small>
                                 </div>
