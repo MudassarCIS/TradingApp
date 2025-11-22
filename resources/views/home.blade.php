@@ -344,6 +344,27 @@
             cursor: pointer;
         }
 
+        /* Register and Logout Button Styling */
+        .nav-link.btn-glow {
+            padding: 10px 30px !important;
+            border-radius: 8px !important;
+            font-size: 1rem;
+            height: auto;
+            min-height: auto;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-link.btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button.nav-link.btn-glow {
+            padding: 10px 30px !important;
+            border-radius: 8px !important;
+            font-size: 1rem;
+        }
+
         /* Glassmorphism Cards */
         .glass-card {
             background: var(--glass-bg);
@@ -541,14 +562,249 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            opacity: 0.5;
         }
 
-        .referral-card:hover::before {
-            opacity: 1;
+        /* MLM Diagram Image */
+        .mlm-diagram-container {
+            margin: 2rem 0;
+            text-align: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .mlm-text-content {
+            margin-bottom: 2.5rem;
+            padding: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mlm-text-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .mlm-text-description {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .mlm-image-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mlm-image-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .mlm-diagram-image {
+            max-width: 70%;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 10px 30px rgba(0, 212, 255, 0.3));
+        }
+
+        @media (max-width: 992px) {
+            .mlm-diagram-image {
+                max-width: 85%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mlm-diagram-container {
+                margin: 1.5rem 0;
+            }
+
+            .mlm-text-title {
+                font-size: 1.5rem;
+            }
+
+            .mlm-text-description {
+                font-size: 1rem;
+            }
+
+            .mlm-image-wrapper {
+                padding: 1rem;
+            }
+
+            .mlm-diagram-image {
+                max-width: 95%;
+            }
+        }
+
+
+        /* Make calculator section background match */
+        #referral {
+            background: #0a0a0a;
+        }
+
+        /* PDF Documents Section */
+        .pdf-documents-section {
+            background: #0a0a0a;
+            padding: 4rem 0;
+        }
+
+        .pdf-card {
+            background: #111;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #222;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .pdf-icon {
+            font-size: 4rem;
+            color: var(--neon-blue);
+            margin-bottom: 1rem;
+        }
+
+        .pdf-title {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .pdf-download-btn {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-top: auto;
+        }
+
+        .pdf-download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+
+        /* Range Slider Styles */
+        .range-slider {
+            width: 100%;
+            position: relative;
+        }
+
+        .range-slider input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: #333;
+            box-shadow: 0 0 12px rgba(255,0,150,0.4);
+            outline: none;
+            background-image: linear-gradient(90deg, #ff0080, #8000ff, #0066ff);
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            border: 3px solid #ff43b0;
+            box-shadow: 0 0 10px #ff43b0,
+                        0 0 20px #b300ff,
+                        0 0 30px #0066ff;
+            transition: 0.2s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 
+                0 0 15px #ff43b0,
+                0 0 30px #b300ff,
+                0 0 45px #0066ff,
+                0 0 60px rgba(0,255,255,0.5);
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            border: 3px solid #ff43b0;
+            box-shadow: 0 0 10px #ff43b0,
+                        0 0 20px #b300ff,
+                        0 0 30px #0066ff;
+            transition: 0.2s ease;
+        }
+
+        input[type=range]::-moz-range-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 
+                0 0 15px #ff43b0,
+                0 0 30px #b300ff,
+                0 0 45px #0066ff,
+                0 0 60px rgba(0,255,255,0.5);
+        }
+
+        input[type=range]::-moz-range-track {
+            height: 12px;
+            border-radius: 10px;
+            background: #333;
+            box-shadow: 0 0 12px rgba(255,0,150,0.4);
         }
 
         /* Footer */
@@ -890,7 +1146,7 @@
                 @if($logoUrl)
                     <img src="{{ $logoUrl }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">
                 @else
-                    <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="Nexa AI Robot" style="height: 40px; width: auto; object-fit: contain; border-radius: 8px;">
+                    <img src="{{ asset('admin-assets/img/nexa-ai-robot.jpg') }}" alt="NEXA AI Robot" style="height: 40px; width: auto; object-fit: contain; border-radius: 8px;">
                 @endif
                 {{ $projectName }}
             </a>
@@ -909,8 +1165,8 @@
                             Plans
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="plansDropdown">
-                            <li><a class="dropdown-item" href="#packages">Nexa</a></li>
-                            <li><a class="dropdown-item" href="#pex-plans">Pex</a></li>
+                            <li><a class="dropdown-item" href="#packages">NEXA</a></li>
+                            <li><a class="dropdown-item" href="#pex-plans">PEX</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -1015,7 +1271,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Nexa Bot Plans</h2>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">NEXA Bot Plans</h2>
                     <p class="lead" data-aos="fade-up" data-aos-delay="200">Select the perfect trading plan that matches your financial goals and risk tolerance</p>
                 </div>
             </div>
@@ -1025,6 +1281,7 @@
                     <div class="package-card" data-aos="fade-up" data-aos-delay="{{ ($index + 1) * 100 }}">
                         <h3 class="package-name">{{ $plan->name }}</h3>
                         <div class="package-price">${{ number_format($plan->investment_amount) }}</div>
+                        <div style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 1rem;">Required Funds in Wallet for Trading</div>
                         <ul class="package-features">
                             <li><i class="bi bi-check-circle"></i>{{ $plan->bots_allowed }} BOT{{ $plan->bots_allowed > 1 ? 's' : '' }}</li>
                             <li><i class="bi bi-check-circle"></i>{{ $plan->trades_per_day }} Trades per Day</li>
@@ -1067,6 +1324,7 @@
                             <div class="pex-package-content">
                                 <h3 class="pex-package-name">PEX-{{ $index + 1 }}</h3>
                                 <div class="pex-package-price">${{ number_format($pexPlan->amount, 2) }}</div>
+                                <div style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 1rem;">Required Funds in Wallet for Trading</div>
                                 <div class="pex-package-validity">
                                     <i class="bi bi-calendar-check me-2"></i>
                                     {{ ucfirst($pexPlan->validity) }}ly Subscription
@@ -1123,7 +1381,7 @@
     </section>
 
     <!-- Referral Benefits Section -->
-    <section id="referral" class="py-5">
+    <section id="referral" class="py-5" style="background: #0a0a0a;">
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
@@ -1132,34 +1390,117 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-lg-8 mx-auto">
+                <div class="col-12">
                     <div class="referral-card" data-aos="fade-up" data-aos-delay="300">
-                        <i class="bi bi-people-fill" style="font-size: 4rem; color: var(--neon-blue); margin-bottom: 2rem;"></i>
-                        <h3 class="mb-4">Build Your Network & Earn Commissions</h3>
-                        <p class="lead mb-4">
-                            Our revolutionary 3-level referral system allows you to earn from your direct referrals and their referrals. 
-                            Higher trading packages unlock better referral percentages and unlimited earning potential.
-                        </p>
-                        <div class="row g-4">
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h5 class="text-primary">Level 1</h5>
-                                    <p>Direct referrals earn you the highest percentage</p>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h5 class="text-primary">Level 2</h5>
-                                    <p>Your referrals' referrals earn you a smaller percentage</p>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h5 class="text-primary">Level 3</h5>
-                                    <p>Third-level referrals provide additional income</p>
-                                </div>
+                        <!-- MLM Text Content -->
+                        <div class="mlm-text-content" data-aos="fade-up" data-aos-delay="350">
+                            <h3 class="mlm-text-title">How Our Multi-Level Referral System Works</h3>
+                            <p class="mlm-text-description">
+                                Our revolutionary 3-level referral system allows you to earn from your direct referrals and their referrals. 
+                                Higher trading packages unlock better referral percentages and unlimited earning potential. 
+                                Build your network and watch your passive income grow exponentially through multiple income streams.
+                            </p>
+                        </div>
+
+                        <!-- MLM Diagram Image -->
+                        <div class="mlm-diagram-container" data-aos="fade-up" data-aos-delay="400">
+                            <div class="mlm-image-wrapper">
+                                <img src="{{ asset('images/referral/MLM.png') }}" 
+                                     alt="NEXA Multi-Level Marketing System - Level 1 (3% Profit Share), Level 2 (2% Profit Share), Level 3 (1% Profit Share)" 
+                                     class="mlm-diagram-image">
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referral Calculator -->
+            <div class="row mt-5">
+                <div class="col-lg-10 mx-auto">
+                    <div class="card shadow p-4" data-aos="fade-up" data-aos-delay="500" style="border-radius: 12px; background: #111; color: #fff;">
+                        <h2 class="text-center mb-4" style="color: #fff;">PS Commission Calculator</h2>
+
+                        <!-- Trading Amount -->
+                        <label class="form-label" style="color: #fff;">
+                            If Trading Amount:
+                            <span class="slider-value" id="amountValue" style="font-weight: bold; margin-left: 10px; color: #fff;">50,000</span>
+                        </label>
+                        <div class="range-slider">
+                            <input type="range" id="amount" min="1000" max="200000" value="50000" step="1000">
+                        </div>
+
+                        <!-- Profit % -->
+                        <label class="form-label mt-4" style="color: #fff;">
+                            If Profit %:
+                            <span class="slider-value" id="profitValue" style="font-weight: bold; margin-left: 10px; color: #fff;">10</span>
+                        </label>
+                        <div class="range-slider">
+                            <input type="range" id="profit" min="1" max="50" value="10">
+                        </div>
+
+                        <hr class="my-4" style="border-color: #222;">
+
+                        <h4 style="color: #fff;">Results</h4>
+
+                        <div class="result-box" style="background: #0f0f0f; padding: 20px; border-radius: 10px; border: 1px solid #222;">
+                            <p style="color: #fff;">Profit Amount: <span class="value" id="profitAmount" style="font-weight: bold; color: #4db8ff;">0</span></p>
+                            <span id="companyShare" style="display:none;"></span>
+                            <p style="color: #fff;">L1 Commission (3%): <span class="value" id="L1" style="font-weight: bold; color: #4db8ff;">0</span></p>
+                            <p style="color: #fff;">L2 Commission (2%): <span class="value" id="L2" style="font-weight: bold; color: #4db8ff;">0</span></p>
+                            <p style="color: #fff;">L3 Commission (1%): <span class="value" id="L3" style="font-weight: bold; color: #4db8ff;">0</span></p>
+                            <hr style="border-color: #222;">
+                            <p class="fs-5" style="color: #fff;">Total Commission: <span class="value" id="total" style="font-weight: bold; color: #4db8ff;">0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PDF Documents Section -->
+    <section class="pdf-documents-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up" style="color: #fff;">How Our Bots Work</h2>
+                    <p class="lead" data-aos="fade-up" data-aos-delay="200" style="color: rgba(255, 255, 255, 0.8);">Download our detailed guides to understand how NEXA and PEX trading bots work</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="100">
+                        <div class="pdf-icon">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <h4 class="pdf-title">NEXA Bot Guide</h4>
+                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Learn how NEXA trading bot works and maximizes your trading profits</p>
+                        <a href="{{ asset('images/pex_images/NEXA-1.pdf') }}" target="_blank" class="pdf-download-btn">
+                            <i class="bi bi-download me-2"></i>Download PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="200">
+                        <div class="pdf-icon">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <h4 class="pdf-title">PEX Bot Guide</h4>
+                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Discover the features and capabilities of PEX trading bot</p>
+                        <a href="{{ asset('images/pex_images/Pex-1.pdf') }}" target="_blank" class="pdf-download-btn">
+                            <i class="bi bi-download me-2"></i>Download PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="300">
+                        <div class="pdf-icon">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <h4 class="pdf-title">PEX vs NEXA Comparison</h4>
+                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Compare PEX and NEXA bots to choose the best option for you</p>
+                        <a href="{{ asset('images/pex_images/PEXvsNEXA-1.pdf') }}" target="_blank" class="pdf-download-btn">
+                            <i class="bi bi-download me-2"></i>Download PDF
+                        </a>
                     </div>
                 </div>
             </div>
@@ -1444,6 +1785,55 @@
                     });
                 }
             }
+        });
+
+        /* ===============================
+           APPLY DYNAMIC FILL TO SLIDER
+        =============================== */
+        function updateSliderFill(slider) {
+            let min = slider.min;
+            let max = slider.max;
+            let val = slider.value;
+            let percent = ((val - min) / (max - min)) * 100;
+            slider.style.background = `
+                linear-gradient(90deg, #ff0080, #8000ff, #0066ff) ${percent}%,
+                #222 ${percent}%
+            `;
+        }
+
+        /* ===============================
+           COMMISSION CALCULATION
+        =============================== */
+        function calculate() {
+            let amount = parseFloat(document.getElementById("amount").value);
+            let profitPercent = parseFloat(document.getElementById("profit").value);
+            document.getElementById("amountValue").innerText = amount.toLocaleString();
+            document.getElementById("profitValue").innerText = profitPercent;
+
+            let profitAmount = (amount * profitPercent) / 100;
+            let companyShare = profitAmount / 2;
+            let L1 = companyShare * 0.03;
+            let L2 = companyShare * 0.02;
+            let L3 = companyShare * 0.01;
+            let total = L1 + L2 + L3;
+
+            document.getElementById("profitAmount").innerText = profitAmount.toFixed(2);
+            document.getElementById("companyShare").innerText = companyShare.toFixed(2);
+            document.getElementById("L1").innerText = L1.toFixed(2);
+            document.getElementById("L2").innerText = L2.toFixed(2);
+            document.getElementById("L3").innerText = L3.toFixed(2);
+            document.getElementById("total").innerText = total.toFixed(2);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll("input[type=range]").forEach(slider => {
+                updateSliderFill(slider);
+                slider.addEventListener("input", () => updateSliderFill(slider));
+            });
+
+            document.getElementById("amount").addEventListener("input", calculate);
+            document.getElementById("profit").addEventListener("input", calculate);
+            calculate();
         });
     </script>
 </body>

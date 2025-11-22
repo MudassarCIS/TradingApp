@@ -96,6 +96,36 @@
         font-size: 0.75rem;
         margin-top: 0.5rem;
     }
+
+    /* Active Packages Images - Match Create Bot Page Style */
+    .package-image-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1rem;
+        flex-shrink: 0;
+    }
+
+    .package-bot-image {
+        max-width: 120px;
+        height: auto;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover .package-bot-image {
+        transform: scale(1.05);
+    }
+
+    @media (max-width: 768px) {
+        .package-image-container {
+            padding-left: 0.5rem;
+        }
+
+        .package-bot-image {
+            max-width: 80px;
+        }
+    }
 </style>
 @endpush
 
@@ -300,30 +330,40 @@
                 <div class="row g-3">
                     @foreach($activePackages as $package)
                     <div class="col-md-6">
-                        <div class="card border-primary">
+                        <div class="card border-primary h-100">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h5 class="card-title text-primary mb-2">
-                                            <i class="bi bi-robot"></i> {{ $package['title'] }}@if(isset($package['plan_name']) && $package['plan_name'])<span class="text-muted"> ({{ $package['plan_name'] }})</span>@endif
-                                        </h5>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center flex-grow-1">
+                                        <div>
+                                            <h5 class="card-title text-primary mb-2">
+                                                @php
+                                                    $displayType = $package['type'];
+                                                    // Handle legacy values - show as is if from DB, but normalize display
+                                                    if (strtolower($displayType) === 'rent a bot' || strtolower($displayType) === 'rent-bot') {
+                                                        $displayType = 'PEX';
+                                                    } elseif (strtolower($displayType) === 'sharing nexa' || strtolower($displayType) === 'sharing-nexa') {
+                                                        $displayType = 'NEXA';
+                                                    }
+                                                @endphp
+                                                {{ $displayType }}@if(isset($package['plan_name']) && $package['plan_name'])<span class="text-muted"> ({{ $package['plan_name'] }})</span>@endif
+                                            </h5>
                                         <div class="mb-2">
                                             <span class="badge bg-success">Active</span>
                                         </div>
-                                        <div>
+                                        <div class="mb-2">
                                             <strong>Available Bots:</strong> 
                                             <span class="text-primary fs-5">{{ $package['available_bots'] }}</span>
                                         </div>
                                         @if($package['type'] === 'PEX')
                                             @if(isset($package['plan_details']['allowed_trades']))
-                                            <div class="mt-2">
+                                            <div class="mb-1">
                                                 <small class="text-muted">
                                                     Allowed Trades: {{ $package['plan_details']['allowed_trades'] }}
                                                 </small>
                                             </div>
                                             @endif
                                             @if(isset($package['plan_details']['validity']))
-                                            <div>
+                                            <div class="mb-1">
                                                 <small class="text-muted">
                                                     Validity: {{ ucfirst($package['plan_details']['validity']) }}
                                                 </small>
@@ -331,19 +371,37 @@
                                             @endif
                                         @elseif($package['type'] === 'NEXA')
                                             @if(isset($package['plan_details']['trades_per_day']))
-                                            <div class="mt-2">
+                                            <div class="mb-1">
                                                 <small class="text-muted">
                                                     Trades/Day: {{ $package['plan_details']['trades_per_day'] }}
                                                 </small>
                                             </div>
                                             @endif
                                         @endif
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                Activated: {{ $package['created_at']->format('M d, Y') }}
+                                            </small>
+                                        </div>
                                     </div>
-                                    <div class="text-end">
-                                        <small class="text-muted">
-                                            Activated: {{ $package['created_at']->format('M d, Y') }}
-                                        </small>
-                                    </div>
+                                </div>
+                                <div class="package-image-container">
+                                    @php
+                                        $packageType = $package['type'];
+                                        $imagePath = null;
+                                        $imageAlt = '';
+                                        
+                                        if (strtolower($packageType) === 'rent a bot' || strtolower($packageType) === 'rent-bot' || $packageType === 'PEX') {
+                                            $imagePath = 'images/pex_images/pex.png';
+                                            $imageAlt = 'PEX';
+                                        } elseif (strtolower($packageType) === 'sharing nexa' || strtolower($packageType) === 'sharing-nexa' || $packageType === 'NEXA') {
+                                            $imagePath = 'images/pex_images/NEXA.png';
+                                            $imageAlt = 'NEXA';
+                                        }
+                                    @endphp
+                                    @if($imagePath)
+                                        <img src="{{ asset($imagePath) }}" alt="{{ $imageAlt }}" class="package-bot-image">
+                                    @endif
                                 </div>
                             </div>
                         </div>

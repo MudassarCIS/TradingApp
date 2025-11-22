@@ -105,11 +105,7 @@ class DepositController extends Controller
                 9 => 'created_at'
             ];
 
-            // Always order by created_at desc first (primary sort)
-            $query->orderBy('created_at', 'desc');
-            
-            // If user explicitly orders by a different column, add it as secondary sort
-            if (isset($columns[$orderColumn]) && $orderColumn != 9) {
+            if (isset($columns[$orderColumn])) {
                 if ($orderColumn == 1) {
                     // Order by user name using join
                     if (!$query->getQuery()->joins) {
@@ -124,6 +120,9 @@ class DepositController extends Controller
                 } else {
                     $query->orderBy($columns[$orderColumn], $orderDirection);
                 }
+            } else {
+                // Always default to latest first
+                $query->orderBy('created_at', 'desc');
             }
 
             // Apply pagination
@@ -220,240 +219,12 @@ class DepositController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Distribute profit bonus to 3 levels of parents
-     * Uses each parent's active plan referral_level percentages
-     * Only gives bonus if parent has active_plan_id
+     * Distribute bonus for PEX and NEXA deposits
+     * Gets parent's active_plan_id and uses parent's plan direct_bonus
      */
-    private function distributeProfitBonus($deposit): void
+    private function distributeRentBotBonus($deposit): void
     {
         try {
-            $user = $deposit->user;
-            $depositAmount = (float) $deposit->amount;
-            $currency = $deposit->currency ?? 'USDT';
-            
-            // Convert to USDT if needed
-            $amountInUSDT = $depositAmount;
-            if ($currency !== 'USDT') {
-                try {
-                    $referralService = app(ReferralService::class);
-                    $amountInUSDT = $referralService->convertToUSDT($currency, $depositAmount);
-                } catch (\Exception $e) {
-                    \Log::warning('Could not convert currency to USDT, using original amount', [
-                        'currency' => $currency,
-                        'amount' => $depositAmount,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-            
-            // Check if bonuses have already been distributed for this deposit
-            $existingBonus = CustomersWallet::where('related_id', $deposit->id)
-                ->where('payment_type', 'bonus')
-                ->first();
-            
-            if ($existingBonus) {
-                \Log::info('Profit bonus already distributed for this deposit', [
-                    'deposit_id' => $deposit->id
-                ]);
-                return;
-            }
-            
-            // Process 3 levels of parents
-            $level = 1;
-            $currentUserId = $user->id; // Start with the investor
-            
-            while ($level <= 3) {
-                // Store the child user ID before finding parent (this is the user we're finding the parent for)
-                $childUserId = $currentUserId;
-                
-                // Get parent for current user
-                $referral = Referral::where('referred_id', $currentUserId)
-                    ->where('status', 'active')
-                    ->first();
-                
-                if (!$referral) {
-                    \Log::info('No parent found for profit bonus distribution', [
-                        'level' => $level,
-                        'user_id' => $currentUserId,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    break; // No more parents, stop processing
-                }
-                
-                $parent = \App\Models\User::find($referral->referrer_id);
-                
-                if (!$parent) {
-                    \Log::warning('Parent user not found', [
-                        'level' => $level,
-                        'referrer_id' => $referral->referrer_id,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    break;
-                }
-                
-                // Check if parent has active plan
-                if (!$parent->active_plan_id) {
-                    \Log::info('Parent has no active plan, skipping bonus', [
-                        'level' => $level,
-                        'parent_id' => $parent->id,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    // Move to next level parent
-                    $currentUserId = $parent->id;
-                    $level++;
-                    continue;
-                }
-                
-                // Get parent's active plan
-                $parentPlan = Plan::find($parent->active_plan_id);
-                
-                if (!$parentPlan) {
-                    \Log::warning('Parent plan not found', [
-                        'level' => $level,
-                        'parent_id' => $parent->id,
-                        'plan_id' => $parent->active_plan_id,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    // Move to next level parent
-                    $currentUserId = $parent->id;
-                    $level++;
-                    continue;
-                }
-                
-                // Get referral percentage for this level
-                $percentField = 'referral_level_' . $level;
-                $percent = (float) ($parentPlan->$percentField ?? 0);
-                
-                if ($percent <= 0) {
-                    \Log::info('Parent plan has no referral percentage for this level', [
-                        'level' => $level,
-                        'parent_id' => $parent->id,
-                        'plan_id' => $parentPlan->id,
-                        'plan_name' => $parentPlan->name,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    // Move to next level parent
-                    $currentUserId = $parent->id;
-                    $level++;
-                    continue;
-                }
-                
-                // Calculate bonus amount: deposit_amount × (percentage / 100)
-                $bonusAmount = round($amountInUSDT * ($percent / 100), 8);
-                
-                if ($bonusAmount > 0) {
-                    // Check if bonus already distributed for this deposit and level
-                    $existingLevelBonus = CustomersWallet::where('related_id', $deposit->id)
-                        ->where('payment_type', 'bonus')
-                        ->where('user_id', $parent->id)
-                        ->first();
-                    
-                    if ($existingLevelBonus) {
-                        \Log::info('Bonus already distributed for this deposit and parent', [
-                            'level' => $level,
-                            'parent_id' => $parent->id,
-                            'deposit_id' => $deposit->id
-                        ]);
-                        // Move to next level parent
-                        $currentUserId = $parent->id;
-                        $level++;
-                        continue;
-                    }
-                    
-                    // Distribute bonus to parent
-                    DB::transaction(function () use ($deposit, $user, $parent, $parentPlan, $bonusAmount, $percent, $level, $childUserId) {
-                        // Insert into customers_wallets
-                        $walletEntry = CustomersWallet::create([
-                            'user_id' => $parent->id,
-                            'amount' => $bonusAmount,
-                            'currency' => 'USDT',
-                            'payment_type' => 'bonus',
-                            'transaction_type' => 'debit',
-                            'related_id' => $deposit->id,
-                        ]);
-
-                        // Update parent's wallet summary
-                        $wallet = Wallet::where('user_id', $parent->id)->where('currency', 'USDT')->first();
-                        if (!$wallet) {
-                            $wallet = Wallet::create([
-                                'user_id' => $parent->id,
-                                'currency' => 'USDT',
-                                'balance' => $bonusAmount,
-                                'total_profit' => $bonusAmount,
-                                'total_deposited' => 0,
-                                'total_withdrawn' => 0,
-                                'total_loss' => 0,
-                            ]);
-                        } else {
-                            $wallet->increment('balance', $bonusAmount);
-                            $wallet->increment('total_profit', $bonusAmount);
-                        }
-
-                        // Update referral totals - track commission from direct child
-                        $ref = Referral::where('referrer_id', $parent->id)
-                            ->where('referred_id', $childUserId)
-                            ->first();
-                        if ($ref) {
-                            $ref->increment('total_commission', $bonusAmount);
-                            $ref->increment('pending_commission', $bonusAmount);
-                        }
-                        
-                        // Log bonus distribution
-                        \Log::info('Profit bonus distributed to parent', [
-                            'level' => $level,
-                            'parent_id' => $parent->id,
-                            'parent_plan_id' => $parentPlan->id,
-                            'parent_plan_name' => $parentPlan->name,
-                            'child_user_id' => $childUserId,
-                            'investor_id' => $user->id,
-                            'deposit_id' => $deposit->id,
-                            'deposit_amount' => $deposit->amount,
-                            'percentage' => $percent,
-                            'bonus_amount' => $bonusAmount,
-                            'wallet_entry_id' => $walletEntry->id
-                        ]);
-                    });
-                }
-                
-                // Move to next level parent
-                $currentUserId = $parent->id;
-                $level++;
-            }
-        } catch (\Exception $e) {
-            \Log::error('Error in distributeProfitBonus: ' . $e->getMessage(), [
-                'deposit_id' => $deposit->id ?? null,
-                'user_id' => $deposit->user_id ?? null
-            ]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Distribute bonus for Sharing Nexa deposits only
-     * Gets parent's active_plan_id and uses parent's plan direct_bonus
-     * Only gives bonus to level-1 parent if parent has active plan
-=======
-     * Distribute bonus for NEXA deposits only
-     * Gets parent's active_plan_id and uses parent's plan direct_bonus
-     * If parent has no active plan, uses Starter plan's direct_bonus
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
-     */
-    private function distributeNexaBonus($deposit): void
-    {
-        try {
-            // Get invoice_type from deposit or invoice relationship
-            $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
-            
-            // Only process "Sharing Nexa" deposits, skip "Rent A Bot"
-            if ($invoiceType !== 'Sharing Nexa') {
-                \Log::info('Skipping bonus distribution - deposit type is not Sharing Nexa', [
-                    'deposit_id' => $deposit->id,
-                    'invoice_type' => $invoiceType
-                ]);
-                return;
-            }
-            
             $user = $deposit->user;
             
             // Get first level parent
@@ -462,11 +233,7 @@ class DepositController extends Controller
                 ->first();
             
             if (!$referral) {
-<<<<<<< HEAD
-                \Log::info('No level-1 parent found for Sharing Nexa bonus', [
-=======
-                \Log::info('No parent found for NEXA bonus', [
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
+                \Log::info('No parent found for PEX/NEXA bonus', [
                     'user_id' => $user->id,
                     'deposit_id' => $deposit->id
                 ]);
@@ -483,32 +250,25 @@ class DepositController extends Controller
                 return;
             }
             
-            // Get parent's plan and direct_bonus
-            // If parent has no active plan, use Starter plan
-            $parentPlan = null;
-            if ($parent->active_plan_id) {
-                $parentPlan = Plan::find($parent->active_plan_id);
+            // Get parent's active_plan_id from users table
+            if (!$parent->active_plan_id) {
+                \Log::info('Parent has no active plan', [
+                    'parent_id' => $parent->id,
+                    'deposit_id' => $deposit->id
+                ]);
+                return;
             }
             
-            // If parent has no active plan, get Starter plan
+            // Get parent's plan and direct_bonus
+            $parentPlan = Plan::find($parent->active_plan_id);
+            
             if (!$parentPlan) {
-                $parentPlan = Plan::where('name', 'Starter')
-                    ->where('is_active', true)
-                    ->first();
-                
-                if (!$parentPlan) {
-                    \Log::warning('Starter plan not found for NEXA bonus', [
-                        'parent_id' => $parent->id,
-                        'deposit_id' => $deposit->id
-                    ]);
-                    return;
-                }
-                
-                \Log::info('Using Starter plan for parent with no active plan', [
+                \Log::warning('Parent plan not found', [
                     'parent_id' => $parent->id,
-                    'deposit_id' => $deposit->id,
-                    'starter_plan_id' => $parentPlan->id
+                    'plan_id' => $parent->active_plan_id,
+                    'deposit_id' => $deposit->id
                 ]);
+                return;
             }
             
             $directBonus = (float) ($parentPlan->direct_bonus ?? 0);
@@ -576,11 +336,7 @@ class DepositController extends Controller
                 }
                 
                 // Log bonus distribution for verification
-<<<<<<< HEAD
-                \Log::info('Sharing Nexa bonus distributed to level-1 parent', [
-=======
-                \Log::info('NEXA bonus distributed', [
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
+                \Log::info('PEX/NEXA bonus distributed', [
                     'parent_id' => $parent->id,
                     'parent_plan_id' => $parentPlan->id,
                     'parent_plan_name' => $parentPlan->name,
@@ -591,7 +347,7 @@ class DepositController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
-            \Log::error('Error in distributeNexaBonus: ' . $e->getMessage(), [
+            \Log::error('Error in distributeRentBotBonus: ' . $e->getMessage(), [
                 'deposit_id' => $deposit->id ?? null,
                 'user_id' => $deposit->user_id ?? null
             ]);
@@ -655,57 +411,17 @@ class DepositController extends Controller
             }
             
             // Distribute referral bonuses based on invoice type
-<<<<<<< HEAD
-            // For "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only (if parent has active plan)
-            // For "Rent A Bot": No bonus distribution
-            // For "profit invoice" or "trade profit": Give bonus to 3 levels of parents using their active plan referral percentages
-            // For other types: No bonus distribution
-            try {
-                $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
-                
-                if ($invoiceType === 'Sharing Nexa') {
-                    // Special handling for Sharing Nexa - get parent's plan direct_bonus (only if parent has active plan)
-                    // Only gives bonus to level-1 parent if parent has active plan
-                    $this->distributeRentBotBonus($deposit);
-                } elseif ($invoiceType === 'Rent A Bot') {
-                    // Rent A Bot - no bonus distribution
-                    \Log::info('Rent A Bot deposit approved - no bonus distribution', [
-                        'deposit_id' => $deposit->id,
-                        'user_id' => $deposit->user_id
-                    ]);
-                } elseif (in_array($invoiceType, ['profit invoice', 'trade profit'])) {
-                    // Profit invoice or trade profit - give bonus to 3 levels of parents
-                    // Uses each parent's active plan referral_level percentages
-                    $this->distributeProfitBonus($deposit);
-                } else {
-                    // Other invoice types - no bonus distribution
-                    \Log::info('Deposit approved - no bonus distribution for this invoice type', [
-                        'deposit_id' => $deposit->id,
-                        'user_id' => $deposit->user_id,
-                        'invoice_type' => $invoiceType ?? 'none'
-                    ]);
-=======
-            // For "NEXA" only: Get parent's plan direct_bonus and give to first level parent only
+            // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
             // For "profit invoice": 3-level bonuses using referral_level percentages
-            // PEX deposits do not trigger referral bonuses - skip entirely
             try {
                 $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                 
-                if ($invoiceType === 'NEXA') {
-                    // Special handling for NEXA only - get parent's plan direct_bonus
-                    $this->distributeNexaBonus($deposit);
-                } elseif ($invoiceType === 'PEX') {
-                    // PEX deposits - no bonus distribution at all
-                    \Log::info('PEX deposit approved - no bonus distribution', [
-                        'deposit_id' => $deposit->id,
-                        'user_id' => $deposit->user_id,
-                        'invoice_type' => $invoiceType
-                    ]);
-                    // Do nothing - skip bonus distribution for PEX
+                if (in_array($invoiceType, ['PEX', 'NEXA'])) {
+                    // Special handling for PEX and NEXA - get parent's plan direct_bonus
+                    $this->distributeRentBotBonus($deposit);
                 } else {
-                    // Use existing referral service for other types (profit invoice, etc.)
+                    // Use existing referral service for other types
                     app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                 }
             } catch (\Exception $e) {
                 // Log error but don't fail the deposit approval
@@ -901,16 +617,8 @@ class DepositController extends Controller
                     }
                     
                     // Distribute referral bonuses based on invoice type
-<<<<<<< HEAD
-                    // For "Sharing Nexa": Get parent's plan direct_bonus and give to first level parent only (if parent has active plan)
-                    // For "Rent A Bot": No bonus distribution
-                    // For "profit invoice" or "trade profit": Give bonus to 3 levels of parents using their active plan referral percentages
-                    // For other types: No bonus distribution
-=======
-                    // For "NEXA" only: Get parent's plan direct_bonus and give to first level parent only
+                    // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
                     // For "profit invoice": 3-level bonuses using referral_level percentages
-                    // PEX deposits do not trigger referral bonuses - skip entirely
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                     try {
                         // Ensure user relationship is loaded
                         if (!$deposit->relationLoaded('user')) {
@@ -919,45 +627,13 @@ class DepositController extends Controller
                         
                         $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                         
-<<<<<<< HEAD
-                        if ($invoiceType === 'Sharing Nexa') {
-                            // Special handling for Sharing Nexa - get parent's plan direct_bonus (only if parent has active plan)
-                            // Only gives bonus to level-1 parent if parent has active plan
+                        if (in_array($invoiceType, ['PEX', 'NEXA'])) {
+                            // Special handling for PEX and NEXA - get parent's plan direct_bonus
                             $this->distributeRentBotBonus($deposit);
-                        } elseif ($invoiceType === 'Rent A Bot') {
-                            // Rent A Bot - no bonus distribution
-                            \Log::info('Rent A Bot deposit approved - no bonus distribution', [
-                                'deposit_id' => $deposit->id,
-                                'user_id' => $deposit->user_id
-                            ]);
-                        } elseif (in_array($invoiceType, ['profit invoice', 'trade profit'])) {
-                            // Profit invoice or trade profit - give bonus to 3 levels of parents
-                            // Uses each parent's active plan referral_level percentages
-                            $this->distributeProfitBonus($deposit);
                         } else {
-                            // Other invoice types - no bonus distribution
-                            \Log::info('Deposit approved - no bonus distribution for this invoice type', [
-                                'deposit_id' => $deposit->id,
-                                'user_id' => $deposit->user_id,
-                                'invoice_type' => $invoiceType ?? 'none'
-                            ]);
-=======
-                        if ($invoiceType === 'NEXA') {
-                            // Special handling for NEXA only - get parent's plan direct_bonus
-                            $this->distributeNexaBonus($deposit);
-                        } elseif ($invoiceType === 'PEX') {
-                            // PEX deposits - no bonus distribution at all
-                            \Log::info('PEX deposit approved - no bonus distribution', [
-                                'deposit_id' => $deposit->id,
-                                'user_id' => $deposit->user_id,
-                                'invoice_type' => $invoiceType
-                            ]);
-                            // Do nothing - skip bonus distribution for PEX
-                        } else {
-                            // Use existing referral service for other types (profit invoice, etc.)
+                            // Use existing referral service for other types
                             $referralService = app(ReferralService::class);
                             $referralService->distributeReferralBonuses($deposit->user, $deposit);
->>>>>>> dc99a9a99c2cc2155e0ad9a07c9c93373811a553
                         }
                         
                         // Log success for verification

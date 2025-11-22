@@ -17,7 +17,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <div class="bot-type-card" data-type="rent-bot">
-                                <div class="d-flex align-items-center justify-content-between p-4 border rounded-3 h-100" style="cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                <div class="d-flex align-items-center justify-content-between p-4 border rounded-3 bot-card-inner" style="cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3">
                                             <i class="bi bi-robot" style="font-size: 3rem; color: #fd7e14;"></i>
@@ -27,12 +27,15 @@
                                             <small class="text-muted">Details</small>
                                         </div>
                                     </div>
+                                    <div class="bot-image-container">
+                                        <img src="{{ asset('images/pex_images/pex.png') }}" alt="PEX Bot" class="bot-image" style="max-width: 120px; height: auto; object-fit: contain;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <div class="bot-type-card" data-type="sharing-nexa">
-                                <div class="d-flex align-items-center justify-content-between p-4 border rounded-3 h-100" style="cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                <div class="d-flex align-items-center justify-content-between p-4 border rounded-3 bot-card-inner" style="cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3">
                                             <i class="bi bi-share" style="font-size: 3rem; color: #fd7e14;"></i>
@@ -41,6 +44,9 @@
                                             <h4 class="mb-1">NEXA</h4>
                                             <small class="text-muted">Details</small>
                                         </div>
+                                    </div>
+                                    <div class="bot-image-container">
+                                        <img src="{{ asset('images/pex_images/NEXA.png') }}" alt="NEXA Bot" class="bot-image" style="max-width: 120px; height: auto; object-fit: contain;">
                                     </div>
                                 </div>
                             </div>
@@ -368,6 +374,19 @@ $(document).ready(function() {
 </script>
 
 <style>
+.bot-type-card {
+    height: 100%;
+    display: flex;
+}
+
+.bot-card-inner {
+    width: 100%;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .bot-type-card.selected .border {
     border-color: #fd7e14 !important;
     border-width: 3px !important;
@@ -388,6 +407,42 @@ $(document).ready(function() {
 
 .select-plan-btn {
     margin-top: 1rem;
+}
+
+.bot-image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 1rem;
+    flex-shrink: 0;
+}
+
+.bot-image {
+    transition: transform 0.3s ease;
+    max-height: 140px;
+    width: auto;
+}
+
+.bot-type-card:hover .bot-image {
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .bot-card-inner {
+        min-height: 150px;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .bot-image-container {
+        padding-left: 0;
+        padding-top: 1rem;
+    }
+    
+    .bot-image {
+        max-width: 80px !important;
+        max-height: 100px;
+    }
 }
 </style>
 @endpush

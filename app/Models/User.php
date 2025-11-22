@@ -223,7 +223,8 @@ class User extends Authenticatable
                 }
                 
                 $planDetails = $bot->buy_plan_details ?? [];
-                $packageTitle = $bot->buy_type;
+                // Set title to match display: PEX or NEXA
+                $packageTitle = $bot->buy_type === 'PEX' ? 'PEX' : ($bot->buy_type === 'NEXA' ? 'NEXA' : $bot->buy_type);
                 
                 // Get plan name from invoice
                 $planName = $invoice->plan ? $invoice->plan->name : null;
