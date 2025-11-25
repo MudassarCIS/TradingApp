@@ -4,10 +4,11 @@
 @section('page-title', 'Customer Invoices')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="mb-4">
     <h2>Pay Rental or Joining Fee</h2>
-    <div class="text-muted">
-        <i class="bi bi-info-circle"></i> Manage your bot rental and joining fees
+    <div class="alert alert-info mt-3 mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        Pay Rental, Joining Fee or Profit share Through Secured Invoices System, TSG not access directly your Exchange Wallet for any payment withdrawal.
     </div>
 </div>
 

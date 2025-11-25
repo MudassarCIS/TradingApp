@@ -550,8 +550,7 @@
             backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
             border-radius: 25px;
-            padding: 3rem 2rem;
-            text-align: center;
+            padding: 0.75rem 2rem;
             position: relative;
             overflow: hidden;
         }
@@ -569,100 +568,179 @@
 
         /* MLM Diagram Image */
         .mlm-diagram-container {
-            margin: 2rem 0;
+            margin: 0;
             text-align: center;
             position: relative;
             width: 100%;
+            height: 100%;
+            min-height: 100%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 0;
+            padding-bottom: 0;
         }
 
         .mlm-text-content {
-            margin-bottom: 2.5rem;
+            margin-bottom: 0;
+            margin-top: 0;
             padding: 0;
             position: relative;
             z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .mlm-text-title {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
+            margin-top: 0;
             background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-purple) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-align: center;
+            text-align: left;
+            color: #fff;
         }
 
         .mlm-text-description {
-            font-size: 1.1rem;
+            font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.9);
-            line-height: 1.8;
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
+            line-height: 1.5;
+            text-align: left;
+            margin-top: 0;
+        }
+
+        .mlm-text-description p {
+            margin-bottom: 0.5rem;
+            margin-top: 0;
+        }
+
+        .mlm-text-description p:first-child {
+            margin-top: 0;
+        }
+
+        .mlm-text-description p:last-child {
+            margin-bottom: 0;
+        }
+
+        .mlm-level-item {
+            margin: 0.6rem 0;
+            padding-left: 1rem;
+        }
+
+        .mlm-level-item p {
+            margin-bottom: 0.35rem;
+        }
+
+        .mlm-level-item p:first-child {
+            color: var(--neon-blue);
+            font-size: 0.9rem;
         }
 
         .mlm-image-wrapper {
             display: flex;
             justify-content: center;
-            align-items: center;
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
-            border: 1px solid rgba(0, 212, 255, 0.2);
+            align-items: flex-start;
+            padding: 0;
+            background: transparent;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
+            height: 100%;
+            width: 100%;
+            max-width: 100%;
+            transition: all 0.3s ease;
         }
 
-        .mlm-image-wrapper::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at center, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
-            pointer-events: none;
+        .mlm-image-wrapper:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
         }
 
         .mlm-diagram-image {
-            max-width: 70%;
-            width: auto;
+            max-width: 105%;
+            width: 105%;
             height: auto;
+            max-height: 100%;
             display: block;
-            margin: 0 auto;
+            margin: 0;
             object-fit: contain;
+            object-position: top center;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: high-quality;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
             position: relative;
             z-index: 1;
-            filter: drop-shadow(0 10px 30px rgba(0, 212, 255, 0.3));
+        }
+
+        .referral-card .row {
+            min-height: auto;
+            margin: 0;
+        }
+
+        .referral-card .row > div[class*="col-"] {
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            padding: 0;
         }
 
         @media (max-width: 992px) {
             .mlm-diagram-image {
-                max-width: 85%;
+                max-width: 100%;
+                width: 100%;
+                height: auto;
+                min-height: auto;
             }
         }
 
         @media (max-width: 768px) {
+            .referral-card .row {
+                min-height: auto;
+            }
+
             .mlm-diagram-container {
-                margin: 1.5rem 0;
+                margin: 2rem 0 0 0;
+                height: auto;
+            }
+
+            .mlm-text-content {
+                height: auto;
             }
 
             .mlm-text-title {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
+                text-align: center;
+                margin-bottom: 1rem;
             }
 
             .mlm-text-description {
-                font-size: 1rem;
+                font-size: 0.8rem;
+                text-align: center;
+            }
+
+            .mlm-level-item p:first-child {
+                font-size: 0.85rem;
             }
 
             .mlm-image-wrapper {
-                padding: 1rem;
+                height: auto;
             }
 
             .mlm-diagram-image {
-                max-width: 95%;
+                max-width: 100%;
+                width: 100%;
+                height: auto;
+                min-height: auto;
             }
         }
 
@@ -726,6 +804,31 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
             color: white;
+        }
+
+        /* Bot Images Section */
+        .bot-image-card {
+            background: transparent;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        .bot-image-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .bot-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            border-radius: 12px;
         }
 
 
@@ -1381,10 +1484,10 @@
     </section>
 
     <!-- Referral Benefits Section -->
-    <section id="referral" class="py-5" style="background: #0a0a0a;">
+    <section id="referral" class="py-2" style="background: #0a0a0a;">
         <div class="container">
             <div class="row">
-                <div class="col-12 text-center mb-5">
+                <div class="col-12 text-center mb-2">
                     <h2 class="display-4 fw-bold mb-3" data-aos="fade-up">Multi-Level Referral System</h2>
                     <p class="lead" data-aos="fade-up" data-aos-delay="200">Build your network and earn commissions from multiple levels of referrals</p>
                 </div>
@@ -1392,22 +1495,50 @@
             <div class="row">
                 <div class="col-12">
                     <div class="referral-card" data-aos="fade-up" data-aos-delay="300">
-                        <!-- MLM Text Content -->
-                        <div class="mlm-text-content" data-aos="fade-up" data-aos-delay="350">
-                            <h3 class="mlm-text-title">How Our Multi-Level Referral System Works</h3>
-                            <p class="mlm-text-description">
-                                Our revolutionary 3-level referral system allows you to earn from your direct referrals and their referrals. 
-                                Higher trading packages unlock better referral percentages and unlimited earning potential. 
-                                Build your network and watch your passive income grow exponentially through multiple income streams.
-                            </p>
-                        </div>
+                        <div class="row align-items-center">
+                            <!-- MLM Text Content - Left Side -->
+                            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="350">
+                                <div class="mlm-text-content">
+                                    <h3 class="mlm-text-title">Grow your network. Grow your income</h3>
+                                    <div class="mlm-text-description">
+                                        <p>As you guide others, you unlock 3 Levels of Commission Rewards:</p>
+                                        <p>you will get Share from their Profit(PC) and when they join TSG NEXA using your Referral Code.</p>
+                                        
+                                        <div class="mlm-level-item">
+                                            <p><strong>🔹 Level 1 (Direct Referrals): 3% PC</strong></p>
+                                            <p>Your direct efforts are rewarded instantly. Bring in users and earn every time they grow.</p>
+                                        </div>
+                                        
+                                        <div class="mlm-level-item">
+                                            <p><strong>🔹 Level 2 (Indirect Referrals): 2% PC</strong></p>
+                                            <p>Support your team, help them grow, and enjoy the benefits of strong leadership.</p>
+                                        </div>
+                                        
+                                        <div class="mlm-level-item">
+                                            <p><strong>🔹 Level 3: 1% PC</strong></p>
+                                            <p>Your influence expands across your network — even at the third level.</p>
+                                        </div>
+                                        
+                                        <p>These rewards are designed to motivate leaders who want long-term, stable income while helping others succeed.</p>
+                                        
+                                        <p>At TSG, your leadership is recognized. Your contributions matter. And your growth is continuous.</p>
+                                        
+                                        <p>If you're ready to guide, inspire, and build your own success chain —</p>
+                                        
+                                        <p><strong>Step forward. Lead with TSG.</strong></p>
+                                    </div>
+                                </div>
+                            </div>
 
-                        <!-- MLM Diagram Image -->
-                        <div class="mlm-diagram-container" data-aos="fade-up" data-aos-delay="400">
-                            <div class="mlm-image-wrapper">
-                                <img src="{{ asset('images/referral/MLM.png') }}" 
-                                     alt="NEXA Multi-Level Marketing System - Level 1 (3% Profit Share), Level 2 (2% Profit Share), Level 3 (1% Profit Share)" 
-                                     class="mlm-diagram-image">
+                            <!-- MLM Diagram Image - Right Side -->
+                            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="400">
+                                <div class="mlm-diagram-container">
+                                    <div class="mlm-image-wrapper">
+                                        <img src="{{ asset('images/referral/MLM.png') }}" 
+                                             alt="NEXA Multi-Level Marketing System - Level 1 (3% Profit Share), Level 2 (2% Profit Share), Level 3 (1% Profit Share)" 
+                                             class="mlm-diagram-image">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1416,7 +1547,7 @@
 
             <!-- Referral Calculator -->
             <div class="row mt-5">
-                <div class="col-lg-10 mx-auto">
+                <div class="col-12">
                     <div class="card shadow p-4" data-aos="fade-up" data-aos-delay="500" style="border-radius: 12px; background: #111; color: #fff;">
                         <h2 class="text-center mb-4" style="color: #fff;">PS Commission Calculator</h2>
 
@@ -1462,45 +1593,19 @@
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up" style="color: #fff;">How Our Bots Work</h2>
-                    <p class="lead" data-aos="fade-up" data-aos-delay="200" style="color: rgba(255, 255, 255, 0.8);">Download our detailed guides to understand how NEXA and PEX trading bots work</p>
+                    <h2 class="display-4 fw-bold mb-3" data-aos="fade-up" style="color: #fff;">Meet Our Bots</h2>
+                    <p class="lead" data-aos="fade-up" data-aos-delay="200" style="color: rgba(255, 255, 255, 0.8);">Meet Our Bots and understand how NEXA and PEX trading bots work</p>
                 </div>
             </div>
             <div class="row g-4">
-                <div class="col-lg-4 col-md-6">
-                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="100">
-                        <div class="pdf-icon">
-                            <i class="bi bi-file-earmark-pdf-fill"></i>
-                        </div>
-                        <h4 class="pdf-title">NEXA Bot Guide</h4>
-                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Learn how NEXA trading bot works and maximizes your trading profits</p>
-                        <a href="{{ asset('images/pex_images/NEXA-1.pdf') }}" target="_blank" class="pdf-download-btn">
-                            <i class="bi bi-download me-2"></i>Download PDF
-                        </a>
+                <div class="col-12">
+                    <div class="bot-image-card" data-aos="fade-up" data-aos-delay="100">
+                        <img src="{{ asset('images/pex_images/meet-nexa.jpeg') }}" alt="NEXA Trading Bot" class="img-fluid bot-image">
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6">
-                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="200">
-                        <div class="pdf-icon">
-                            <i class="bi bi-file-earmark-pdf-fill"></i>
-                        </div>
-                        <h4 class="pdf-title">PEX Bot Guide</h4>
-                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Discover the features and capabilities of PEX trading bot</p>
-                        <a href="{{ asset('images/pex_images/Pex-1.pdf') }}" target="_blank" class="pdf-download-btn">
-                            <i class="bi bi-download me-2"></i>Download PDF
-                        </a>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6">
-                    <div class="pdf-card" data-aos="fade-up" data-aos-delay="300">
-                        <div class="pdf-icon">
-                            <i class="bi bi-file-earmark-pdf-fill"></i>
-                        </div>
-                        <h4 class="pdf-title">PEX vs NEXA Comparison</h4>
-                        <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">Compare PEX and NEXA bots to choose the best option for you</p>
-                        <a href="{{ asset('images/pex_images/PEXvsNEXA-1.pdf') }}" target="_blank" class="pdf-download-btn">
-                            <i class="bi bi-download me-2"></i>Download PDF
-                        </a>
+                <div class="col-12">
+                    <div class="bot-image-card" data-aos="fade-up" data-aos-delay="200">
+                        <img src="{{ asset('images/pex_images/meet-pex.jpeg') }}" alt="PEX Trading Bot" class="img-fluid bot-image">
                     </div>
                 </div>
             </div>
