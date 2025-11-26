@@ -568,17 +568,24 @@
 
         /* MLM Diagram Image */
         .mlm-diagram-container {
-            margin: 0;
-            text-align: center;
+            margin: 0 !important;
+            text-align: right;
             position: relative;
             width: 100%;
             height: 100%;
             min-height: 100%;
             display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 0;
-            padding-bottom: 0;
+            align-items: stretch;
+            justify-content: flex-end;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            background: transparent !important;
+        }
+
+        .mlm-diagram-container:hover {
+            background: transparent !important;
+            transform: none !important;
         }
 
         .mlm-text-content {
@@ -591,6 +598,20 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
+        }
+
+        .mlm-share-button {
+            order: 999;
+            margin-top: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .mlm-text-title {
+            order: 1;
+        }
+
+        .mlm-text-description {
+            order: 2;
         }
 
         .mlm-text-title {
@@ -643,35 +664,35 @@
 
         .mlm-image-wrapper {
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 0;
-            background: transparent;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            justify-content: flex-end;
+            align-items: stretch;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+            border-radius: 0;
+            border: none !important;
             position: relative;
             overflow: hidden;
             height: 100%;
             width: 100%;
             max-width: 100%;
-            transition: all 0.3s ease;
         }
 
         .mlm-image-wrapper:hover {
-            transform: translateY(-5px);
-            border-color: var(--neon-blue);
-            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+            background: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         .mlm-diagram-image {
-            max-width: 105%;
-            width: 105%;
-            height: auto;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
             display: block;
-            margin: 0;
-            object-fit: contain;
-            object-position: top center;
+            margin: 0 !important;
+            padding: 0 !important;
+            object-fit: cover;
+            object-position: top right;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             image-rendering: high-quality;
@@ -680,18 +701,64 @@
             transform: translateZ(0);
             position: relative;
             z-index: 1;
+            background: transparent !important;
+        }
+
+        .mlm-diagram-image:hover {
+            transform: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+        }
+
+        .mlm-image-wrapper:hover .mlm-diagram-image {
+            transform: none !important;
+            box-shadow: none !important;
+            filter: none !important;
         }
 
         .referral-card .row {
             min-height: auto;
             margin: 0;
+            align-items: stretch;
         }
 
         .referral-card .row > div[class*="col-"] {
             display: flex;
             flex-direction: column;
-            height: auto;
+            height: 100%;
             padding: 0;
+        }
+
+        .referral-card .row > div[class*="col-"]:last-child {
+            padding: 0 !important;
+            margin: -0.75rem -2rem -0.75rem 0 !important;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .referral-card .row > div[class*="col-"]:last-child .mlm-diagram-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            position: relative;
+            height: calc(100% + 1.5rem);
+            width: calc(100% + 2rem);
+            top: -0.75rem;
+            right: -2rem;
+        }
+
+        .referral-card .row > div[class*="col-"]:last-child .mlm-image-wrapper {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100%;
+            width: 100%;
+        }
+
+        .referral-card .row > div[class*="col-"]:last-child .mlm-diagram-image {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
         }
 
         @media (max-width: 992px) {
@@ -1499,6 +1566,13 @@
                             <!-- MLM Text Content - Left Side -->
                             <div class="col-lg-6" data-aos="fade-up" data-aos-delay="350">
                                 <div class="mlm-text-content">
+                                    @auth
+                                    <div class="mlm-share-button">
+                                        <a href="{{ route('customer.referrals.index') }}" class="btn btn-primary btn-lg w-100" style="background: var(--primary-gradient); border: none; padding: 12px 24px; border-radius: 25px; font-weight: 600;">
+                                            <i class="bi bi-share me-2"></i>Share Referral
+                                        </a>
+                                    </div>
+                                    @endauth
                                     <h3 class="mlm-text-title">Grow your network. Grow your income</h3>
                                     <div class="mlm-text-description">
                                         <p>As you guide others, you unlock 3 Levels of Commission Rewards:</p>
