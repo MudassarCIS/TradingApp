@@ -40,14 +40,9 @@ class AgentController extends Controller
                 
                 return $bot;
             })
-            ->sortBy(function($bot) {
-                // Sort: Paid first, then Unpaid, then Unknown
-                $priority = [
-                    'Paid' => 1,
-                    'Unpaid' => 2,
-                    'Unknown' => 3
-                ];
-                return $priority[$bot->invoice_status] ?? 3;
+            ->sortByDesc(function($bot) {
+                // Sort by created_at DESC (newest first)
+                return $bot->created_at;
             })
             ->values();
         
