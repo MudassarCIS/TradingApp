@@ -113,6 +113,42 @@
                             </div>
                         </div>
 
+                        <!-- Timezone Section -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-white">
+                                        <h5 class="mb-0"><i class="bi bi-clock"></i> Timezone Settings</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="timezone" class="form-label">System Timezone</label>
+                                            <select class="form-select @error('timezone') is-invalid @enderror" 
+                                                    id="timezone" 
+                                                    name="timezone" 
+                                                    required>
+                                                <option value="">Select Timezone</option>
+                                                <option value="Asia/Dubai" {{ old('timezone', $setting->timezone ?? 'Asia/Dubai') == 'Asia/Dubai' ? 'selected' : '' }}>Asia/Dubai (UAE)</option>
+                                                <option value="UTC" {{ old('timezone', $setting->timezone ?? '') == 'UTC' ? 'selected' : '' }}>UTC</option>
+                                                <option value="America/New_York" {{ old('timezone', $setting->timezone ?? '') == 'America/New_York' ? 'selected' : '' }}>America/New_York (EST)</option>
+                                                <option value="America/Los_Angeles" {{ old('timezone', $setting->timezone ?? '') == 'America/Los_Angeles' ? 'selected' : '' }}>America/Los_Angeles (PST)</option>
+                                                <option value="Europe/London" {{ old('timezone', $setting->timezone ?? '') == 'Europe/London' ? 'selected' : '' }}>Europe/London (GMT)</option>
+                                                <option value="Europe/Paris" {{ old('timezone', $setting->timezone ?? '') == 'Europe/Paris' ? 'selected' : '' }}>Europe/Paris (CET)</option>
+                                                <option value="Asia/Tokyo" {{ old('timezone', $setting->timezone ?? '') == 'Asia/Tokyo' ? 'selected' : '' }}>Asia/Tokyo (JST)</option>
+                                                <option value="Asia/Shanghai" {{ old('timezone', $setting->timezone ?? '') == 'Asia/Shanghai' ? 'selected' : '' }}>Asia/Shanghai (CST)</option>
+                                                <option value="Asia/Kolkata" {{ old('timezone', $setting->timezone ?? '') == 'Asia/Kolkata' ? 'selected' : '' }}>Asia/Kolkata (IST)</option>
+                                                <option value="Australia/Sydney" {{ old('timezone', $setting->timezone ?? '') == 'Australia/Sydney' ? 'selected' : '' }}>Australia/Sydney (AEST)</option>
+                                            </select>
+                                            @error('timezone')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="form-text text-muted">All timestamps will be saved according to this timezone. Default: Asia/Dubai (UAE)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Preview Section -->
                         <div class="row">
                             <div class="col-12 mb-4">

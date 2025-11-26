@@ -246,7 +246,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
+                            <a class="nav-link {{ request()->routeIs('customer.bots.*') ? 'active' : '' }}" href="{{ route('customer.bots.index') }}">
                                 <i class="bi bi-robot"></i>
                                 Bots
                             </a>
@@ -383,7 +383,7 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.agents.*') ? 'active' : '' }}" href="{{ route('customer.agents.index') }}">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.bots.*') ? 'active' : '' }}" href="{{ route('customer.bots.index') }}">
                         <i class="bi bi-robot"></i>
                         Bots
                     </a>

@@ -36,7 +36,7 @@ class DepositController extends Controller
         }
         
         if ($request->ajax()) {
-            $query = Deposit::with(['user', 'approver', 'invoice']);
+            $query = Deposit::with(['user', 'approver', 'invoice.plan']);
 
             // Get total records count (before any filters)
             $totalRecords = Deposit::count();
@@ -147,6 +147,13 @@ class DepositController extends Controller
                     if (!$invoiceType && $deposit->invoice) {
                         $invoiceType = $deposit->invoice->invoice_type;
                     }
+                    
+                    // Get package name from invoice plan
+                    $packageName = null;
+                    if ($deposit->invoice && $deposit->invoice->plan) {
+                        $packageName = $deposit->invoice->plan->name;
+                    }
+                    
                     if ($invoiceType) {
                         $badgeClass = match($invoiceType) {
                             'PEX' => 'bg-primary',
@@ -155,7 +162,11 @@ class DepositController extends Controller
                             'profit invoice' => 'bg-warning',
                             default => 'bg-secondary'
                         };
-                        return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($invoiceType) . '</span>';
+                        $displayText = htmlspecialchars($invoiceType);
+                        if ($packageName) {
+                            $displayText .= ' (' . htmlspecialchars($packageName) . ')';
+                        }
+                        return '<span class="badge ' . $badgeClass . '">' . $displayText . '</span>';
                     }
                     return '<span class="text-muted">-</span>';
                 })
@@ -219,8 +230,9 @@ class DepositController extends Controller
     }
 
     /**
-     * Distribute bonus for PEX and NEXA deposits
-     * Gets parent's active_plan_id and uses parent's plan direct_bonus
+     * Distribute bonus for NEXA deposits only
+     * Gets parent's active package (active_plan_id) and uses parent's plan direct_bonus
+     * Gives bonus to first level parent only
      */
     private function distributeRentBotBonus($deposit): void
     {
@@ -233,7 +245,7 @@ class DepositController extends Controller
                 ->first();
             
             if (!$referral) {
-                \Log::info('No parent found for PEX/NEXA bonus', [
+                \Log::info('No parent found for NEXA bonus', [
                     'user_id' => $user->id,
                     'deposit_id' => $deposit->id
                 ]);
@@ -336,7 +348,7 @@ class DepositController extends Controller
                 }
                 
                 // Log bonus distribution for verification
-                \Log::info('PEX/NEXA bonus distributed', [
+                \Log::info('NEXA bonus distributed to parent', [
                     'parent_id' => $parent->id,
                     'parent_plan_id' => $parentPlan->id,
                     'parent_plan_name' => $parentPlan->name,
@@ -411,13 +423,13 @@ class DepositController extends Controller
             }
             
             // Distribute referral bonuses based on invoice type
-            // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
+            // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
             // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
                 $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                 
-                if (in_array($invoiceType, ['PEX', 'NEXA'])) {
-                    // Special handling for PEX and NEXA - get parent's plan direct_bonus
+                if ($invoiceType === 'NEXA') {
+                    // Special handling for NEXA only - get parent's active package and direct_bonus
                     $this->distributeRentBotBonus($deposit);
                 } else {
                     // Use existing referral service for other types
@@ -617,7 +629,7 @@ class DepositController extends Controller
                     }
                     
                     // Distribute referral bonuses based on invoice type
-                    // For "PEX" and "NEXA": Get parent's plan direct_bonus and give to first level parent only
+                    // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
                     // For "profit invoice": 3-level bonuses using referral_level percentages
                     try {
                         // Ensure user relationship is loaded
@@ -627,8 +639,8 @@ class DepositController extends Controller
                         
                         $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
                         
-                        if (in_array($invoiceType, ['PEX', 'NEXA'])) {
-                            // Special handling for PEX and NEXA - get parent's plan direct_bonus
+                        if ($invoiceType === 'NEXA') {
+                            // Special handling for NEXA only - get parent's active package and direct_bonus
                             $this->distributeRentBotBonus($deposit);
                         } else {
                             // Use existing referral service for other types

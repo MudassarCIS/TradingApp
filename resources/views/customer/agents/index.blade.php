@@ -186,7 +186,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>All Bot Plans</h2>
-    <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
+    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Create New BOT
     </a>
 </div>
@@ -421,13 +421,13 @@
                 </div>
                 
                 <div class="d-flex gap-2">
-                    <a href="{{ route('customer.agents.show', $agent) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('customer.bots.show', $agent) }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-eye"></i> View
                     </a>
-                    <a href="{{ route('customer.agents.edit', $agent) }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ route('customer.bots.edit', $agent) }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-pencil"></i> Edit
                     </a>
-                    <form method="POST" action="{{ route('customer.agents.destroy', $agent) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this agent?')">
+                    <form method="POST" action="{{ route('customer.bots.destroy', $agent) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this agent?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -450,7 +450,7 @@
     <i class="bi bi-robot display-1 text-muted"></i>
     <h4 class="text-muted mt-3">No AI Agents</h4>
     <p class="text-muted">Create your first AI trading agent to start automated trading.</p>
-    <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
+    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
         <i class="bi bi-robot"></i> Create Your First Agent
     </a>
 </div>

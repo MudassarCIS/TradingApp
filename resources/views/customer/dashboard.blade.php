@@ -282,7 +282,7 @@
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6">
-                        <a href="{{ route('customer.agents.create') }}" class="btn btn-warning w-100 quick-action-btn">
+                        <a href="{{ route('customer.bots.create') }}" class="btn btn-warning w-100 quick-action-btn">
                             <i class="bi bi-robot"></i>
                             <span>Create AI Bot</span>
                             <small class="badge bg-light text-dark mt-1">{{ $activeAgents }} Active</small>

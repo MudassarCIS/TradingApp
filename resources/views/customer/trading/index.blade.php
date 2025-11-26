@@ -102,7 +102,7 @@
                     <i class="bi bi-graph-up display-1 text-muted"></i>
                     <h4 class="text-muted mt-3">No trades yet</h4>
                     <p class="text-muted">Start by creating an AI agent to begin trading.</p>
-                    <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
+                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
                         <i class="bi bi-robot"></i> Create AI Agent
                     </a>
                 </div>
@@ -134,7 +134,7 @@
                 <div class="text-center py-3">
                     <i class="bi bi-robot display-4 text-muted"></i>
                     <p class="text-muted mt-2">No active agents</p>
-                    <a href="{{ route('customer.agents.create') }}" class="btn btn-primary btn-sm">
+                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary btn-sm">
                         Create Agent
                     </a>
                 </div>
@@ -148,7 +148,7 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ route('customer.agents.create') }}" class="btn btn-primary">
+                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
                         <i class="bi bi-robot"></i> Create AI Agent
                     </a>
                     <a href="{{ route('customer.market.index') }}" class="btn btn-info">

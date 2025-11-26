@@ -89,12 +89,12 @@ Route::prefix('api')->group(function () {
 
     // Bot packages and plans API
     Route::get('/rent-bot-packages', function() {
-        $packages = \App\Models\RentBotPackage::where('status', 1)->orWhere('status', 'active')->get();
+        $packages = \App\Models\RentBotPackage::where('status', 1)->orWhere('status', 'active')->orderBy('created_at', 'desc')->get();
         return response()->json(['success' => true, 'data' => $packages]);
     });
 
     Route::get('/plans', function() {
-        $plans = \App\Models\Plan::active()->ordered()->get();
+        $plans = \App\Models\Plan::active()->orderBy('created_at', 'desc')->get();
         return response()->json(['success' => true, 'data' => $plans]);
     });
 });
@@ -158,14 +158,14 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/wallet/purchases', [WalletController::class, 'purchases'])->name('wallet.purchases');
     Route::get('/invoices/{invoiceId}/details', [WalletController::class, 'getInvoiceDetails'])->name('invoices.details');
     
-    // AI Agents
-    Route::get('/agents', [AgentController::class, 'index'])->name('agents.index');
-    Route::get('/agents/create', [AgentController::class, 'create'])->name('agents.create');
-    Route::post('/agents', [AgentController::class, 'store'])->name('agents.store');
-    Route::get('/agents/{agent}', [AgentController::class, 'show'])->name('agents.show');
-    Route::get('/agents/{agent}/edit', [AgentController::class, 'edit'])->name('agents.edit');
-    Route::put('/agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
-    Route::delete('/agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+    // AI Bots
+    Route::get('/bots', [AgentController::class, 'index'])->name('bots.index');
+    Route::get('/bots/create', [AgentController::class, 'create'])->name('bots.create');
+    Route::post('/bots', [AgentController::class, 'store'])->name('bots.store');
+    Route::get('/bots/{agent}', [AgentController::class, 'show'])->name('bots.show');
+    Route::get('/bots/{agent}/edit', [AgentController::class, 'edit'])->name('bots.edit');
+    Route::put('/bots/{agent}', [AgentController::class, 'update'])->name('bots.update');
+    Route::delete('/bots/{agent}', [AgentController::class, 'destroy'])->name('bots.destroy');
     
     // Package Details
     Route::get('/packages/{bot}', [AgentController::class, 'showPackage'])->name('packages.show');

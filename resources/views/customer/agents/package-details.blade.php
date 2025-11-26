@@ -146,7 +146,7 @@
             
             <div class="card-footer">
                 <div class="d-flex gap-2">
-                    <a href="{{ route('customer.agents.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <a href="{{ route('customer.bots.index') }}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-arrow-left me-1"></i> Back to Agents
                     </a>
                     <a href="{{ route('customer.trading.index') }}" class="btn btn-primary btn-sm">

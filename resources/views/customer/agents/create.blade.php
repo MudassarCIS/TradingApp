@@ -72,7 +72,7 @@
 
                 <!-- Back Button -->
                 <div class="text-center mt-4">
-                    <a href="{{ route('customer.agents.index') }}" class="btn btn-secondary">
+                    <a href="{{ route('customer.bots.index') }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Agents
                     </a>
                 </div>
@@ -275,7 +275,7 @@ $(document).ready(function() {
         $('#confirm-plan-selection').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
         
         $.ajax({
-            url: '{{ route("customer.agents.store") }}',
+            url: '{{ route("customer.bots.store") }}',
             method: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
@@ -288,7 +288,7 @@ $(document).ready(function() {
                     // Show success message and redirect to agents page
                     showSuccessMessage('Bot plan created successfully! You will be redirected to your agents page.');
                     setTimeout(function() {
-                        window.location.href = '{{ route("customer.agents.index") }}';
+                        window.location.href = '{{ route("customer.bots.index") }}';
                     }, 2000);
                 } else {
                     showErrorMessage('Error: ' + (response.message || 'Failed to save bot selection'));

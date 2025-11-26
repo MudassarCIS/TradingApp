@@ -10,6 +10,7 @@ class Setting extends Model
     protected $fillable = [
         'company_name',
         'logo_path',
+        'timezone',
     ];
 
     /**
@@ -37,6 +38,7 @@ class Setting extends Model
         return static::firstOrCreate([], [
             'company_name' => 'TSG Trades - THE SMART GROWTH',
             'logo_path' => null,
+            'timezone' => 'Asia/Dubai',
         ]);
     }
 }
