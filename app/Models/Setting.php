@@ -11,6 +11,7 @@ class Setting extends Model
         'company_name',
         'logo_path',
         'timezone',
+        'withdrawal_limit_per_month',
     ];
 
     /**
@@ -39,6 +40,7 @@ class Setting extends Model
             'company_name' => 'TSG Trades - THE SMART GROWTH',
             'logo_path' => null,
             'timezone' => 'Asia/Dubai',
+            'withdrawal_limit_per_month' => 5,
         ]);
     }
 }

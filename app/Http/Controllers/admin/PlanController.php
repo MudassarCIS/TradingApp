@@ -15,7 +15,7 @@ class PlanController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $plans = Plan::select('*');
+            $plans = Plan::select('*')->orderBy('created_at', 'desc');
             return DataTables::of($plans)
                 ->addIndexColumn()
                 ->addColumn('action', function ($plan) {

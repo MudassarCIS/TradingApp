@@ -174,6 +174,7 @@ class ReferralController extends Controller
     
     /**
      * Get 3 levels of parents with their bonus wallet amounts
+     * Bonuses are from current user's investment payments (buy plan) or profit invoice payments
      */
     protected function getParentsWithBonuses(User $user): array
     {
@@ -186,9 +187,11 @@ class ReferralController extends Controller
         // Get first parent
         $firstParent = $this->getParent($user->id);
         if ($firstParent) {
+            // Get bonuses caused by this user's payments (investment or profit)
             $firstParentBonus = CustomersWallet::where('user_id', $firstParent->id)
                 ->where('payment_type', 'bonus')
                 ->where('transaction_type', 'debit')
+                ->where('caused_by_user_id', $user->id)
                 ->sum('amount');
             
             $parents['first'] = [
@@ -199,9 +202,11 @@ class ReferralController extends Controller
             // Get second parent
             $secondParent = $this->getParent($firstParent->id);
             if ($secondParent) {
+                // Get bonuses caused by this user's payments
                 $secondParentBonus = CustomersWallet::where('user_id', $secondParent->id)
                     ->where('payment_type', 'bonus')
                     ->where('transaction_type', 'debit')
+                    ->where('caused_by_user_id', $user->id)
                     ->sum('amount');
                 
                 $parents['second'] = [
@@ -212,9 +217,11 @@ class ReferralController extends Controller
                 // Get third parent
                 $thirdParent = $this->getParent($secondParent->id);
                 if ($thirdParent) {
+                    // Get bonuses caused by this user's payments
                     $thirdParentBonus = CustomersWallet::where('user_id', $thirdParent->id)
                         ->where('payment_type', 'bonus')
                         ->where('transaction_type', 'debit')
+                        ->where('caused_by_user_id', $user->id)
                         ->sum('amount');
                     
                     $parents['third'] = [

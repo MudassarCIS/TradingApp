@@ -257,7 +257,7 @@
         <div class="stats-card">
             <h6 class="text-muted mb-2">First Parent</h6>
             @if($parents['first'])
-                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['first']['user']->id }}</code></p>
+                <p class="mb-1"><strong>Referral ID:</strong> <code>{{ $parents['first']['user']->referral_code ?? 'N/A' }}</code></p>
                 <h4>${{ number_format($parents['first']['bonus_amount'], 2) }}</h4>
                 <p class="text-muted mb-0">Bonus Amount</p>
             @else
@@ -272,7 +272,7 @@
         <div class="stats-card">
             <h6 class="text-muted mb-2">Second Parent</h6>
             @if($parents['second'])
-                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['second']['user']->id }}</code></p>
+                <p class="mb-1"><strong>Referral ID:</strong> <code>{{ $parents['second']['user']->referral_code ?? 'N/A' }}</code></p>
                 <h4>${{ number_format($parents['second']['bonus_amount'], 2) }}</h4>
                 <p class="text-muted mb-0">Bonus Amount</p>
             @else
@@ -287,7 +287,7 @@
         <div class="stats-card">
             <h6 class="text-muted mb-2">Third Parent</h6>
             @if($parents['third'])
-                <p class="mb-1"><strong>ID:</strong> <code>{{ $parents['third']['user']->id }}</code></p>
+                <p class="mb-1"><strong>Referral ID:</strong> <code>{{ $parents['third']['user']->referral_code ?? 'N/A' }}</code></p>
                 <h4>${{ number_format($parents['third']['bonus_amount'], 2) }}</h4>
                 <p class="text-muted mb-0">Bonus Amount</p>
             @else

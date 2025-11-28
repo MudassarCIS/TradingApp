@@ -1674,12 +1674,12 @@
             <div class="row g-4">
                 <div class="col-12">
                     <div class="bot-image-card" data-aos="fade-up" data-aos-delay="100">
-                        <img src="{{ asset('images/pex_images/meet-nexa.jpeg') }}" alt="NEXA Trading Bot" class="img-fluid bot-image">
+                        <img src="{{ asset('images/pex_images/meet-nexa.jpg') }}" alt="NEXA Trading Bot" class="img-fluid bot-image">
                     </div>
                 </div>
                 <div class="col-12">
                     <div class="bot-image-card" data-aos="fade-up" data-aos-delay="200">
-                        <img src="{{ asset('images/pex_images/meet-pex.jpeg') }}" alt="PEX Trading Bot" class="img-fluid bot-image">
+                        <img src="{{ asset('images/pex_images/meet-pex.jpg') }}" alt="PEX Trading Bot" class="img-fluid bot-image">
                     </div>
                 </div>
             </div>

@@ -32,6 +32,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{route('admin.withdrawals.index')}}" class="nav-link @if(request()->routeIs('admin.withdrawals.*')) active @endif">
+                        <i class="nav-icon bi bi-dash-circle"></i>
+                        <p>{{ __('All Withdrawals') }}</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{route('admin.invoices.index')}}" class="nav-link @if(request()->routeIs('admin.invoices.*')) active @endif">
                         <i class="nav-icon bi bi-file-earmark-text"></i>
                         <p>{{ __('Manage Invoices') }}</p>

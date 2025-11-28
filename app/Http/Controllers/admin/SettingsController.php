@@ -26,6 +26,8 @@ class SettingsController extends Controller
         $request->validate([
             'company_name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'timezone' => 'required|string|max:255',
+            'withdrawal_limit_per_month' => 'required|integer|min:1|max:100',
         ]);
 
         $setting = Setting::get();
@@ -119,9 +121,15 @@ class SettingsController extends Controller
             }
         }
 
-        // Update company name
+        // Update company name, timezone, and withdrawal limit
         $setting->company_name = $request->company_name;
+        $setting->timezone = $request->timezone;
+        $setting->withdrawal_limit_per_month = $request->withdrawal_limit_per_month;
         $setting->save();
+        
+        // Update application timezone
+        config(['app.timezone' => $request->timezone]);
+        date_default_timezone_set($request->timezone);
 
         return redirect()->route('admin.settings.index')
             ->with('success', 'Settings updated successfully.');

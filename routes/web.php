@@ -133,6 +133,12 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::post('/deposits/{id}/update', [App\Http\Controllers\Admin\DepositController::class, 'update'])->name('deposits.update.post');
     Route::get('/deposits/{id}/show', [App\Http\Controllers\Admin\DepositController::class, 'show'])->name('deposits.show');
     Route::resource('invoices', App\Http\Controllers\Admin\InvoiceController::class)->only(['index', 'show']);
+    Route::get('/withdrawals', [App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('withdrawals.index');
+    Route::get('/withdrawals/data', [App\Http\Controllers\Admin\WithdrawalController::class, 'getWithdrawalsData'])->name('withdrawals.data');
+    Route::post('/withdrawals/{id}/approve', [App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])->name('withdrawals.approve');
+    Route::post('/withdrawals/{id}/complete', [App\Http\Controllers\Admin\WithdrawalController::class, 'complete'])->name('withdrawals.complete');
+    Route::post('/withdrawals/{id}/reject', [App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])->name('withdrawals.reject');
+    Route::get('/withdrawals/{id}/show', [App\Http\Controllers\Admin\WithdrawalController::class, 'show'])->name('withdrawals.show');
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
 });
@@ -154,6 +160,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::post('/wallet/deposit', [WalletController::class, 'submitDeposit'])->name('wallet.deposit.submit');
     Route::get('/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
     Route::post('/wallet/withdraw', [WalletController::class, 'processWithdrawal'])->name('wallet.withdraw.process');
+    Route::get('/wallet/withdrawals/data', [WalletController::class, 'getWithdrawalsData'])->name('wallet.withdrawals.data');
     Route::get('/wallet/history', [WalletController::class, 'history'])->name('wallet.history');
     Route::get('/wallet/purchases', [WalletController::class, 'purchases'])->name('wallet.purchases');
     Route::get('/invoices/{invoiceId}/details', [WalletController::class, 'getInvoiceDetails'])->name('invoices.details');

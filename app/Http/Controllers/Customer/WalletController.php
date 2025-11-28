@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class WalletController extends Controller
 {
@@ -182,7 +183,7 @@ class WalletController extends Controller
                     ->update(['status' => 'payment_pending']);
             }
             
-            return redirect()->route('customer.agents.index')
+            return redirect()->route('customer.bots.index')
                 ->with('success', 'Deposit submitted successfully! Your deposit ID is: ' . $deposit->deposit_id . '. We will review it within 24 hours.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->route('customer.wallet.deposit')
@@ -244,7 +245,7 @@ class WalletController extends Controller
     public function processWithdrawal(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:10',
+            'amount' => 'required|numeric|min:20',
             'address' => 'required|string',
             'transaction_password' => 'required|string',
         ]);
@@ -268,11 +269,41 @@ class WalletController extends Controller
             return back()->withErrors(['transaction_password' => 'Invalid transaction password']);
         }
 
+        // Check minimum withdrawal amount
+        if ($request->amount < 20) {
+            return back()->withErrors(['amount' => 'Minimum withdrawal is 20 USDT']);
+        }
+
         // Check if user has sufficient balance from customers_wallets
-        if ($request->amount > $availableBalance) {
-            return back()->withErrors(['amount' => 'Insufficient balance']);
+        $withdrawalFee = 2; // 2 USDT withdrawal fee
+        $totalRequired = $request->amount + $withdrawalFee;
+        
+        if ($totalRequired > $availableBalance) {
+            return back()->withErrors(['amount' => 'Insufficient balance. You need at least ' . number_format($totalRequired, 2) . ' USDT (including ' . $withdrawalFee . ' USDT fee)']);
         }
         
+        // Check withdrawal limit per month
+        $setting = \App\Models\Setting::get();
+        $withdrawalLimit = $setting->withdrawal_limit_per_month ?? 5;
+        
+        // Count withdrawals this month
+        $startOfMonth = now()->startOfMonth();
+        $withdrawalsThisMonth = Transaction::where('user_id', $user->id)
+            ->where('type', 'withdrawal')
+            ->where('created_at', '>=', $startOfMonth)
+            ->whereIn('status', ['pending', 'processing', 'completed'])
+            ->count();
+        
+        if ($withdrawalsThisMonth >= $withdrawalLimit) {
+            return back()->withErrors(['amount' => 'You have reached the monthly withdrawal limit of ' . $withdrawalLimit . ' withdrawals. Please wait until next month.']);
+        }
+        
+        // Check if user can make multiple withdrawals (if balance only allows one, prevent multiple)
+        $remainingBalance = $availableBalance - $totalRequired;
+        if ($remainingBalance < 20 && $withdrawalsThisMonth > 0) {
+            return back()->withErrors(['amount' => 'You can only make one withdrawal request. Your remaining balance after this withdrawal would be less than the minimum withdrawal amount.']);
+        }
+
         // Get wallet for backward compatibility
         $wallet = $user->getMainWallet('USDT');
 
@@ -284,17 +315,75 @@ class WalletController extends Controller
             'status' => 'pending',
             'currency' => 'USDT',
             'amount' => $request->amount,
-            'fee' => 5, // 5 USDT withdrawal fee
-            'net_amount' => $request->amount - 5,
+            'fee' => $withdrawalFee, // 2 USDT withdrawal fee
+            'net_amount' => $request->amount - $withdrawalFee,
             'to_address' => $request->address,
             'notes' => 'Withdrawal request',
         ]);
 
-        // Lock the balance
-        //$wallet->lockBalance($request->amount);
+        // Create entry in customers_wallets (credit - money going out)
+        CustomersWallet::create([
+            'user_id' => $user->id,
+            'amount' => $totalRequired, // Amount + fee
+            'currency' => 'USDT',
+            'payment_type' => 'withdraw',
+            'transaction_type' => 'credit',
+            'related_id' => $transaction->id,
+        ]);
 
-        return redirect()->route('customer.wallet.history')
-            ->with('success', 'Withdrawal request submitted successfully');
+        return redirect()->route('customer.wallet.withdraw')
+            ->with('success', 'Withdrawal request submitted successfully. Processing time: 2-3 Days.');
+    }
+    
+    /**
+     * Get withdrawals data for DataTable
+     */
+    public function getWithdrawalsData(Request $request)
+    {
+        $user = Auth::user();
+        
+        $query = Transaction::where('user_id', $user->id)
+            ->where('type', 'withdrawal')
+            ->select([
+                'id',
+                'transaction_id',
+                'amount',
+                'fee',
+                'net_amount',
+                'to_address',
+                'status',
+                'created_at',
+                'processed_at'
+            ]);
+        
+        return DataTables::of($query)
+            ->addColumn('amount', function ($transaction) {
+                return '$' . number_format($transaction->amount, 2) . ' USDT';
+            })
+            ->addColumn('fee', function ($transaction) {
+                return '$' . number_format($transaction->fee, 2) . ' USDT';
+            })
+            ->addColumn('net_amount', function ($transaction) {
+                return '$' . number_format($transaction->net_amount, 2) . ' USDT';
+            })
+            ->addColumn('to_address', function ($transaction) {
+                return '<code>' . substr($transaction->to_address, 0, 10) . '...' . substr($transaction->to_address, -10) . '</code>';
+            })
+            ->addColumn('status', function ($transaction) {
+                $badges = [
+                    'pending' => '<span class="badge bg-warning">Pending</span>',
+                    'processing' => '<span class="badge bg-info">Processing</span>',
+                    'completed' => '<span class="badge bg-success">Completed</span>',
+                    'failed' => '<span class="badge bg-danger">Failed</span>',
+                    'cancelled' => '<span class="badge bg-secondary">Cancelled</span>',
+                ];
+                return $badges[$transaction->status] ?? '<span class="badge bg-secondary">' . ucfirst($transaction->status) . '</span>';
+            })
+            ->addColumn('created_at', function ($transaction) {
+                return $transaction->created_at->format('M d, Y H:i');
+            })
+            ->rawColumns(['to_address', 'status'])
+            ->make(true);
     }
 
     public function history(Request $request)

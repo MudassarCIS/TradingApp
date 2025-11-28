@@ -88,7 +88,7 @@ class AgentController extends Controller
         // Deduct from wallet
         $wallet->decrement('balance', $request->initial_balance);
         
-        return redirect()->route('customer.agents.index')
+        return redirect()->route('customer.bots.index')
             ->with('success', 'AI Agent created successfully!');
     }
 
@@ -185,7 +185,7 @@ class AgentController extends Controller
         
         $agent->update($request->only(['name', 'strategy', 'risk_level']));
         
-        return redirect()->route('customer.agents.index')
+        return redirect()->route('customer.bots.index')
             ->with('success', 'Agent updated successfully!');
     }
     
@@ -200,7 +200,7 @@ class AgentController extends Controller
         
         $agent->delete();
         
-        return redirect()->route('customer.agents.index')
+        return redirect()->route('customer.bots.index')
             ->with('success', 'Agent deleted successfully!');
     }
     

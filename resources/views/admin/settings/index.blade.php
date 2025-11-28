@@ -147,6 +147,36 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Withdrawal Limit Section -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0"><i class="bi bi-currency-exchange"></i> Withdrawal Settings</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="withdrawal_limit_per_month" class="form-label">Withdrawal Limit Per Month</label>
+                                            <select class="form-select @error('withdrawal_limit_per_month') is-invalid @enderror" 
+                                                    id="withdrawal_limit_per_month" 
+                                                    name="withdrawal_limit_per_month" 
+                                                    required>
+                                                <option value="1" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 1 ? 'selected' : '' }}>1 Withdrawal</option>
+                                                <option value="2" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 2 ? 'selected' : '' }}>2 Withdrawals</option>
+                                                <option value="5" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 5 ? 'selected' : '' }}>5 Withdrawals</option>
+                                                <option value="10" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 10 ? 'selected' : '' }}>10 Withdrawals</option>
+                                                <option value="20" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 20 ? 'selected' : '' }}>20 Withdrawals</option>
+                                                <option value="50" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 50 ? 'selected' : '' }}>50 Withdrawals</option>
+                                                <option value="100" {{ old('withdrawal_limit_per_month', $setting->withdrawal_limit_per_month ?? 5) == 100 ? 'selected' : '' }}>Unlimited (100)</option>
+                                            </select>
+                                            @error('withdrawal_limit_per_month')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="form-text text-muted">Maximum number of withdrawals a user can make per month</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Preview Section -->

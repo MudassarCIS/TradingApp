@@ -170,14 +170,18 @@ class ReferralService
             
             // Route to appropriate bonus distribution method based on invoice type
             // "NEXA" and "package buy" are treated as package buy (direct_bonus to level 1 only)
+            // "NEXA Profit" uses 3-level bonuses based on parent's active plan referral levels
             // "PEX" deposits do NOT trigger any bonus distribution
             // "profit invoice" uses 3-level bonuses
             if (in_array($invoiceType, ['NEXA', 'package buy'])) {
                 // Type 1: Package buy (NEXA or package buy) - give direct_bonus to first level parent only
                 // Note: PEX is excluded - no bonus for PEX deposits
                 $this->distributePackageBuyBonus($investor, $deposit);
+            } elseif ($invoiceType === 'NEXA Profit') {
+                // Type 2: NEXA Profit - give 3-level bonuses using parent's active plan referral_level percentages
+                $this->distributeNexaProfitBonus($investor, $deposit);
             } elseif ($invoiceType === 'profit invoice') {
-                // Type 2: Profit invoice - give 3-level bonuses using referral_level percentages
+                // Type 3: Profit invoice - give 3-level bonuses using referral_level percentages
                 $this->distributeProfitInvoiceBonus($investor, $deposit);
             } elseif ($invoiceType === 'PEX') {
                 // PEX deposits - explicitly skip bonus distribution
@@ -266,6 +270,7 @@ class ReferralService
                             'payment_type' => 'bonus',
                             'transaction_type' => 'debit',
                             'related_id' => $deposit->id,
+                            'caused_by_user_id' => $investor->id, // User who invested/bought plan
                         ]);
 
                         // Update parent's wallet summary
@@ -340,6 +345,7 @@ class ReferralService
                                         'payment_type' => 'bonus',
                                         'transaction_type' => 'debit',
                                         'related_id' => $deposit->id,
+                                        'caused_by_user_id' => $investor->id, // User who got profit
                                     ]);
 
                                     // Update parent's wallet summary
@@ -376,6 +382,136 @@ class ReferralService
             }
         } catch (\Exception $e) {
             \Log::error('Error in distributeProfitInvoiceBonus (parent loop): ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Distribute NEXA Profit bonus - gives 3-level bonuses using parent's active plan referral_level percentages
+     * Used when invoice_type is "NEXA Profit"
+     */
+    public function distributeNexaProfitBonus(User $investor, $deposit): void
+    {
+        try {
+            // Check if bonuses have already been distributed for this deposit to prevent duplicates
+            if ($deposit->id) {
+                $existingBonus = CustomersWallet::where('related_id', $deposit->id)
+                    ->where('payment_type', 'bonus')
+                    ->where('caused_by_user_id', $investor->id)
+                    ->first();
+                if ($existingBonus) {
+                    // Bonuses already distributed for this deposit
+                    \Log::info('NEXA Profit bonuses already distributed for this deposit', [
+                        'deposit_id' => $deposit->id,
+                        'user_id' => $investor->id
+                    ]);
+                    return;
+                }
+            }
+            
+            $currency = $deposit->currency ?? 'USDT';
+            $amount = (float) $deposit->amount;
+            $amountInUSDT = $this->convertToUSDT($currency, $amount);
+            
+            \Log::info('Starting NEXA Profit bonus distribution', [
+                'deposit_id' => $deposit->id,
+                'investor_id' => $investor->id,
+                'amount' => $amount,
+                'amount_in_usdt' => $amountInUSDT
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in distributeNexaProfitBonus (initial setup): ' . $e->getMessage(), [
+                'deposit_id' => $deposit->id ?? null,
+                'user_id' => $investor->id
+            ]);
+            throw $e;
+        }
+
+        try {
+            $level = 1;
+            $parent = $this->getParent($investor->id);
+
+            while ($level <= 3 && $parent) {
+                try {
+                    // Check if parent has an active plan with paid invoice
+                    $parentActivePlan = $this->getParentActivePlan($parent);
+                    
+                    if ($parentActivePlan) {
+                        $percentField = 'referral_level_' . $level;
+                        $percent = (float) ($parentActivePlan->$percentField ?? 0);
+
+                        if ($percent > 0) {
+                            $bonusUSDT = round($amountInUSDT * ($percent / 100), 8);
+
+                            if ($bonusUSDT > 0) {
+                                DB::transaction(function () use ($deposit, $investor, $parent, $level, $bonusUSDT, $percent) {
+                                    // Insert into customers_wallets with deposit id as related_id
+                                    $walletEntry = CustomersWallet::create([
+                                        'user_id' => $parent->id,
+                                        'amount' => $bonusUSDT,
+                                        'currency' => 'USDT',
+                                        'payment_type' => 'bonus',
+                                        'transaction_type' => 'debit',
+                                        'related_id' => $deposit->id,
+                                        'caused_by_user_id' => $investor->id, // User who created the deposit
+                                    ]);
+
+                                    // Update parent's wallet summary
+                                    $this->creditParentWallet($parent->id, $bonusUSDT);
+
+                                    // Update referral totals
+                                    $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
+                                    
+                                    // Log bonus distribution for verification
+                                    \Log::info('NEXA Profit bonus distributed', [
+                                        'level' => $level,
+                                        'parent_id' => $parent->id,
+                                        'investor_id' => $investor->id,
+                                        'deposit_id' => $deposit->id,
+                                        'bonus_amount' => $bonusUSDT,
+                                        'percent' => $percent,
+                                        'wallet_entry_id' => $walletEntry->id
+                                    ]);
+                                });
+                            } else {
+                                \Log::info('NEXA Profit bonus calculated as 0, skipping', [
+                                    'level' => $level,
+                                    'parent_id' => $parent->id,
+                                    'percent' => $percent
+                                ]);
+                            }
+                        } else {
+                            \Log::info('Parent has no referral percentage for this level', [
+                                'level' => $level,
+                                'parent_id' => $parent->id,
+                                'plan_id' => $parentActivePlan->id
+                            ]);
+                        }
+                    } else {
+                        \Log::info('Parent has no active plan, skipping bonus', [
+                            'level' => $level,
+                            'parent_id' => $parent->id
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // Log error for this level but continue to next level
+                    \Log::error("Error processing NEXA Profit bonus for level {$level}: " . $e->getMessage(), [
+                        'parent_id' => $parent->id ?? null,
+                        'investor_id' => $investor->id,
+                        'level' => $level,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+                
+                $level++;
+                $parent = $this->getParent($parent->id);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error in distributeNexaProfitBonus (parent loop): ' . $e->getMessage(), [
+                'deposit_id' => $deposit->id ?? null,
+                'investor_id' => $investor->id,
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }

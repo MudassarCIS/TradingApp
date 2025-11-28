@@ -16,6 +16,7 @@ class CustomersWallet extends Model
         'payment_type',
         'transaction_type',
         'related_id',
+        'caused_by_user_id',
     ];
 
     protected $casts = [

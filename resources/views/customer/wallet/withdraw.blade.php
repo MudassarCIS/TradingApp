@@ -176,12 +176,12 @@
                            id="amount" 
                            name="amount" 
                            step="0.01" 
-                           min="10" 
+                           min="20" 
                            max="{{ $availableBalance ?? 0 }}" 
                            value="{{ old('amount') }}" 
                            required>
                     <div class="form-text">
-                        Minimum: 10 USDT | Maximum: {{ number_format($availableBalance ?? 0, 2) }} USDT
+                        Minimum: 20 USDT | Maximum: {{ number_format($availableBalance ?? 0, 2) }} USDT
                     </div>
                 </div>
                 
@@ -212,9 +212,9 @@
                 <div class="fee-info">
                     <h6><i class="bi bi-info-circle"></i> Withdrawal Information</h6>
                     <ul>
-                        <li>Withdrawal fee: 5 USDT</li>
-                        <li>Processing time: 5-30 minutes</li>
-                        <li>Minimum withdrawal: 10 USDT</li>
+                        <li>Withdrawal fee: 2 USDT</li>
+                        <li>Processing time: 2-3 Days</li>
+                        <li>Minimum withdrawal: 20 USDT</li>
                         <li>Network: TRC20 (Tron)</li>
                     </ul>
                 </div>
@@ -277,32 +277,80 @@
 <!-- Security Notice -->
 <div class="row">
     <div class="col-12">
-        <div class="alert alert-warning">
-            <h6><i class="bi bi-shield-exclamation"></i> Security Notice</h6>
-            <ul class="mb-0">
-                <li>Double-check the withdrawal address before confirming</li>
-                <li>Only withdraw to addresses you control</li>
-                <li>Withdrawals are processed manually for security</li>
-                <li>Contact support if you don't receive your funds within 1 hour</li>
-            </ul>
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Security Notice</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-3">
+                    <li>Double-check the withdrawal address before confirming</li>
+                    <li>Only withdraw to addresses you control</li>
+                    <li>Withdrawals are processed manually for security</li>
+                    <li>Processing time: 2-3 Days</li>
+                </ul>
+                
+                <!-- Withdrawal Requests Table -->
+                <h6 class="mb-3"><i class="bi bi-list-ul"></i> Your Withdrawal Requests</h6>
+                <div class="table-responsive">
+                    <table id="withdrawals-table" class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Amount</th>
+                                <th>Fee</th>
+                                <th>Net Amount</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
+    // Initialize DataTable for withdrawals
+    $(document).ready(function() {
+        $('#withdrawals-table').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: "{{ route('customer.wallet.withdrawals.data') }}",
+            columns: [
+                { data: 'transaction_id', name: 'transaction_id' },
+                { data: 'amount', name: 'amount' },
+                { data: 'fee', name: 'fee' },
+                { data: 'net_amount', name: 'net_amount' },
+                { data: 'to_address', name: 'to_address' },
+                { data: 'status', name: 'status' },
+                { data: 'created_at', name: 'created_at' }
+            ],
+            order: [[6, 'desc']],
+            pageLength: 10,
+            responsive: true
+        });
+    });
+    
     // Real-time balance calculation
     document.getElementById('amount').addEventListener('input', function() {
         const amount = parseFloat(this.value) || 0;
-        const fee = 5;
+        const fee = 2;
         const total = amount + fee;
         const available = {{ $availableBalance ?? 0 }};
         
         if (amount > available) {
             this.setCustomValidity('Amount exceeds available balance');
-        } else if (amount < 10) {
-            this.setCustomValidity('Minimum withdrawal is 10 USDT');
+        } else if (amount < 20) {
+            this.setCustomValidity('Minimum withdrawal is 20 USDT');
         } else {
             this.setCustomValidity('');
         }

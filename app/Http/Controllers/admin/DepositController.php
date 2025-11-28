@@ -319,6 +319,7 @@ class DepositController extends Controller
                     'payment_type' => 'bonus',
                     'transaction_type' => 'debit',
                     'related_id' => $deposit->id,
+                    'caused_by_user_id' => $user->id, // User who made the deposit/investment
                 ]);
 
                 // Update parent's wallet summary
@@ -424,6 +425,7 @@ class DepositController extends Controller
             
             // Distribute referral bonuses based on invoice type
             // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
+            // For "NEXA Profit": 3-level bonuses using parent's active plan referral_level percentages
             // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
                 $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
@@ -432,7 +434,7 @@ class DepositController extends Controller
                     // Special handling for NEXA only - get parent's active package and direct_bonus
                     $this->distributeRentBotBonus($deposit);
                 } else {
-                    // Use existing referral service for other types
+                    // Use existing referral service for other types (including "NEXA Profit" and "profit invoice")
                     app(ReferralService::class)->distributeReferralBonuses($deposit->user, $deposit);
                 }
             } catch (\Exception $e) {
@@ -630,6 +632,7 @@ class DepositController extends Controller
                     
                     // Distribute referral bonuses based on invoice type
                     // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
+                    // For "NEXA Profit": 3-level bonuses using parent's active plan referral_level percentages
                     // For "profit invoice": 3-level bonuses using referral_level percentages
                     try {
                         // Ensure user relationship is loaded
@@ -643,7 +646,7 @@ class DepositController extends Controller
                             // Special handling for NEXA only - get parent's active package and direct_bonus
                             $this->distributeRentBotBonus($deposit);
                         } else {
-                            // Use existing referral service for other types
+                            // Use existing referral service for other types (including "NEXA Profit" and "profit invoice")
                             $referralService = app(ReferralService::class);
                             $referralService->distributeReferralBonuses($deposit->user, $deposit);
                         }
