@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-            $table->integer('withdrawal_limit_per_month')->default(5)->after('timezone')->comment('Number of withdrawals allowed per month (1, 2, 5, or more)');
+            $table->integer('withdrawal_limit_per_month')->default(5)->comment('Number of withdrawals allowed per month (1, 2, 5, or more)');
         });
     }
 

@@ -218,13 +218,17 @@
                                     <i class="bi bi-check-circle me-1"></i>Active
                                 </span>
                             @elseif($bot->invoice_status === 'Unpaid')
-                                <span class="status-badge bg-warning text-dark">
+                                <span class="status-badge bg-danger text-white">
                                     <i class="bi bi-clock me-1"></i>Unpaid
+                                </span>
+                            @elseif($bot->invoice_status === 'payment_pending')
+                                <span class="status-badge bg-warning text-white">
+                                    <i class="bi bi-hourglass-split me-1"></i>Pending for Approval
                                 </span>
                             @else
                                 <span class="status-badge bg-secondary text-white">
-                                    <i class="bi bi-question-circle me-1"></i>Unknown
-                                </span>
+                                    <i class="bi bi-question-circle me-1"></i>{{ ucfirst($bot->invoice_status) ?? "N/A"}}
+                                </span> 
                             @endif
                         </div>
                     </div>

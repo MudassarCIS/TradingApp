@@ -33,7 +33,7 @@ class AgentController extends Controller
                     ->where('created_at', '<=', $bot->created_at->addMinutes(5))
                     ->first();
                 
-                $bot->invoice_status = $invoice ? $invoice->status : 'Unknown';
+                $bot->invoice_status = $invoice ? $invoice->status : '';
                 $bot->invoice_amount = $invoice ? $invoice->amount : 0;
                 $bot->invoice_due_date = $invoice ? $invoice->due_date : null;
                 $bot->invoice_id = $invoice ? $invoice->id : null;
@@ -45,7 +45,7 @@ class AgentController extends Controller
                 return $bot->created_at;
             })
             ->values();
-        
+        //dd($activeBots);
         return view('customer.agents.index', compact('agents', 'activeBots'));
     }
     

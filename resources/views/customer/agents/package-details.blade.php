@@ -17,9 +17,23 @@
                         <small class="text-muted">Purchased on {{ $bot->created_at->format('M d, Y') }}</small>
                     </div>
                     <div>
-                        <span class="status-badge bg-success text-white">
-                            <i class="bi bi-check-circle me-1"></i>Active
-                        </span>
+                        @if($bot->invoice_status === 'Paid')
+                            <span class="status-badge bg-success text-white">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
+                        @elseif($bot->invoice_status === 'Unpaid')
+                            <span class="status-badge bg-warning text-dark">
+                                <i class="bi bi-clock me-1"></i>Unpaid
+                            </span>
+                        @elseif($bot->invoice_status === 'payment_pending')
+                            <span class="status-badge bg-warning text-dark">
+                                <i class="bi bi-hourglass-split me-1"></i>Pending for Approved
+                            </span>
+                        @else
+                            <span class="status-badge bg-secondary text-white">
+                                <i class="bi bi-question-circle me-1"></i>Unknown
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -137,7 +151,17 @@
                         <div>
                             <strong>Invoice ID:</strong> #{{ $bot->invoice_id }}
                             <br>
-                            <small class="text-muted">Status: <span class="badge bg-success">Paid</span></small>
+                            <small class="text-muted">Status: 
+                                @if($bot->invoice_status === 'Paid')
+                                    <span class="badge bg-success">Paid</span>
+                                @elseif($bot->invoice_status === 'Unpaid')
+                                    <span class="badge bg-warning text-dark">Unpaid</span>
+                                @elseif($bot->invoice_status === 'payment_pending')
+                                    <span class="badge bg-warning text-dark">Pending for Approved</span>
+                                @else
+                                    <span class="badge bg-secondary">Unknown</span>
+                                @endif
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -169,6 +193,13 @@
     .plan-detail-item:hover {
         background: #e9ecef;
         transform: translateY(-2px);
+    }
+    
+    .status-badge {
+        border-radius: 12px;
+        padding: 0.25rem 0.6rem;
+        font-weight: 500;
+        font-size: 0.7rem;
     }
 </style>
 @endsection
