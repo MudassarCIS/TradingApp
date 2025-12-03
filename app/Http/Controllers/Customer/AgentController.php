@@ -118,19 +118,57 @@ class AgentController extends Controller
             
             // Find plan_id if available in plan_data or by matching plan details
             $planId = null;
+            $matchedPlan = null;
+            
             if (isset($planData['id'])) {
                 // If plan_id is directly in plan_data
                 $planId = $planData['id'];
-            } elseif ($botType === 'sharing-nexa' && isset($planData['investment_amount']) && isset($planData['joining_fee'])) {
-                // For NEXA, try to find plan by matching investment_amount and joining_fee
-                $plan = Plan::where('investment_amount', $planData['investment_amount'])
-                    ->where('joining_fee', $planData['joining_fee'])
+                $matchedPlan = Plan::find($planId);
+            } elseif ($botType === 'sharing-nexa' && isset($planData['investment_amount'])) {
+                // For NEXA, find plan based on investment amount
+                $investmentAmount = (float) $planData['investment_amount'];
+                
+                // Check if it's a custom investment (no exact match)
+                $exactPlan = Plan::where('investment_amount', $investmentAmount)
                     ->where('is_active', true)
                     ->first();
-                if ($plan) {
-                    $planId = $plan->id;
+                
+                if ($exactPlan) {
+                    // Exact match found
+                    $planId = $exactPlan->id;
+                    $matchedPlan = $exactPlan;
+                } else {
+                    // Custom investment - find the plan where investment amount falls within
+                    // Get the highest plan where investment_amount <= custom investment amount
+                    $matchedPlan = Plan::where('investment_amount', '<=', $investmentAmount)
+                        ->where('is_active', true)
+                        ->orderBy('investment_amount', 'desc')
+                        ->first();
+                    
+                    if ($matchedPlan) {
+                        $planId = $matchedPlan->id;
+                    }
                 }
             }
+            
+            // Update plan_data to use actual plan name instead of "Custom Investment"
+            if ($matchedPlan && isset($planData['is_custom']) && $planData['is_custom']) {
+                // Replace "Custom Investment" or any custom name with the actual plan name
+                $planData['name'] = $matchedPlan->name;
+                $planData['id'] = $matchedPlan->id;
+                // Use plan's bots_allowed and trades_per_day if not already set
+                if (!isset($planData['bots_allowed']) || !$planData['bots_allowed']) {
+                    $planData['bots_allowed'] = $matchedPlan->bots_allowed;
+                }
+                if (!isset($planData['trades_per_day']) || !$planData['trades_per_day']) {
+                    $planData['trades_per_day'] = $matchedPlan->trades_per_day;
+                }
+            }
+            
+            // Update activeBot with corrected plan_data
+            $activeBot->update([
+                'buy_plan_details' => $planData
+            ]);
             
             $invoice = $user->invoices()->create([
                 'plan_id' => $planId,
@@ -228,3 +266,4 @@ class AgentController extends Controller
         return view('customer.agents.package-details', compact('bot'));
     }
 }
+

@@ -15,7 +15,7 @@ use App\Http\Controllers\Customer\SupportController;
 use Illuminate\Support\Facades\Artisan;
 // Route to clear all application cache
 Route::get('/cache-clear', function() {
-    Artisan::call('cache:clear');
+    Artisan::call('optimize:clear');
     return 'Application cache cleared!';
 });
 
@@ -94,8 +94,66 @@ Route::prefix('api')->group(function () {
     });
 
     Route::get('/plans', function() {
-        $plans = \App\Models\Plan::active()->orderBy('created_at', 'desc')->get();
+        $plans = \App\Models\Plan::active()->orderBy('investment_amount', 'asc')->get();
         return response()->json(['success' => true, 'data' => $plans]);
+    });
+
+    Route::post('/calculate-nexa-fee', function(\Illuminate\Http\Request $request) {
+        $request->validate([
+            'investment_amount' => 'required|numeric|min:100',
+        ]);
+
+        $investmentAmount = (float) $request->investment_amount;
+        
+        // Get all active NEXA plans ordered by investment amount
+        $plans = \App\Models\Plan::active()->orderBy('investment_amount', 'asc')->get();
+        
+        // Find the closest plan tier or calculate based on percentage
+        $calculatedFee = 0;
+        $matchedPlan = null;
+        
+        // If investment matches exactly a plan, use that plan's fee
+        $exactMatch = $plans->where('investment_amount', $investmentAmount)->first();
+        if ($exactMatch) {
+            $calculatedFee = $exactMatch->joining_fee;
+            $matchedPlan = $exactMatch;
+        } else {
+            // Find the plan with investment_amount <= user's investment
+            $lowerPlan = $plans->where('investment_amount', '<=', $investmentAmount)->last();
+            
+            if ($lowerPlan) {
+                // Calculate fee based on the percentage of the matched plan
+                $feePercentage = ($lowerPlan->joining_fee / $lowerPlan->investment_amount) * 100;
+                $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
+                $matchedPlan = $lowerPlan;
+            } else {
+                // If investment is less than the smallest plan, use the smallest plan's percentage
+                $smallestPlan = $plans->first();
+                if ($smallestPlan) {
+                    $feePercentage = ($smallestPlan->joining_fee / $smallestPlan->investment_amount) * 100;
+                    $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
+                    $matchedPlan = $smallestPlan;
+                }
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'investment_amount' => $investmentAmount,
+            'joining_fee' => $calculatedFee,
+            'total_amount' => $investmentAmount + $calculatedFee,
+            'fee_percentage' => $matchedPlan ? round(($calculatedFee / $investmentAmount) * 100, 2) : 0,
+            'matched_plan' => $matchedPlan ? $matchedPlan->name : null,
+            'matched_plan_id' => $matchedPlan ? $matchedPlan->id : null,
+            'matched_plan_data' => $matchedPlan ? [
+                'id' => $matchedPlan->id,
+                'name' => $matchedPlan->name,
+                'investment_amount' => $matchedPlan->investment_amount,
+                'joining_fee' => $matchedPlan->joining_fee,
+                'bots_allowed' => $matchedPlan->bots_allowed,
+                'trades_per_day' => $matchedPlan->trades_per_day
+            ] : null
+        ]);
     });
 });
 

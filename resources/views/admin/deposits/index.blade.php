@@ -248,10 +248,16 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Destroy existing DataTable if it exists (to clear any cached state)
+    if ($.fn.DataTable.isDataTable('#depositsTable')) {
+        $('#depositsTable').DataTable().destroy();
+    }
+    
     // Initialize DataTable
     var table = $('#depositsTable').DataTable({
         processing: true,
         serverSide: true,
+        autoWidth: false,
         ajax: {
             url: "{{ route('admin.deposits.index') }}",
             type: 'GET',
@@ -273,8 +279,11 @@ $(document).ready(function() {
             { data: 'trans_id', name: 'trans_id' },
             { data: 'status_badge', name: 'status' },
             { data: 'proof_image', name: 'proof_image' },
-            { data: 'created_at', name: 'created_at' },
+            { data: 'created_at', name: 'created_at', orderable: true },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
+        ],
+        columnDefs: [
+            { targets: '_all', defaultContent: '-' }
         ],
         order: [[9, 'desc']], // Order by created_at (column 9) descending - latest first
         pageLength: 25,
@@ -282,7 +291,8 @@ $(document).ready(function() {
         dom: 'Bfrtip',
         buttons: [
             'copy', 'csv', 'excel', 'pdf', 'print'
-        ]
+        ],
+        stateSave: false // Don't save state to avoid conflicts
     });
 
     // Load statistics

@@ -147,17 +147,6 @@ class ReferralService
     public function distributeReferralBonuses(User $investor, $deposit): void
     {
         try {
-            // Check if bonuses have already been distributed for this deposit to prevent duplicates
-            if ($deposit->id) {
-                $existingBonus = CustomersWallet::where('related_id', $deposit->id)
-                    ->where('payment_type', 'bonus')
-                    ->first();
-                if ($existingBonus) {
-                    // Bonuses already distributed for this deposit
-                    return;
-                }
-            }
-            
             // Get invoice type if deposit is associated with an invoice
             $invoiceType = null;
             if ($deposit->invoice_id && $deposit->relationLoaded('invoice')) {
@@ -168,20 +157,40 @@ class ReferralService
                 $invoiceType = $invoice->invoice_type ?? null;
             }
             
+            \Log::info('distributeReferralBonuses called', [
+                'deposit_id' => $deposit->id ?? null,
+                'user_id' => $investor->id,
+                'invoice_id' => $deposit->invoice_id ?? null,
+                'invoice_type' => $invoiceType ?? 'none'
+            ]);
+            
             // Route to appropriate bonus distribution method based on invoice type
             // "NEXA" and "package buy" are treated as package buy (direct_bonus to level 1 only)
             // "NEXA Profit" uses 3-level bonuses based on parent's active plan referral levels
             // "PEX" deposits do NOT trigger any bonus distribution
             // "profit invoice" uses 3-level bonuses
-            if (in_array($invoiceType, ['NEXA', 'package buy'])) {
+            if ($invoiceType === 'NEXA Profit') {
+                // Type 2: NEXA Profit - give 3-level bonuses using parent's active plan referral_level percentages
+                \Log::info('Routing to distributeNexaProfitBonus for NEXA Profit', [
+                    'deposit_id' => $deposit->id ?? null,
+                    'user_id' => $investor->id
+                ]);
+                $this->distributeNexaProfitBonus($investor, $deposit);
+            } elseif (in_array($invoiceType, ['NEXA', 'package buy'])) {
                 // Type 1: Package buy (NEXA or package buy) - give direct_bonus to first level parent only
                 // Note: PEX is excluded - no bonus for PEX deposits
+                \Log::info('Routing to distributePackageBuyBonus for NEXA/package buy', [
+                    'deposit_id' => $deposit->id ?? null,
+                    'user_id' => $investor->id,
+                    'invoice_type' => $invoiceType
+                ]);
                 $this->distributePackageBuyBonus($investor, $deposit);
-            } elseif ($invoiceType === 'NEXA Profit') {
-                // Type 2: NEXA Profit - give 3-level bonuses using parent's active plan referral_level percentages
-                $this->distributeNexaProfitBonus($investor, $deposit);
             } elseif ($invoiceType === 'profit invoice') {
                 // Type 3: Profit invoice - give 3-level bonuses using referral_level percentages
+                \Log::info('Routing to distributeProfitInvoiceBonus for profit invoice', [
+                    'deposit_id' => $deposit->id ?? null,
+                    'user_id' => $investor->id
+                ]);
                 $this->distributeProfitInvoiceBonus($investor, $deposit);
             } elseif ($invoiceType === 'PEX') {
                 // PEX deposits - explicitly skip bonus distribution
@@ -196,6 +205,11 @@ class ReferralService
                 // Default: For deposits without invoice or unknown type, use package buy logic
                 // This treats deposits without invoices as package purchases
                 // Note: PEX is explicitly excluded above
+                \Log::warning('Unknown invoice type, defaulting to distributePackageBuyBonus', [
+                    'deposit_id' => $deposit->id ?? null,
+                    'user_id' => $investor->id,
+                    'invoice_type' => $invoiceType ?? 'none'
+                ]);
                 $this->distributePackageBuyBonus($investor, $deposit);
             }
         } catch (\Exception $e) {
@@ -253,24 +267,51 @@ class ReferralService
                 return;
             }
             
+            \Log::info('Parent found for package buy bonus', [
+                'parent_id' => $parent->id,
+                'parent_name' => $parent->name,
+                'investor_id' => $investor->id,
+                'deposit_id' => $deposit->id
+            ]);
+            
             // Get parent's active plan to check if they qualify
             $parentActivePlan = $this->getParentActivePlan($parent);
             
             if ($parentActivePlan) {
+                \Log::info('Parent active plan retrieved for package buy bonus', [
+                    'parent_id' => $parent->id,
+                    'plan_id' => $parentActivePlan->id,
+                    'plan_name' => $parentActivePlan->name,
+                    'direct_bonus' => $directBonus
+                ]);
+                
                 // Convert direct_bonus to USDT if needed (assuming direct_bonus is in USDT)
                 $bonusUSDT = $directBonus;
                 
                 if ($bonusUSDT > 0) {
-                    DB::transaction(function () use ($deposit, $investor, $parent, $bonusUSDT, $directBonus) {
+                    DB::transaction(function () use ($deposit, $investor, $parent, $bonusUSDT, $directBonus, $parentActivePlan) {
+                        \Log::info('Creating customers_wallets entry for package buy bonus', [
+                            'parent_id' => $parent->id,
+                            'bonus_amount' => $bonusUSDT,
+                            'deposit_id' => $deposit->id,
+                            'investor_id' => $investor->id
+                        ]);
+                        
                         // Insert into customers_wallets with deposit id as related_id
                         $walletEntry = CustomersWallet::create([
                             'user_id' => $parent->id,
                             'amount' => $bonusUSDT,
                             'currency' => 'USDT',
-                            'payment_type' => 'bonus',
+                            'payment_type' => 'Deposit',
                             'transaction_type' => 'debit',
                             'related_id' => $deposit->id,
                             'caused_by_user_id' => $investor->id, // User who invested/bought plan
+                        ]);
+
+                        \Log::info('Customers_wallets entry created for package buy bonus', [
+                            'wallet_entry_id' => $walletEntry->id,
+                            'parent_id' => $parent->id,
+                            'bonus_amount' => $bonusUSDT
                         ]);
 
                         // Update parent's wallet summary
@@ -280,9 +321,11 @@ class ReferralService
                         $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
                         
                         // Log bonus distribution for verification
-                        \Log::info('Package buy bonus distributed', [
+                        \Log::info('Package buy bonus distributed successfully', [
                             'level' => 1,
                             'parent_id' => $parent->id,
+                            'parent_plan_id' => $parentActivePlan->id,
+                            'parent_plan_name' => $parentActivePlan->name,
                             'investor_id' => $investor->id,
                             'deposit_id' => $deposit->id,
                             'bonus_amount' => $bonusUSDT,
@@ -290,7 +333,17 @@ class ReferralService
                             'wallet_entry_id' => $walletEntry->id
                         ]);
                     });
+                } else {
+                    \Log::warning('Package buy bonus amount is 0 or negative', [
+                        'parent_id' => $parent->id,
+                        'bonus_amount' => $bonusUSDT
+                    ]);
                 }
+            } else {
+                \Log::warning('Parent has no active plan for package buy bonus', [
+                    'parent_id' => $parent->id,
+                    'investor_id' => $investor->id
+                ]);
             }
         } catch (\Exception $e) {
             \Log::error('Error in distributePackageBuyBonus: ' . $e->getMessage(), [
@@ -320,32 +373,76 @@ class ReferralService
         }
 
         try {
+            \Log::info('Starting profit invoice bonus distribution', [
+                'investor_id' => $investor->id,
+                'deposit_id' => $deposit->id,
+                'amount' => $amount,
+                'amount_in_usdt' => $amountInUSDT
+            ]);
+            
             $level = 1;
             $parent = $this->getParent($investor->id);
 
             while ($level <= 3 && $parent) {
                 try {
+                    \Log::info('Processing profit invoice bonus for level', [
+                        'level' => $level,
+                        'parent_id' => $parent->id,
+                        'parent_name' => $parent->name,
+                        'investor_id' => $investor->id
+                    ]);
+                    
                     // Check if parent has an active plan with paid invoice
                     $parentActivePlan = $this->getParentActivePlan($parent);
                     
                     if ($parentActivePlan) {
                         $percentField = 'referral_level_' . $level;
                         $percent = (float) ($parentActivePlan->$percentField ?? 0);
+                        
+                        \Log::info('Parent plan details for profit invoice bonus', [
+                            'level' => $level,
+                            'parent_id' => $parent->id,
+                            'plan_id' => $parentActivePlan->id,
+                            'plan_name' => $parentActivePlan->name,
+                            'percent_field' => $percentField,
+                            'percent' => $percent
+                        ]);
 
                         if ($percent > 0) {
                             $bonusUSDT = round($amountInUSDT * ($percent / 100), 8);
+                            
+                            \Log::info('Calculated profit invoice bonus', [
+                                'level' => $level,
+                                'parent_id' => $parent->id,
+                                'amount_in_usdt' => $amountInUSDT,
+                                'percent' => $percent,
+                                'bonus_amount' => $bonusUSDT
+                            ]);
 
                             if ($bonusUSDT > 0) {
-                                DB::transaction(function () use ($deposit, $investor, $parent, $level, $bonusUSDT, $percent) {
+                                DB::transaction(function () use ($deposit, $investor, $parent, $level, $bonusUSDT, $percent, $parentActivePlan) {
+                                    \Log::info('Creating customers_wallets entry for profit invoice bonus', [
+                                        'level' => $level,
+                                        'parent_id' => $parent->id,
+                                        'bonus_amount' => $bonusUSDT,
+                                        'deposit_id' => $deposit->id
+                                    ]);
+                                    
                                     // Insert into customers_wallets with deposit id as related_id
                                     $walletEntry = CustomersWallet::create([
                                         'user_id' => $parent->id,
                                         'amount' => $bonusUSDT,
                                         'currency' => 'USDT',
-                                        'payment_type' => 'bonus',
+                                        'payment_type' => 'Profit',
                                         'transaction_type' => 'debit',
                                         'related_id' => $deposit->id,
                                         'caused_by_user_id' => $investor->id, // User who got profit
+                                    ]);
+
+                                    \Log::info('Customers_wallets entry created for profit invoice bonus', [
+                                        'wallet_entry_id' => $walletEntry->id,
+                                        'level' => $level,
+                                        'parent_id' => $parent->id
                                     ]);
 
                                     // Update parent's wallet summary
@@ -355,9 +452,11 @@ class ReferralService
                                     $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
                                     
                                     // Log bonus distribution for verification
-                                    \Log::info('Profit invoice bonus distributed', [
+                                    \Log::info('Profit invoice bonus distributed successfully', [
                                         'level' => $level,
                                         'parent_id' => $parent->id,
+                                        'parent_plan_id' => $parentActivePlan->id,
+                                        'parent_plan_name' => $parentActivePlan->name,
                                         'investor_id' => $investor->id,
                                         'deposit_id' => $deposit->id,
                                         'bonus_amount' => $bonusUSDT,
@@ -365,21 +464,45 @@ class ReferralService
                                         'wallet_entry_id' => $walletEntry->id
                                     ]);
                                 });
+                            } else {
+                                \Log::info('Profit invoice bonus calculated as 0, skipping', [
+                                    'level' => $level,
+                                    'parent_id' => $parent->id,
+                                    'percent' => $percent
+                                ]);
                             }
+                        } else {
+                            \Log::info('Parent has no referral percentage for this level', [
+                                'level' => $level,
+                                'parent_id' => $parent->id,
+                                'plan_id' => $parentActivePlan->id
+                            ]);
                         }
+                    } else {
+                        \Log::info('Parent has no active plan for profit invoice bonus', [
+                            'level' => $level,
+                            'parent_id' => $parent->id
+                        ]);
                     }
                 } catch (\Exception $e) {
                     // Log error for this level but continue to next level
                     \Log::error("Error processing profit invoice bonus for level {$level}: " . $e->getMessage(), [
                         'parent_id' => $parent->id ?? null,
                         'investor_id' => $investor->id,
-                        'level' => $level
+                        'level' => $level,
+                        'trace' => $e->getTraceAsString()
                     ]);
                 }
                 
                 $level++;
                 $parent = $this->getParent($parent->id);
             }
+            
+            \Log::info('Completed profit invoice bonus distribution', [
+                'investor_id' => $investor->id,
+                'deposit_id' => $deposit->id,
+                'levels_processed' => $level - 1
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error in distributeProfitInvoiceBonus (parent loop): ' . $e->getMessage());
             throw $e;
@@ -394,16 +517,18 @@ class ReferralService
     {
         try {
             // Check if bonuses have already been distributed for this deposit to prevent duplicates
+            // Check for any wallet entries with this deposit ID and Profit payment_type
             if ($deposit->id) {
                 $existingBonus = CustomersWallet::where('related_id', $deposit->id)
-                    ->where('payment_type', 'bonus')
+                    ->where('payment_type', 'Profit')
                     ->where('caused_by_user_id', $investor->id)
                     ->first();
                 if ($existingBonus) {
                     // Bonuses already distributed for this deposit
                     \Log::info('NEXA Profit bonuses already distributed for this deposit', [
                         'deposit_id' => $deposit->id,
-                        'user_id' => $investor->id
+                        'user_id' => $investor->id,
+                        'existing_wallet_entry_id' => $existingBonus->id
                     ]);
                     return;
                 }
@@ -433,27 +558,68 @@ class ReferralService
 
             while ($level <= 3 && $parent) {
                 try {
-                    // Check if parent has an active plan with paid invoice
-                    $parentActivePlan = $this->getParentActivePlan($parent);
+                    \Log::info('Processing NEXA Profit bonus for level', [
+                        'level' => $level,
+                        'parent_id' => $parent->id,
+                        'parent_name' => $parent->name,
+                        'investor_id' => $investor->id,
+                        'parent_active_plan_id' => $parent->active_plan_id
+                    ]);
+                    
+                    // Get parent's active plan directly from active_plan_id
+                    $parentActivePlan = null;
+                    if ($parent->active_plan_id) {
+                        $parentActivePlan = Plan::find($parent->active_plan_id);
+                    }
                     
                     if ($parentActivePlan) {
                         $percentField = 'referral_level_' . $level;
                         $percent = (float) ($parentActivePlan->$percentField ?? 0);
+                        
+                        \Log::info('Parent plan details for NEXA Profit bonus', [
+                            'level' => $level,
+                            'parent_id' => $parent->id,
+                            'plan_id' => $parentActivePlan->id,
+                            'plan_name' => $parentActivePlan->name,
+                            'percent_field' => $percentField,
+                            'percent' => $percent
+                        ]);
 
                         if ($percent > 0) {
                             $bonusUSDT = round($amountInUSDT * ($percent / 100), 8);
+                            
+                            \Log::info('Calculated NEXA Profit bonus', [
+                                'level' => $level,
+                                'parent_id' => $parent->id,
+                                'amount_in_usdt' => $amountInUSDT,
+                                'percent' => $percent,
+                                'bonus_amount' => $bonusUSDT
+                            ]);
 
                             if ($bonusUSDT > 0) {
-                                DB::transaction(function () use ($deposit, $investor, $parent, $level, $bonusUSDT, $percent) {
+                                DB::transaction(function () use ($deposit, $investor, $parent, $level, $bonusUSDT, $percent, $parentActivePlan) {
+                                    \Log::info('Creating customers_wallets entry for NEXA Profit bonus', [
+                                        'level' => $level,
+                                        'parent_id' => $parent->id,
+                                        'bonus_amount' => $bonusUSDT,
+                                        'deposit_id' => $deposit->id
+                                    ]);
+                                    
                                     // Insert into customers_wallets with deposit id as related_id
                                     $walletEntry = CustomersWallet::create([
                                         'user_id' => $parent->id,
                                         'amount' => $bonusUSDT,
                                         'currency' => 'USDT',
-                                        'payment_type' => 'bonus',
+                                        'payment_type' => 'Profit',
                                         'transaction_type' => 'debit',
                                         'related_id' => $deposit->id,
                                         'caused_by_user_id' => $investor->id, // User who created the deposit
+                                    ]);
+
+                                    \Log::info('Customers_wallets entry created for NEXA Profit bonus', [
+                                        'wallet_entry_id' => $walletEntry->id,
+                                        'level' => $level,
+                                        'parent_id' => $parent->id
                                     ]);
 
                                     // Update parent's wallet summary
@@ -463,9 +629,11 @@ class ReferralService
                                     $this->updateReferralTotals($parent->id, $investor->id, $bonusUSDT);
                                     
                                     // Log bonus distribution for verification
-                                    \Log::info('NEXA Profit bonus distributed', [
+                                    \Log::info('NEXA Profit bonus distributed successfully', [
                                         'level' => $level,
                                         'parent_id' => $parent->id,
+                                        'parent_plan_id' => $parentActivePlan->id,
+                                        'parent_plan_name' => $parentActivePlan->name,
                                         'investor_id' => $investor->id,
                                         'deposit_id' => $deposit->id,
                                         'bonus_amount' => $bonusUSDT,
@@ -488,9 +656,10 @@ class ReferralService
                             ]);
                         }
                     } else {
-                        \Log::info('Parent has no active plan, skipping bonus', [
+                        \Log::info('Parent has no active plan, skipping NEXA Profit bonus', [
                             'level' => $level,
-                            'parent_id' => $parent->id
+                            'parent_id' => $parent->id,
+                            'parent_active_plan_id' => $parent->active_plan_id
                         ]);
                     }
                 } catch (\Exception $e) {
@@ -506,6 +675,12 @@ class ReferralService
                 $level++;
                 $parent = $this->getParent($parent->id);
             }
+            
+            \Log::info('Completed NEXA Profit bonus distribution', [
+                'investor_id' => $investor->id,
+                'deposit_id' => $deposit->id,
+                'levels_processed' => $level - 1
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error in distributeNexaProfitBonus (parent loop): ' . $e->getMessage(), [
                 'deposit_id' => $deposit->id ?? null,
@@ -684,10 +859,12 @@ class ReferralService
     protected function creditParentWallet($parentId, $amount): void
     {
         $wallet = Wallet::where('user_id', $parentId)->where('currency', 'USDT')->first();
+        $oldBalance = $wallet ? $wallet->balance : 0;
+        $oldTotalProfit = $wallet ? $wallet->total_profit : 0;
         
         if (!$wallet) {
             // Create wallet row if missing
-            Wallet::create([
+            $wallet = Wallet::create([
                 'user_id' => $parentId,
                 'currency' => 'USDT',
                 'balance' => $amount,
@@ -696,11 +873,25 @@ class ReferralService
                 'total_withdrawn' => 0,
                 'total_loss' => 0,
             ]);
+            \Log::info('Created new wallet for parent bonus', [
+                'parent_id' => $parentId,
+                'bonus_amount' => $amount,
+                'new_balance' => $amount,
+                'new_total_profit' => $amount
+            ]);
         } else {
             // Increment balance and profit totals
             $wallet->balance = bcadd($wallet->balance, $amount, 8);
             $wallet->total_profit = bcadd($wallet->total_profit, $amount, 8);
             $wallet->save();
+            \Log::info('Updated parent wallet with bonus', [
+                'parent_id' => $parentId,
+                'bonus_amount' => $amount,
+                'old_balance' => $oldBalance,
+                'new_balance' => $wallet->balance,
+                'old_total_profit' => $oldTotalProfit,
+                'new_total_profit' => $wallet->total_profit
+            ]);
         }
     }
 
@@ -714,9 +905,26 @@ class ReferralService
                       ->first();
                       
         if ($ref) {
+            $oldTotalCommission = $ref->total_commission;
+            $oldPendingCommission = $ref->pending_commission;
             $ref->total_commission = bcadd($ref->total_commission, $bonusAmount, 8);
             $ref->pending_commission = bcadd($ref->pending_commission, $bonusAmount, 8);
             $ref->save();
+            \Log::info('Updated referral totals', [
+                'parent_id' => $parentId,
+                'investor_id' => $investorId,
+                'bonus_amount' => $bonusAmount,
+                'old_total_commission' => $oldTotalCommission,
+                'new_total_commission' => $ref->total_commission,
+                'old_pending_commission' => $oldPendingCommission,
+                'new_pending_commission' => $ref->pending_commission
+            ]);
+        } else {
+            \Log::warning('Referral record not found for updating totals', [
+                'parent_id' => $parentId,
+                'investor_id' => $investorId,
+                'bonus_amount' => $bonusAmount
+            ]);
         }
     }
 }

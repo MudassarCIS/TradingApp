@@ -27,6 +27,7 @@ class User extends Authenticatable
         'referral_code',
         'referred_by',
         'active_plan_id',
+        'active_pex_plan_id',
         'active_investment_amount',
     ];
     
@@ -137,6 +138,11 @@ class User extends Authenticatable
     public function activePlan()
     {
         return $this->belongsTo(Plan::class, 'active_plan_id');
+    }
+
+    public function activePexPlan()
+    {
+        return $this->belongsTo(RentBotPackage::class, 'active_pex_plan_id');
     }
 
     public function parentReferral()
