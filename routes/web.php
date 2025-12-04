@@ -111,28 +111,44 @@ Route::prefix('api')->group(function () {
         // Find the closest plan tier or calculate based on percentage
         $calculatedFee = 0;
         $matchedPlan = null;
+        $feePercentage = 0;
         
         // If investment matches exactly a plan, use that plan's fee
         $exactMatch = $plans->where('investment_amount', $investmentAmount)->first();
         if ($exactMatch) {
-            $calculatedFee = $exactMatch->joining_fee;
             $matchedPlan = $exactMatch;
+            // Use fee_percentage if available, otherwise calculate it
+            if ($matchedPlan->fee_percentage) {
+                $feePercentage = $matchedPlan->fee_percentage;
+            } else {
+                $feePercentage = ($matchedPlan->joining_fee / $matchedPlan->investment_amount) * 100;
+            }
+            $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
         } else {
             // Find the plan with investment_amount <= user's investment
             $lowerPlan = $plans->where('investment_amount', '<=', $investmentAmount)->last();
             
             if ($lowerPlan) {
-                // Calculate fee based on the percentage of the matched plan
-                $feePercentage = ($lowerPlan->joining_fee / $lowerPlan->investment_amount) * 100;
-                $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
                 $matchedPlan = $lowerPlan;
+                // Use fee_percentage if available, otherwise calculate it
+                if ($matchedPlan->fee_percentage) {
+                    $feePercentage = $matchedPlan->fee_percentage;
+                } else {
+                    $feePercentage = ($matchedPlan->joining_fee / $matchedPlan->investment_amount) * 100;
+                }
+                $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
             } else {
                 // If investment is less than the smallest plan, use the smallest plan's percentage
                 $smallestPlan = $plans->first();
                 if ($smallestPlan) {
-                    $feePercentage = ($smallestPlan->joining_fee / $smallestPlan->investment_amount) * 100;
-                    $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
                     $matchedPlan = $smallestPlan;
+                    // Use fee_percentage if available, otherwise calculate it
+                    if ($matchedPlan->fee_percentage) {
+                        $feePercentage = $matchedPlan->fee_percentage;
+                    } else {
+                        $feePercentage = ($matchedPlan->joining_fee / $matchedPlan->investment_amount) * 100;
+                    }
+                    $calculatedFee = round(($investmentAmount * $feePercentage) / 100, 2);
                 }
             }
         }
@@ -142,7 +158,7 @@ Route::prefix('api')->group(function () {
             'investment_amount' => $investmentAmount,
             'joining_fee' => $calculatedFee,
             'total_amount' => $investmentAmount + $calculatedFee,
-            'fee_percentage' => $matchedPlan ? round(($calculatedFee / $investmentAmount) * 100, 2) : 0,
+            'fee_percentage' => round($feePercentage, 2),
             'matched_plan' => $matchedPlan ? $matchedPlan->name : null,
             'matched_plan_id' => $matchedPlan ? $matchedPlan->id : null,
             'matched_plan_data' => $matchedPlan ? [
@@ -150,6 +166,7 @@ Route::prefix('api')->group(function () {
                 'name' => $matchedPlan->name,
                 'investment_amount' => $matchedPlan->investment_amount,
                 'joining_fee' => $matchedPlan->joining_fee,
+                'fee_percentage' => $matchedPlan->fee_percentage,
                 'bots_allowed' => $matchedPlan->bots_allowed,
                 'trades_per_day' => $matchedPlan->trades_per_day
             ] : null

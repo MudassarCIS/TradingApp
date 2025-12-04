@@ -55,6 +55,21 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
+                                    <label for="fee_percentage">Fee Percentage (%)</label>
+                                    <input type="number" step="0.01" class="form-control @error('fee_percentage') is-invalid @enderror" 
+                                           id="fee_percentage" name="fee_percentage" value="{{ old('fee_percentage', $plan->fee_percentage) }}" 
+                                           placeholder="Auto-calculated if left empty">
+                                    <small class="text-muted">Leave empty to auto-calculate from joining fee and investment amount</small>
+                                    @error('fee_percentage')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
                                     <label for="bots_allowed">Bots Allowed <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control @error('bots_allowed') is-invalid @enderror" 
                                            id="bots_allowed" name="bots_allowed" value="{{ old('bots_allowed', $plan->bots_allowed) }}" required>

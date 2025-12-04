@@ -237,7 +237,7 @@
     <div class="col-md-4 mb-4">
         <div class="stats-card">
             <h4>${{ number_format($pendingCommission, 2) }}</h4>
-            <p>Pending Commission</p>
+            <p>Available Commission Balance</p>
         </div>
     </div>
     

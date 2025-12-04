@@ -113,6 +113,8 @@ class AgentController extends Controller
             ]);
 
             // Create invoice
+            // For NEXA plans, invoice amount is ONLY the joining fee (calculated fee), not the total amount
+            // For PEX plans, invoice amount is the package amount
             $amount = $botType === 'rent-bot' ? $planData['amount'] : $planData['joining_fee'];
             $invoiceType = $botType === 'rent-bot' ? 'PEX' : 'NEXA';
             

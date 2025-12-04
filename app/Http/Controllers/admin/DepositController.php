@@ -304,7 +304,9 @@ class DepositController extends Controller
 
     /**
      * Distribute bonus for NEXA deposits only
-     * Gets parent's active package (active_plan_id) and uses parent's plan direct_bonus
+     * Gets depositor's plan from invoice and uses plan's direct_bonus as percentage
+     * Calculates bonus as (fee_amount * (int)direct_bonus) / 100
+     * If direct_bonus is null/empty/zero, uses 15% as fallback
      * Gives bonus to first level parent only
      */
     private function distributeRentBotBonus($deposit): void
@@ -318,6 +320,91 @@ class DepositController extends Controller
             ]);
             
             $user = $deposit->user;
+            
+            // Check if deposit has an invoice
+            if (!$deposit->invoice_id) {
+                \Log::warning('Deposit has no invoice - skipping bonus distribution', [
+                    'deposit_id' => $deposit->id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+            
+            // Load invoice relationship if not already loaded
+            if (!$deposit->relationLoaded('invoice')) {
+                $deposit->load('invoice');
+            }
+            
+            if (!$deposit->invoice) {
+                \Log::warning('Invoice not found for deposit - skipping bonus distribution', [
+                    'deposit_id' => $deposit->id,
+                    'invoice_id' => $deposit->invoice_id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+            
+            // Get plan from deposit's invoice (depositor's plan)
+            if (!$deposit->invoice->plan_id) {
+                \Log::warning('Invoice has no plan_id - skipping bonus distribution', [
+                    'deposit_id' => $deposit->id,
+                    'invoice_id' => $deposit->invoice->id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+            
+            $depositorPlan = Plan::find($deposit->invoice->plan_id);
+            
+            if (!$depositorPlan) {
+                \Log::warning('Depositor plan not found - skipping bonus distribution', [
+                    'deposit_id' => $deposit->id,
+                    'plan_id' => $deposit->invoice->plan_id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+            
+            // Get direct_bonus and convert to integer for percentage calculation
+            $directBonusValue = $depositorPlan->direct_bonus ?? 0;
+            $directBonusPercentage = (int) $directBonusValue;
+            
+            // Fee amount = deposit amount (for NEXA, deposit amount equals the fee)
+            $feeAmount = (float) $deposit->amount;
+            
+            // Calculate bonus: (fee_amount * direct_bonus_percentage) / 100
+            // If direct_bonus is null/empty/zero, use 15% as fallback
+            if ($directBonusPercentage <= 0) {
+                $bonusPercentage = 15;
+                \Log::info('Using fallback 15% bonus - direct_bonus is null/empty/zero', [
+                    'deposit_id' => $deposit->id,
+                    'plan_id' => $depositorPlan->id,
+                    'plan_name' => $depositorPlan->name,
+                    'direct_bonus_value' => $directBonusValue,
+                    'fee_amount' => $feeAmount
+                ]);
+            } else {
+                $bonusPercentage = $directBonusPercentage;
+                \Log::info('Using plan direct_bonus as percentage', [
+                    'deposit_id' => $deposit->id,
+                    'plan_id' => $depositorPlan->id,
+                    'plan_name' => $depositorPlan->name,
+                    'direct_bonus_value' => $directBonusValue,
+                    'direct_bonus_percentage' => $directBonusPercentage,
+                    'fee_amount' => $feeAmount
+                ]);
+            }
+            
+            $calculatedBonus = round(($feeAmount * $bonusPercentage) / 100, 2);
+            
+            \Log::info('Bonus calculation details', [
+                'deposit_id' => $deposit->id,
+                'plan_id' => $depositorPlan->id,
+                'plan_name' => $depositorPlan->name,
+                'fee_amount' => $feeAmount,
+                'bonus_percentage' => $bonusPercentage,
+                'calculated_bonus' => $calculatedBonus
+            ]);
             
             // Check for referral record (with detailed logging)
             $allReferrals = Referral::where('referred_id', $user->id)->get();
@@ -402,49 +489,9 @@ class DepositController extends Controller
                 'parent_id' => $parent->id,
                 'parent_name' => $parent->name,
                 'investor_id' => $user->id,
-                'deposit_id' => $deposit->id
+                'deposit_id' => $deposit->id,
+                'calculated_bonus' => $calculatedBonus
             ]);
-            
-            // Get parent's active_plan_id from users table
-            if (!$parent->active_plan_id) {
-                \Log::info('Parent has no active plan', [
-                    'parent_id' => $parent->id,
-                    'deposit_id' => $deposit->id
-                ]);
-                return;
-            }
-            
-            // Get parent's plan and direct_bonus
-            $parentPlan = Plan::find($parent->active_plan_id);
-            
-            if (!$parentPlan) {
-                \Log::warning('Parent plan not found', [
-                    'parent_id' => $parent->id,
-                    'plan_id' => $parent->active_plan_id,
-                    'deposit_id' => $deposit->id
-                ]);
-                return;
-            }
-            
-            $directBonus = (float) ($parentPlan->direct_bonus ?? 0);
-            
-            \Log::info('Parent plan details retrieved', [
-                'parent_id' => $parent->id,
-                'plan_id' => $parentPlan->id,
-                'plan_name' => $parentPlan->name,
-                'direct_bonus' => $directBonus,
-                'deposit_id' => $deposit->id
-            ]);
-            
-            if ($directBonus <= 0) {
-                \Log::info('Parent plan has no direct_bonus configured', [
-                    'parent_id' => $parent->id,
-                    'plan_id' => $parentPlan->id,
-                    'plan_name' => $parentPlan->name,
-                    'deposit_id' => $deposit->id
-                ]);
-                return;
-            }
             
             // Check if bonus already distributed for this deposit
             $existingBonus = CustomersWallet::where('related_id', $deposit->id)
@@ -462,18 +509,22 @@ class DepositController extends Controller
             }
             
             // Add bonus to customers_wallet
-            DB::transaction(function () use ($deposit, $user, $parent, $parentPlan, $directBonus) {
+            DB::transaction(function () use ($deposit, $user, $parent, $depositorPlan, $calculatedBonus, $feeAmount, $bonusPercentage) {
                 \Log::info('Creating customers_wallets entry for parent bonus', [
                     'parent_id' => $parent->id,
-                    'bonus_amount' => $directBonus,
+                    'bonus_amount' => $calculatedBonus,
                     'deposit_id' => $deposit->id,
-                    'investor_id' => $user->id
+                    'investor_id' => $user->id,
+                    'fee_amount' => $feeAmount,
+                    'bonus_percentage' => $bonusPercentage,
+                    'depositor_plan_id' => $depositorPlan->id,
+                    'depositor_plan_name' => $depositorPlan->name
                 ]);
                 
                 // Insert into customers_wallets with deposit id as related_id
                 $walletEntry = CustomersWallet::create([
                     'user_id' => $parent->id,
-                    'amount' => $directBonus,
+                    'amount' => $calculatedBonus,
                     'currency' => 'USDT',
                     'payment_type' => 'Deposit',
                     'transaction_type' => 'debit',
@@ -484,7 +535,7 @@ class DepositController extends Controller
                 \Log::info('Customers_wallets entry created successfully', [
                     'wallet_entry_id' => $walletEntry->id,
                     'parent_id' => $parent->id,
-                    'bonus_amount' => $directBonus
+                    'bonus_amount' => $calculatedBonus
                 ]);
 
                 // Update parent's wallet summary
@@ -495,24 +546,24 @@ class DepositController extends Controller
                     $wallet = Wallet::create([
                         'user_id' => $parent->id,
                         'currency' => 'USDT',
-                        'balance' => $directBonus,
-                        'total_profit' => $directBonus,
+                        'balance' => $calculatedBonus,
+                        'total_profit' => $calculatedBonus,
                         'total_deposited' => 0,
                         'total_withdrawn' => 0,
                         'total_loss' => 0,
                     ]);
                     \Log::info('Created new wallet for parent', [
                         'parent_id' => $parent->id,
-                        'new_balance' => $directBonus
+                        'new_balance' => $calculatedBonus
                     ]);
                 } else {
-                    $wallet->increment('balance', $directBonus);
-                    $wallet->increment('total_profit', $directBonus);
+                    $wallet->increment('balance', $calculatedBonus);
+                    $wallet->increment('total_profit', $calculatedBonus);
                     \Log::info('Updated parent wallet balance', [
                         'parent_id' => $parent->id,
                         'old_balance' => $oldBalance,
                         'new_balance' => $wallet->balance,
-                        'bonus_added' => $directBonus
+                        'bonus_added' => $calculatedBonus
                     ]);
                 }
 
@@ -523,8 +574,8 @@ class DepositController extends Controller
                 if ($ref) {
                     $oldTotalCommission = $ref->total_commission;
                     $oldPendingCommission = $ref->pending_commission;
-                    $ref->increment('total_commission', $directBonus);
-                    $ref->increment('pending_commission', $directBonus);
+                    $ref->increment('total_commission', $calculatedBonus);
+                    $ref->increment('pending_commission', $calculatedBonus);
                     \Log::info('Updated referral totals', [
                         'parent_id' => $parent->id,
                         'investor_id' => $user->id,
@@ -532,7 +583,7 @@ class DepositController extends Controller
                         'new_total_commission' => $ref->total_commission,
                         'old_pending_commission' => $oldPendingCommission,
                         'new_pending_commission' => $ref->pending_commission,
-                        'bonus_added' => $directBonus
+                        'bonus_added' => $calculatedBonus
                     ]);
                 } else {
                     \Log::warning('Referral record not found for updating totals', [
@@ -544,11 +595,13 @@ class DepositController extends Controller
                 // Log bonus distribution for verification
                 \Log::info('NEXA bonus distributed to parent successfully', [
                     'parent_id' => $parent->id,
-                    'parent_plan_id' => $parentPlan->id,
-                    'parent_plan_name' => $parentPlan->name,
+                    'depositor_plan_id' => $depositorPlan->id,
+                    'depositor_plan_name' => $depositorPlan->name,
                     'investor_id' => $user->id,
                     'deposit_id' => $deposit->id,
-                    'bonus_amount' => $directBonus,
+                    'fee_amount' => $feeAmount,
+                    'bonus_percentage' => $bonusPercentage,
+                    'bonus_amount' => $calculatedBonus,
                     'wallet_entry_id' => $walletEntry->id,
                     'wallet_id' => $wallet->id
                 ]);
@@ -633,7 +686,7 @@ class DepositController extends Controller
             $this->updateParentPlansFromInvestments($user);
             
             // Distribute referral bonuses based on invoice type
-            // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
+            // For "NEXA" only: Get depositor's plan from invoice, use plan's direct_bonus as percentage, calculate bonus as (fee_amount * (int)direct_bonus) / 100, give to first level parent only
             // For "NEXA Profit": 3-level bonuses using parent's active plan referral_level percentages
             // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
@@ -642,7 +695,7 @@ class DepositController extends Controller
                 }
                 
                 if ($invoiceType === 'NEXA') {
-                    // Special handling for NEXA only - get parent's active package and direct_bonus
+                    // Special handling for NEXA only - get depositor's plan and use direct_bonus as percentage
                     $this->distributeRentBotBonus($deposit);
                 } else {
                     // Use existing referral service for other types (including "NEXA Profit" and "profit invoice")
@@ -857,7 +910,7 @@ class DepositController extends Controller
                     $this->updateParentPlansFromInvestments($user);
                     
                     // Distribute referral bonuses based on invoice type
-                    // For "NEXA" only: Get parent's active package and direct_bonus, give to first level parent only
+                    // For "NEXA" only: Get depositor's plan from invoice, use plan's direct_bonus as percentage, calculate bonus as (fee_amount * (int)direct_bonus) / 100, give to first level parent only
                     // For "NEXA Profit": 3-level bonuses using parent's active plan referral_level percentages
                     // For "profit invoice": 3-level bonuses using referral_level percentages
                     try {
@@ -871,7 +924,7 @@ class DepositController extends Controller
                         }
                         
                         if ($invoiceType === 'NEXA') {
-                            // Special handling for NEXA only - get parent's active package and direct_bonus
+                            // Special handling for NEXA only - get depositor's plan and use direct_bonus as percentage
                             $this->distributeRentBotBonus($deposit);
                         } else {
                             // Use existing referral service for other types (including "NEXA Profit" and "profit invoice")

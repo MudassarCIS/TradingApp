@@ -23,8 +23,20 @@ class ReferralController extends Controller
         
         // Get referral statistics
         $referralCount = $user->referredUsers()->count();
-        $totalCommission = $user->referrals()->sum('total_commission');
-        $pendingCommission = $user->referrals()->sum('pending_commission');
+        
+        // Get commission statistics from customers_wallet table
+        // Total Commission Earned: Sum of all debit amounts for logged-in user
+        $totalDebit = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'debit')
+            ->sum('amount') ?? 0;
+        
+        // Available Commission Balance: Total debit - Total credit (actual balance available for withdrawal)
+        $totalCredit = CustomersWallet::where('user_id', $user->id)
+            ->where('transaction_type', 'credit')
+            ->sum('amount') ?? 0;
+        
+        $totalCommission = $totalDebit;
+        $pendingCommission = max(0, $totalDebit - $totalCredit); // Ensure non-negative
         
         // Get referral tree (up to 3 levels)
         $referralTree = $this->buildReferralTree($user, 3);
@@ -174,7 +186,8 @@ class ReferralController extends Controller
     
     /**
      * Get 3 levels of parents with their bonus wallet amounts
-     * Bonuses are from current user's investment payments (buy plan) or profit invoice payments
+     * Bonuses are from current user's approved deposits and profits
+     * Calculated from customers_wallet table using caused_by_user_id column
      */
     protected function getParentsWithBonuses(User $user): array
     {
@@ -187,10 +200,12 @@ class ReferralController extends Controller
         // Get first parent
         $firstParent = $this->getParent($user->id);
         if ($firstParent) {
-            // Get bonuses caused by this user's payments (investment or profit)
+            // Get bonuses caused by this user's approved deposits and profits
+            // Only sum DEBIT transactions (credits to parent), exclude CREDIT transactions
+            // Include both 'Deposit' (NEXA deposit bonuses) and 'Profit' (profit invoice bonuses)
             $firstParentBonus = CustomersWallet::where('user_id', $firstParent->id)
-                ->where('payment_type', 'bonus')
-                ->where('transaction_type', 'debit')
+                ->whereIn('payment_type', ['Deposit', 'Profit'])
+                ->where('transaction_type', 'debit') // Only debit transactions (money going to parent)
                 ->where('caused_by_user_id', $user->id)
                 ->sum('amount');
             
@@ -202,10 +217,11 @@ class ReferralController extends Controller
             // Get second parent
             $secondParent = $this->getParent($firstParent->id);
             if ($secondParent) {
-                // Get bonuses caused by this user's payments
+                // Get bonuses caused by this user's approved deposits and profits
+                // Only sum DEBIT transactions (credits to parent), exclude CREDIT transactions
                 $secondParentBonus = CustomersWallet::where('user_id', $secondParent->id)
-                    ->where('payment_type', 'bonus')
-                    ->where('transaction_type', 'debit')
+                    ->whereIn('payment_type', ['Deposit', 'Profit'])
+                    ->where('transaction_type', 'debit') // Only debit transactions (money going to parent)
                     ->where('caused_by_user_id', $user->id)
                     ->sum('amount');
                 
@@ -217,10 +233,11 @@ class ReferralController extends Controller
                 // Get third parent
                 $thirdParent = $this->getParent($secondParent->id);
                 if ($thirdParent) {
-                    // Get bonuses caused by this user's payments
+                    // Get bonuses caused by this user's approved deposits and profits
+                    // Only sum DEBIT transactions (credits to parent), exclude CREDIT transactions
                     $thirdParentBonus = CustomersWallet::where('user_id', $thirdParent->id)
-                        ->where('payment_type', 'bonus')
-                        ->where('transaction_type', 'debit')
+                        ->whereIn('payment_type', ['Deposit', 'Profit'])
+                        ->where('transaction_type', 'debit') // Only debit transactions (money going to parent)
                         ->where('caused_by_user_id', $user->id)
                         ->sum('amount');
                     

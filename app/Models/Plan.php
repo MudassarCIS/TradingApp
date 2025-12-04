@@ -10,6 +10,7 @@ class Plan extends Model
         'name',
         'investment_amount',
         'joining_fee',
+        'fee_percentage',
         'bots_allowed',
         'trades_per_day',
         'direct_bonus',
@@ -24,6 +25,7 @@ class Plan extends Model
     protected $casts = [
         'investment_amount' => 'decimal:2',
         'joining_fee' => 'decimal:2',
+        'fee_percentage' => 'decimal:2',
         'direct_bonus' => 'decimal:2',
         'referral_level_1' => 'decimal:2',
         'referral_level_2' => 'decimal:2',

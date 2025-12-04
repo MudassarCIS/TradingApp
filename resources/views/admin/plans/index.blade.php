@@ -29,6 +29,7 @@
                                     <th>Name</th>
                                     <th>Investment Amount</th>
                                     <th>Joining Fee</th>
+                                    <th>Fee Percentage</th>
                                     <th>Bots Allowed</th>
                                     <th>Trades/Day</th>
                                     <th>Direct Bonus</th>
@@ -56,6 +57,7 @@ $(document).ready(function() {
             {data: 'name', name: 'name'},
             {data: 'investment_amount', name: 'investment_amount'},
             {data: 'joining_fee', name: 'joining_fee'},
+            {data: 'fee_percentage', name: 'fee_percentage'},
             {data: 'bots_allowed', name: 'bots_allowed'},
             {data: 'trades_per_day', name: 'trades_per_day'},
             {data: 'direct_bonus', name: 'direct_bonus'},
