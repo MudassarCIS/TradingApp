@@ -30,29 +30,17 @@ class UserInvoice extends Model
     {
         parent::boot();
 
-        static::creating(function ($invoice) {
+        // Generate invoice_id after the invoice is created
+        // Format: INV-00.id (e.g., INV-0001, INV-0010, INV-0100)
+        static::created(function ($invoice) {
             if (empty($invoice->invoice_id)) {
-                $invoice->invoice_id = static::generateUniqueInvoiceId();
+                // Generate invoice_id using the invoice's database ID
+                // Format: INV-0001, INV-0010, INV-0100, INV-1000, etc.
+                $invoiceId = 'INV-' . str_pad($invoice->id, 4, '0', STR_PAD_LEFT);
+                // Use updateQuietly to prevent triggering events again
+                $invoice->updateQuietly(['invoice_id' => $invoiceId]);
             }
         });
-    }
-
-    /**
-     * Generate a unique invoice ID
-     * Format: INV-YYYYMMDD-HHMMSS-XXXX
-     * Where XXXX is a random 4-digit number
-     */
-    public static function generateUniqueInvoiceId(): string
-    {
-        do {
-            $year = date('Y');
-            $date = date('Ymd');
-            $time = date('His');
-            $random = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
-            $invoiceId = "INV-{$date}-{$time}-{$random}";
-        } while (static::where('invoice_id', $invoiceId)->exists());
-
-        return $invoiceId;
     }
 
     public function user(): BelongsTo

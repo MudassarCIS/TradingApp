@@ -168,6 +168,87 @@
     .info-alert li {
         margin-bottom: 0.5rem;
     }
+    
+    .help-icon {
+        cursor: pointer;
+        color: #11998e;
+        font-size: 1rem;
+        margin-left: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .help-icon:hover {
+        color: #38ef7d;
+        transform: scale(1.1);
+    }
+    
+    .popover {
+        max-width: 700px;
+        width: 700px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: none;
+        border-radius: 10px;
+    }
+    
+    .popover-header {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        border: none;
+        border-radius: 10px 10px 0 0;
+        font-weight: 700;
+        padding: 12px 16px;
+    }
+    
+    .popover-body {
+        padding: 16px;
+        color: #495057;
+        line-height: 1.6;
+        max-height: 500px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .popover-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .popover-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .popover-body::-webkit-scrollbar-thumb {
+        background: #11998e;
+        border-radius: 10px;
+    }
+    
+    .popover-body::-webkit-scrollbar-thumb:hover {
+        background: #38ef7d;
+    }
+    
+    .popover-body h6 {
+        color: #11998e;
+        font-weight: 600;
+        margin-top: 15px;
+        margin-bottom: 8px;
+    }
+    
+    .popover-body ul {
+        margin-bottom: 12px;
+        padding-left: 20px;
+    }
+    
+    .popover-body li {
+        margin-bottom: 6px;
+    }
+    
+    .popover-body code {
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #d63384;
+    }
 </style>
 @endpush
 
@@ -328,7 +409,16 @@
             <!-- Transaction ID and Network -->
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="trans_id" class="form-label">Transaction ID <span class="text-danger">*</span></label>
+                    <label for="trans_id" class="form-label">
+                        Transaction ID <span class="text-danger">*</span>
+                        <i class="bi bi-question-circle-fill help-icon" 
+                           id="txid-help-icon"
+                           data-bs-toggle="popover" 
+                           data-bs-trigger="click" 
+                           data-bs-placement="top" 
+                           data-bs-html="true"
+                           style="cursor: pointer; color: #11998e; font-size: 1rem; margin-left: 5px;"></i>
+                    </label>
                     <input type="text" class="form-control" id="trans_id" name="trans_id" value="{{ old('trans_id') }}" placeholder="Enter blockchain transaction ID" required>
                     <div class="form-text">Enter the transaction hash/ID from your wallet</div>
                 </div>
@@ -509,6 +599,51 @@
                     invoiceTitleDisplay.closest('#invoice-title-row').hide();
                 }
             }
+        });
+        
+        // Initialize Bootstrap popover for help icon
+        var txidHelpContent = '<div style="text-align: left; max-width: 100%;">' +
+            '<h6 style="font-weight: 700; margin-bottom: 10px; color: #11998e;">WHAT IS USDT TRANSACTION ID (TXID)?</h6>' +
+            '<p style="margin-bottom: 12px;">A USDT transaction ID (TXID), also known as a transaction hash, is a unique alphanumeric identifier that is generated for every USDT transaction recorded on a blockchain. It acts as a permanent digital receipt, proving that a specific transfer of digital assets occurred.</p>' +
+            '<h6 style="font-weight: 600; margin-bottom: 8px; margin-top: 15px;">Sample TRC20 (Tron) USDT TXID:</h6>' +
+            '<p style="margin-bottom: 8px;">A sample TXID for a TRC20 USDT transaction would look like a 64-character hexadecimal string.</p>' +
+            '<p style="margin-bottom: 12px;"><strong>• Example:</strong> <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em;">0f81d113d0a13809b43e5c9b6f3c5005b5f44e1388147d3d7b973c9f2b1d3d6e</code></p>' +
+            '<h6 style="font-weight: 600; margin-bottom: 8px; margin-top: 15px;">Key characteristics:</h6>' +
+            '<ul style="margin-bottom: 12px; padding-left: 20px;">' +
+                '<li style="margin-bottom: 6px;"><strong>Unique to each transaction:</strong> Every transaction on the blockchain has its own TXID.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Varies by network:</strong> Since USDT can exist on multiple networks (e.g., TRC-20, ERC-20), the transaction ID will be unique to the network where the transaction was performed.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Contains transaction details:</strong> The TXID is created by a cryptographic hash function that processes transaction information, such as the sender, recipient, amount, and timestamp.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Used for verification:</strong> Anyone can use a blockchain explorer, such as TronScan for TRC-20 transactions, to search for a TXID and verify the transaction\'s details and status.</li>' +
+            '</ul>' +
+            '<h6 style="font-weight: 600; margin-bottom: 8px; margin-top: 15px;">How to find a USDT transaction ID:</h6>' +
+            '<ul style="margin-bottom: 0; padding-left: 20px;">' +
+                '<li style="margin-bottom: 6px;"><strong>On a centralized exchange:</strong> You can find the TXID in the "Transaction History" or "Order History" section of your account after the transaction is processed.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>In a crypto wallet:</strong> After sending crypto from your wallet, you can find the TXID by looking up the transaction details. Many wallets provide a "view on explorer" option that links directly to the transaction details.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>On a blockchain explorer:</strong> By using a public blockchain explorer specific to the network (e.g., TronScan for TRC-20), you can enter your wallet address to see your transaction history and find the corresponding TXIDs.</li>' +
+            '</ul>' +
+        '</div>';
+        
+        var txidHelpIcon = document.getElementById('txid-help-icon');
+        if (txidHelpIcon) {
+            var txidPopover = new bootstrap.Popover(txidHelpIcon, {
+                html: true,
+                trigger: 'click',
+                placement: 'top',
+                container: 'body',
+                content: txidHelpContent
+            });
+        }
+        
+        // Close popover when clicking outside
+        $(document).on('click', function(e) {
+            $('[data-bs-toggle="popover"]').each(function () {
+                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                    var popover = bootstrap.Popover.getInstance(this);
+                    if (popover) {
+                        popover.hide();
+                    }
+                }
+            });
         });
         
         // Form submission

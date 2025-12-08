@@ -249,26 +249,19 @@ class WalletController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:20',
             'address' => 'required|string',
-            'transaction_password' => 'required|string',
+            'transaction_password' => 'nullable|string',
         ]);
 
         $user = Auth::user();
         
-        // Calculate balance from customers_wallets table
-        $totalDebits = CustomersWallet::where('user_id', $user->id)
-            ->where('transaction_type', 'debit')
-            ->sum('amount');
-        
-        $totalCredits = CustomersWallet::where('user_id', $user->id)
-            ->where('transaction_type', 'credit')
-            ->sum('amount');
-        
-        // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
-        $availableBalance = max(0, round($totalDebits - $totalCredits, 2));
-        
-        // Verify transaction password
-        if (!Hash::check($request->transaction_password, $user->profile->transaction_password)) {
-            return back()->withErrors(['transaction_password' => 'Invalid transaction password']);
+        // Verify transaction password only if provided
+        if ($request->filled('transaction_password')) {
+            // Check if user has a transaction password set
+            if ($user->profile && $user->profile->transaction_password) {
+                if (!Hash::check($request->transaction_password, $user->profile->transaction_password)) {
+                    return back()->withErrors(['transaction_password' => 'Invalid transaction password']);
+                }
+            }
         }
 
         // Check minimum withdrawal amount
@@ -276,14 +269,6 @@ class WalletController extends Controller
             return back()->withErrors(['amount' => 'Minimum withdrawal is 20 USDT']);
         }
 
-        // Check if user has sufficient balance from customers_wallets
-        $withdrawalFee = 2; // 2 USDT withdrawal fee
-        $totalRequired = $request->amount + $withdrawalFee;
-        
-        if ($totalRequired > $availableBalance) {
-            return back()->withErrors(['amount' => 'Insufficient balance. You need at least ' . number_format($totalRequired, 2) . ' USDT (including ' . $withdrawalFee . ' USDT fee)']);
-        }
-        
         // Check withdrawal limit per month
         $setting = \App\Models\Setting::get();
         $withdrawalLimit = $setting->withdrawal_limit_per_month ?? 5;
@@ -299,42 +284,101 @@ class WalletController extends Controller
         if ($withdrawalsThisMonth >= $withdrawalLimit) {
             return back()->withErrors(['amount' => 'You have reached the monthly withdrawal limit of ' . $withdrawalLimit . ' withdrawals. Please wait until next month.']);
         }
-        
-        // Check if user can make multiple withdrawals (if balance only allows one, prevent multiple)
-        $remainingBalance = $availableBalance - $totalRequired;
-        if ($remainingBalance < 20 && $withdrawalsThisMonth > 0) {
-            return back()->withErrors(['amount' => 'You can only make one withdrawal request. Your remaining balance after this withdrawal would be less than the minimum withdrawal amount.']);
+
+        $withdrawalFee = 2; // 2 USDT withdrawal fee
+        $totalRequired = $request->amount + $withdrawalFee;
+
+        // Use database transaction to prevent multiple simultaneous withdrawals and ensure data integrity
+        try {
+            $result = DB::transaction(function () use ($user, $request, $totalRequired, $withdrawalFee) {
+                // Check for existing pending withdrawals - prevent multiple simultaneous withdrawals
+                $existingPendingWithdrawal = Transaction::where('user_id', $user->id)
+                    ->where('type', 'withdrawal')
+                    ->where('status', 'pending')
+                    ->lockForUpdate() // Lock row to prevent concurrent withdrawals
+                    ->first();
+                
+                if ($existingPendingWithdrawal) {
+                    throw new \Exception('You already have a pending withdrawal request. Please wait for it to be processed before creating a new one.');
+                }
+
+                // Calculate balance from customers_wallets table (inside transaction for consistency)
+                $totalDebits = CustomersWallet::where('user_id', $user->id)
+                    ->where('transaction_type', 'debit')
+                    ->sum('amount');
+                
+                $totalCredits = CustomersWallet::where('user_id', $user->id)
+                    ->where('transaction_type', 'credit')
+                    ->sum('amount');
+                
+                // Calculate available balance: (total debits - total credits), rounded to 2 decimals, minimum 0
+                $availableBalance = max(0, round($totalDebits - $totalCredits, 2));
+                
+                // Check if user has sufficient balance
+                if ($totalRequired > $availableBalance) {
+                    throw new \Exception('Insufficient balance. You need at least ' . number_format($totalRequired, 2) . ' USDT (including ' . $withdrawalFee . ' USDT fee)');
+                }
+
+                // Create withdrawal transaction first (with temporary transaction_id)
+                $transaction = Transaction::create([
+                    'user_id' => $user->id,
+                    'transaction_id' => 'TEMP-' . time(), // Temporary ID, will be updated below
+                    'type' => 'withdrawal',
+                    'status' => 'pending',
+                    'currency' => 'USDT',
+                    'amount' => $request->amount,
+                    'fee' => $withdrawalFee,
+                    'net_amount' => $request->amount - $withdrawalFee,
+                    'to_address' => $request->address,
+                    'notes' => 'Withdrawal request',
+                ]);
+
+                // Generate withdrawal_id with format WTD-00.id using the inserted transaction ID
+                $withdrawalId = 'WTD-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT);
+                $transaction->updateQuietly(['transaction_id' => $withdrawalId]);
+                $transaction->refresh();
+
+                // Create entry in customers_wallets (credit - money going out)
+                $walletEntry = CustomersWallet::create([
+                    'user_id' => $user->id,
+                    'amount' => $request->amount, // Only the withdrawal amount (not including fee in customers_wallets)
+                    'currency' => 'USDT',
+                    'payment_type' => 'withdraw', // Use lowercase to match other entries
+                    'transaction_type' => 'credit',
+                    'related_id' => $transaction->id,
+                ]);
+
+                // Verify both entries were created successfully
+                if (!$transaction || !$walletEntry) {
+                    throw new \Exception('Failed to create withdrawal records. Please try again.');
+                }
+
+                // Verify transaction has withdrawal_id
+                $transaction->refresh();
+                if (empty($transaction->transaction_id) || !str_starts_with($transaction->transaction_id, 'WTD-')) {
+                    throw new \Exception('Failed to generate withdrawal ID. Please try again.');
+                }
+
+                return [
+                    'transaction' => $transaction,
+                    'wallet_entry' => $walletEntry,
+                    'withdrawal_id' => $transaction->transaction_id
+                ];
+            });
+
+            return redirect()->route('customer.wallet.withdraw')
+                ->with('success', 'Withdrawal request submitted successfully! Your withdrawal ID is: ' . $result['withdrawal_id'] . '. Processing time: 2-3 Days.');
+
+        } catch (\Exception $e) {
+            // Rollback is automatic in DB::transaction if exception is thrown
+            Log::error('Withdrawal creation failed: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'amount' => $request->amount,
+                'address' => $request->address,
+            ]);
+
+            return back()->withErrors(['amount' => $e->getMessage()]);
         }
-
-        // Get wallet for backward compatibility
-        $wallet = $user->getMainWallet('USDT');
-
-        // Create withdrawal transaction
-        $transaction = Transaction::create([
-            'user_id' => $user->id,
-            'transaction_id' => (new Transaction())->generateTransactionId(),
-            'type' => 'withdrawal',
-            'status' => 'pending',
-            'currency' => 'USDT',
-            'amount' => $request->amount,
-            'fee' => $withdrawalFee, // 2 USDT withdrawal fee
-            'net_amount' => $request->amount - $withdrawalFee,
-            'to_address' => $request->address,
-            'notes' => 'Withdrawal request',
-        ]);
-
-        // Create entry in customers_wallets (credit - money going out)
-        CustomersWallet::create([
-            'user_id' => $user->id,
-            'amount' => $totalRequired, // Amount + fee
-            'currency' => 'USDT',
-            'payment_type' => 'withdraw',
-            'transaction_type' => 'credit',
-            'related_id' => $transaction->id,
-        ]);
-
-        return redirect()->route('customer.wallet.withdraw')
-            ->with('success', 'Withdrawal request submitted successfully. Processing time: 2-3 Days.');
     }
     
     /**
@@ -344,6 +388,7 @@ class WalletController extends Controller
     {
         $user = Auth::user();
         
+        // Show ONLY current user's withdrawals
         $query = Transaction::where('user_id', $user->id)
             ->where('type', 'withdrawal')
             ->select([
@@ -356,7 +401,8 @@ class WalletController extends Controller
                 'status',
                 'created_at',
                 'processed_at'
-            ]);
+            ])
+            ->orderBy('created_at', 'desc'); // Show newest first
         
         return DataTables::of($query)
             ->addColumn('amount', function ($transaction) {

@@ -105,6 +105,87 @@
         margin-bottom: 0.25rem;
         font-size: 0.9rem;
     }
+    
+    .help-icon {
+        cursor: pointer;
+        color: #ff416c;
+        font-size: 1rem;
+        margin-left: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .help-icon:hover {
+        color: #ff4b2b;
+        transform: scale(1.1);
+    }
+    
+    .popover {
+        max-width: 700px;
+        width: 700px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: none;
+        border-radius: 10px;
+    }
+    
+    .popover-header {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        color: white;
+        border: none;
+        border-radius: 10px 10px 0 0;
+        font-weight: 700;
+        padding: 12px 16px;
+    }
+    
+    .popover-body {
+        padding: 16px;
+        color: #495057;
+        line-height: 1.6;
+        max-height: 500px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .popover-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .popover-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .popover-body::-webkit-scrollbar-thumb {
+        background: #ff416c;
+        border-radius: 10px;
+    }
+    
+    .popover-body::-webkit-scrollbar-thumb:hover {
+        background: #ff4b2b;
+    }
+    
+    .popover-body h6 {
+        color: #ff416c;
+        font-weight: 600;
+        margin-top: 15px;
+        margin-bottom: 8px;
+    }
+    
+    .popover-body ul {
+        margin-bottom: 12px;
+        padding-left: 20px;
+    }
+    
+    .popover-body li {
+        margin-bottom: 6px;
+    }
+    
+    .popover-body code {
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #d63384;
+    }
 </style>
 @endpush
 
@@ -186,7 +267,16 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="address" class="form-label">Withdrawal Address</label>
+                    <label for="address" class="form-label">
+                        Withdrawal Address
+                        <i class="bi bi-question-circle-fill help-icon" 
+                           id="withdrawal-address-help-icon"
+                           data-bs-toggle="popover" 
+                           data-bs-trigger="click" 
+                           data-bs-placement="top" 
+                           data-bs-html="true"
+                           style="cursor: pointer; color: #ff416c; font-size: 1rem; margin-left: 5px;"></i>
+                    </label>
                     <input type="text" 
                            class="form-control @error('address') is-invalid @enderror" 
                            id="address" 
@@ -200,13 +290,13 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="transaction_password" class="form-label">Transaction Password</label>
+                    <label for="transaction_password" class="form-label">Transaction Password <span class="text-muted">(Optional)</span></label>
                     <input type="password" 
                            class="form-control @error('transaction_password') is-invalid @enderror" 
                            id="transaction_password" 
                            name="transaction_password" 
-                           placeholder="Enter your transaction password" 
-                           required>
+                           placeholder="Enter your transaction password (optional)">
+                    <div class="form-text">If you have a transaction password set, enter it here. Otherwise, you can skip this field.</div>
                 </div>
                 
                 <div class="fee-info">
@@ -319,8 +409,51 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
-    // Initialize DataTable for withdrawals
+    // Initialize Bootstrap popover for withdrawal address help icon
     $(document).ready(function() {
+        var withdrawalAddressHelpContent = '<div style="text-align: left; max-width: 100%;">' +
+            '<h6 style="font-weight: 700; margin-bottom: 10px; color: #ff416c;">How to get a USDT TRC20 address</h6>' +
+            '<p style="margin-bottom: 12px;">You can get a USDT TRC20 address from various cryptocurrency wallets and exchanges:</p>' +
+            '<ul style="margin-bottom: 12px; padding-left: 20px;">' +
+                '<li style="margin-bottom: 6px;"><strong>Crypto Exchanges:</strong> Major exchanges like Binance and KuCoin allow you to generate a USDT TRC20 deposit address. You select USDT, choose the TRC20 (TRON) network, and the address is provided.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Software Wallets:</strong> Wallets like Trust Wallet and TronLink support the TRON network. After setting up a wallet, you can find the TRC20 receive address within the app.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Hardware Wallets:</strong> For more secure storage, hardware wallets like Ledger can generate and manage TRC20 addresses.</li>' +
+            '</ul>' +
+            '<h6 style="font-weight: 600; margin-bottom: 8px; margin-top: 15px;">Example of a USDT TRC20 address</h6>' +
+            '<p style="margin-bottom: 12px;">A TRC20 address is a unique identifier, and an example would look something like this: <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em;">TYkGf574wXjYh8p4b8iM7a3z6c9d2e1F2J</code>. It is important to always use your own unique wallet address for transactions.</p>' +
+            '<h6 style="font-weight: 600; margin-bottom: 8px; margin-top: 15px;">Important considerations</h6>' +
+            '<ul style="margin-bottom: 0; padding-left: 20px;">' +
+                '<li style="margin-bottom: 6px;"><strong>Network Compatibility:</strong> Never send TRC20 USDT to a wallet address on a different network, such as ERC20 (Ethereum). Sending to the wrong network will result in the permanent loss of your funds.</li>' +
+                '<li style="margin-bottom: 6px;"><strong>Low Fees:</strong> The TRON network is popular for USDT transactions due to its low fees and fast speeds compared to the Ethereum network.</li>' +
+            '</ul>' +
+        '</div>';
+        
+        var withdrawalAddressHelpIcon = document.getElementById('withdrawal-address-help-icon');
+        if (withdrawalAddressHelpIcon) {
+            var withdrawalAddressPopover = new bootstrap.Popover(withdrawalAddressHelpIcon, {
+                html: true,
+                trigger: 'click',
+                placement: 'top',
+                container: 'body',
+                content: withdrawalAddressHelpContent
+            });
+        }
+        
+        // Close popover when clicking outside
+        $(document).on('click', function(e) {
+            if (withdrawalAddressHelpIcon) {
+                if (!$(withdrawalAddressHelpIcon).is(e.target) && 
+                    $(withdrawalAddressHelpIcon).has(e.target).length === 0 && 
+                    $('.popover').has(e.target).length === 0) {
+                    var popover = bootstrap.Popover.getInstance(withdrawalAddressHelpIcon);
+                    if (popover) {
+                        popover.hide();
+                    }
+                }
+            }
+        });
+        
+        // Initialize DataTable for withdrawals
         $('#withdrawals-table').DataTable({
             processing: true,
             serverSide: true,

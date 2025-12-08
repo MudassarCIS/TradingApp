@@ -37,6 +37,7 @@ class WithdrawalController extends Controller
      */
     public function getWithdrawalsData(Request $request)
     {
+        // Show ALL withdrawals for admin (no user filter)
         $query = Transaction::with('user')
             ->where('type', 'withdrawal')
             ->select([
@@ -52,7 +53,8 @@ class WithdrawalController extends Controller
                 'notes',
                 'created_at',
                 'processed_at'
-            ]);
+            ])
+            ->orderBy('created_at', 'desc'); // Show newest first
         
         // Apply status filter
         if ($request->has('status') && !empty($request->status)) {

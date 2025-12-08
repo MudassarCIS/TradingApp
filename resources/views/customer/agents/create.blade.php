@@ -58,14 +58,14 @@
                 <div id="nexa-calculator-container" style="display: none;">
                     <div class="card mb-4 border-primary">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>NEXA Custom Trade Calculator</h5>
+                            <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>NEXA JOINING FEE Calculator</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="custom-investment-amount" class="form-label">
-                                            <strong>Enter Custom Trade Amount (USDT)</strong>
+                                            <strong>Enter Trade Amount (USDT)</strong>
                                         </label>
                                         <div class="input-group">
                                             <span class="input-group-text">$</span>
