@@ -22,35 +22,35 @@ class InvoiceController extends Controller
     public function getInvoicesData()
     {
         $user = Auth::user();
-        $invoices = $user->invoices()->with('plan')->latest()->get();
-
-        // Get all active PEX packages ordered by amount ASC for plan name matching
-        $pexPackages = RentBotPackage::active()->orderBy('amount', 'asc')->get();
+        $invoices = $user->invoices()->with(['plan', 'rentBotPackage'])->latest()->get();
 
         return DataTables::of($invoices)
             ->addColumn('formatted_invoice_id', function ($invoice) {
                 return $invoice->formatted_invoice_id;
             })
-            ->addColumn('formatted_invoice_type', function ($invoice) use ($user, $pexPackages) {
+            ->addColumn('formatted_invoice_type', function ($invoice) use ($user) {
                 $type = $invoice->invoice_type;
                 $planName = null;
                 
                 if ($type === 'PEX') {
-                    // For PEX, match invoice amount with rent_bot_packages and assign name based on order
-                    $invoiceAmount = (float) $invoice->amount;
-                    $matchedPackage = $pexPackages->first(function ($package) use ($invoiceAmount) {
-                        return abs((float) $package->amount - $invoiceAmount) < 0.01; // Allow small floating point differences
-                    });
-                    
-                    if ($matchedPackage) {
-                        // Find the index of the matched package (0-based)
-                        $index = $pexPackages->search(function ($package) use ($matchedPackage) {
-                            return $package->id === $matchedPackage->id;
-                        });
-                        // Assign name: PEX-1, PEX-2, etc. (index + 1)
-                        // search() returns false if not found, so check for that
-                        if ($index !== false) {
-                            $planName = 'PEX-' . ($index + 1);
+                    // For PEX, get package_name from database relationship
+                    if ($invoice->rent_bot_package_id) {
+                        // Check if relationship is loaded
+                        if ($invoice->relationLoaded('rentBotPackage') && $invoice->rentBotPackage) {
+                            $planName = $invoice->rentBotPackage->package_name;
+                        } else {
+                            // Load package if relationship not loaded
+                            $package = RentBotPackage::find($invoice->rent_bot_package_id);
+                            if ($package && $package->package_name) {
+                                $planName = $package->package_name;
+                            }
+                        }
+                    } elseif ($invoice->plan_id) {
+                        // Fallback: if rent_bot_package_id is empty, check plan_id
+                        // Find PEX package where id matches plan_id
+                        $package = RentBotPackage::find($invoice->plan_id);
+                        if ($package && $package->package_name) {
+                            $planName = $package->package_name;
                         }
                     }
                 } else {

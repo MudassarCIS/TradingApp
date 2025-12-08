@@ -12,6 +12,7 @@ class RentBotPackage extends Model
     protected $table = 'rent_bot_packages';
 
     protected $fillable = [
+        'package_name',
         'allowed_bots',
         'allowed_trades',
         'amount',

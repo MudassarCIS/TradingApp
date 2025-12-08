@@ -20,18 +20,19 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="allowed_bots">Allowed No. of Bots <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control @error('allowed_bots') is-invalid @enderror" id="allowed_bots" name="allowed_bots" value="{{ old('allowed_bots', $package->allowed_bots) }}" required>
-                                    @error('allowed_bots')
+                                    <label for="package_name">Package Name <span class="text-muted">(e.g., PEX-1, PEX-2)</span></label>
+                                    <input type="text" class="form-control @error('package_name') is-invalid @enderror" id="package_name" name="package_name" value="{{ old('package_name', $package->package_name) }}" placeholder="e.g., PEX-1">
+                                    @error('package_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                    <small class="form-text text-muted">Leave empty to auto-generate based on order</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="allowed_trades">Allowed No. of Trades <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control @error('allowed_trades') is-invalid @enderror" id="allowed_trades" name="allowed_trades" value="{{ old('allowed_trades', $package->allowed_trades) }}" required>
-                                    @error('allowed_trades')
+                                    <label for="allowed_bots">Allowed No. of Bots <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control @error('allowed_bots') is-invalid @enderror" id="allowed_bots" name="allowed_bots" value="{{ old('allowed_bots', $package->allowed_bots) }}" required>
+                                    @error('allowed_bots')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -41,6 +42,15 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
+                                    <label for="allowed_trades">Allowed No. of Trades <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control @error('allowed_trades') is-invalid @enderror" id="allowed_trades" name="allowed_trades" value="{{ old('allowed_trades', $package->allowed_trades) }}" required>
+                                    @error('allowed_trades')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
                                     <label for="amount">Package Amount ($) <span class="text-danger">*</span></label>
                                     <input type="number" step="0.01" class="form-control @error('amount') is-invalid @enderror" id="amount" name="amount" value="{{ old('amount', $package->amount) }}" required>
                                     @error('amount')
@@ -48,6 +58,9 @@
                                     @enderror
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="validity">Package Validity <span class="text-danger">*</span></label>

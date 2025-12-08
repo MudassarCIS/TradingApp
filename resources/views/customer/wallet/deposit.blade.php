@@ -252,11 +252,51 @@
                     <select class="form-select" id="invoice-dropdown" name="invoice_dropdown">
                         <option value="">Select an invoice (optional)</option>
                         @foreach($unpaidInvoices as $invoice)
+                            @php
+                                $displayName = '';
+                                if ($invoice->invoice_type === 'NEXA') {
+                                    if ($invoice->plan) {
+                                        $displayName = ' - [' . $invoice->plan->name . ']';
+                                    } else {
+                                        // Show invoice type if no plan
+                                        $displayName = ' - ' . $invoice->invoice_type;
+                                    }
+                                } elseif ($invoice->invoice_type === 'PEX') {
+                                    if ($invoice->rentBotPackage && $invoice->rentBotPackage->package_name) {
+                                        $displayName = ' - ' . $invoice->rentBotPackage->package_name;
+                                    } elseif ($invoice->rent_bot_package_id) {
+                                        // Fallback: try to get package name by matching amount
+                                        $matchedPackage = \App\Models\RentBotPackage::where('id', $invoice->rent_bot_package_id)->first();
+                                        if ($matchedPackage && $matchedPackage->package_name) {
+                                            $displayName = ' - ' . $matchedPackage->package_name;
+                                        } else {
+                                            // Show invoice type if no package name found
+                                            $displayName = ' - ' . $invoice->invoice_type;
+                                        }
+                                    } else {
+                                        // Fallback: match by amount and get package name
+                                        $matchedPackage = \App\Models\RentBotPackage::where('amount', $invoice->amount)
+                                            ->orderBy('id', 'asc')
+                                            ->first();
+                                        if ($matchedPackage && $matchedPackage->package_name) {
+                                            $displayName = ' - ' . $matchedPackage->package_name;
+                                        } else {
+                                            // Show invoice type if no package found
+                                            $displayName = ' - ' . $invoice->invoice_type;
+                                        }
+                                    }
+                                } elseif ($invoice->invoice_type === 'Upcoming NEXA Profit') {
+                                    $displayName = ' - Upcoming NEXA Profit';
+                                } else {
+                                    // For any other invoice type, show it
+                                    $displayName = ' - ' . $invoice->invoice_type;
+                                }
+                            @endphp
                             <option value="{{ $invoice->id }}" 
                                 data-amount="{{ $invoice->amount }}"
                                 data-invoice-title="{{ $invoice->invoice_type }}"
                                 {{ old('invoice_id', $invoiceId) == $invoice->id ? 'selected' : '' }}>
-                                Invoice #{{ $invoice->id }} (${{ number_format($invoice->amount, 2) }})
+                                #{{ $invoice->invoice_id ?? $invoice->id }} (${{ number_format($invoice->amount, 2) }}){{ $displayName }}
                             </option>
                         @endforeach
                     </select>

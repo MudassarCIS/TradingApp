@@ -82,7 +82,8 @@ class WalletController extends Controller
         // Fetch unpaid invoices for dropdown
         if ($invoiceId) {
             // If invoice_id is in URL, only show that specific invoice (if it's unpaid)
-            $selectedInvoice = UserInvoice::where('user_id', $user->id)
+            $selectedInvoice = UserInvoice::with(['plan', 'rentBotPackage'])
+                ->where('user_id', $user->id)
                 ->where('id', $invoiceId)
                 ->where('status', 'Unpaid')
                 ->first();
@@ -91,7 +92,8 @@ class WalletController extends Controller
             $unpaidInvoices = $selectedInvoice ? collect([$selectedInvoice]) : collect([]);
         } else {
             // If no invoice_id in URL, show all unpaid invoices
-            $unpaidInvoices = UserInvoice::where('user_id', $user->id)
+            $unpaidInvoices = UserInvoice::with(['plan', 'rentBotPackage'])
+                ->where('user_id', $user->id)
                 ->where('status', 'Unpaid')
                 ->orderBy('created_at', 'desc')
                 ->get();

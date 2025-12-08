@@ -31,6 +31,7 @@ class RentBotPackageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'package_name' => 'nullable|string|max:255|unique:rent_bot_packages,package_name',
             'allowed_bots' => 'required|integer|min:0',
             'allowed_trades' => 'required|integer|min:0',
             'amount' => 'required|numeric|min:0',
@@ -60,6 +61,7 @@ class RentBotPackageController extends Controller
     public function update(Request $request, RentBotPackage $rent_bot_package)
     {
         $validated = $request->validate([
+            'package_name' => 'nullable|string|max:255|unique:rent_bot_packages,package_name,' . $rent_bot_package->id,
             'allowed_bots' => 'required|integer|min:0',
             'allowed_trades' => 'required|integer|min:0',
             'amount' => 'required|numeric|min:0',

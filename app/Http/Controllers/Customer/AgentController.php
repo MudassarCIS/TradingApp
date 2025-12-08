@@ -172,8 +172,24 @@ class AgentController extends Controller
                 'buy_plan_details' => $planData
             ]);
             
+            // Find rent_bot_package_id for PEX invoices
+            $rentBotPackageId = null;
+            if ($botType === 'rent-bot' && isset($planData['id'])) {
+                // For PEX, find the rent_bot_package by ID
+                $rentBotPackageId = $planData['id'];
+            } elseif ($botType === 'rent-bot' && isset($planData['amount'])) {
+                // For PEX, find the rent_bot_package by amount
+                $matchedPackage = \App\Models\RentBotPackage::where('amount', $planData['amount'])
+                    ->orderBy('id', 'asc')
+                    ->first();
+                if ($matchedPackage) {
+                    $rentBotPackageId = $matchedPackage->id;
+                }
+            }
+            
             $invoice = $user->invoices()->create([
                 'plan_id' => $planId,
+                'rent_bot_package_id' => $rentBotPackageId,
                 'invoice_type' => $invoiceType,
                 'amount' => $amount,
                 'due_date' => now()->addDays(7),

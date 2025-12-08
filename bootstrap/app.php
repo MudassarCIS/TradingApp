@@ -35,4 +35,22 @@ return Application::configure(basePath: dirname(__DIR__))
             
             return redirect()->route('home')->with('error', 'Your session has expired. Please login again.');
         });
+        
+        // Handle Spatie Permission unauthorized exceptions
+        $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'error' => 'Access denied. You do not have the required role to access this resource.',
+                    'message' => $e->getMessage()
+                ], 403);
+            }
+            
+            // For web requests, redirect to appropriate dashboard based on user role
+            $user = auth()->user();
+            if ($user && $user->isCustomer()) {
+                return redirect()->route('customer.dashboard')->with('error', 'Access denied. You do not have permission to access this resource.');
+            }
+            
+            return redirect()->route('home')->with('error', 'Access denied. You do not have permission to access this resource.');
+        });
     })->create();

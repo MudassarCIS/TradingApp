@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Referral;
 use App\Models\User;
 use App\Models\CustomersWallet;
+use App\Models\Deposit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -55,6 +56,11 @@ class ReferralController extends Controller
         $level2Count = $this->getReferralCountByLevel($user, 2);
         $level3Count = $this->getReferralCountByLevel($user, 3);
         
+        // Get total investment for each level from deposits table
+        $level1TotalInvestment = $this->getTotalInvestmentByLevel($user, 1);
+        $level2TotalInvestment = $this->getTotalInvestmentByLevel($user, 2);
+        $level3TotalInvestment = $this->getTotalInvestmentByLevel($user, 3);
+        
         // Get 3 levels of parents with bonus amounts
         $parents = $this->getParentsWithBonuses($user);
         
@@ -69,6 +75,9 @@ class ReferralController extends Controller
             'level1Count',
             'level2Count',
             'level3Count',
+            'level1TotalInvestment',
+            'level2TotalInvestment',
+            'level3TotalInvestment',
             'referralLink',
             'qrCode',
             'parents'
@@ -166,19 +175,22 @@ class ReferralController extends Controller
     
     protected function getUserIdsAtLevel(User $user, int $targetLevel, int $currentLevel = 1)
     {
-        if ($currentLevel >= $targetLevel) {
-            return [$user->id];
+        // If we've reached the target level, return empty (we want users at this level, not the current user)
+        if ($currentLevel > $targetLevel) {
+            return [];
         }
         
+        // If we're at the target level, we want the direct referrals of the current user
+        if ($currentLevel === $targetLevel) {
+            return $user->referredUsers()->pluck('id')->toArray();
+        }
+        
+        // Otherwise, recursively get referrals from the next level
         $userIds = [];
         $referrals = $user->referredUsers;
         
         foreach ($referrals as $referral) {
-            if ($currentLevel + 1 === $targetLevel) {
-                $userIds[] = $referral->id;
-            } else {
-                $userIds = array_merge($userIds, $this->getUserIdsAtLevel($referral, $targetLevel, $currentLevel + 1));
-            }
+            $userIds = array_merge($userIds, $this->getUserIdsAtLevel($referral, $targetLevel, $currentLevel + 1));
         }
         
         return $userIds;
@@ -263,5 +275,35 @@ class ReferralController extends Controller
             return null;
         }
         return User::find($ref->referrer_id);
+    }
+    
+    /**
+     * Get total investment for all users at a specific level from deposits table
+     * Only includes approved NEXA deposits
+     */
+    protected function getTotalInvestmentByLevel(User $user, int $level): float
+    {
+        $userIds = $this->getUserIdsAtLevel($user, $level);
+        
+        if (empty($userIds)) {
+            return 0;
+        }
+        
+        return (float) Deposit::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->where('invoice_type', 'NEXA')
+            ->sum('amount') ?? 0;
+    }
+    
+    /**
+     * Get total investment for a specific user from deposits table
+     * Only includes approved NEXA deposits
+     */
+    protected function getUserTotalInvestment(User $user): float
+    {
+        return (float) Deposit::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->where('invoice_type', 'NEXA')
+            ->sum('amount') ?? 0;
     }
 }

@@ -1,14 +1,14 @@
 @extends('layouts.customer-layout')
 
-@section('title', 'Create AI Agent - AI Trade App')
-@section('page-title', 'Create AI Agent')
+@section('title', 'Create AI BOT - AI Trade App')
+@section('page-title', 'Create AI BOT')
 
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-robot"></i> Create New AI Agent</h5>
+                <h5 class="mb-0"><i class="bi bi-robot"></i> Create New AI BOT</h5>
             </div>
             <div class="card-body">
                 <!-- Bot Type Selection -->
@@ -58,14 +58,14 @@
                 <div id="nexa-calculator-container" style="display: none;">
                     <div class="card mb-4 border-primary">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>NEXA Custom Investment Calculator</h5>
+                            <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>NEXA Custom Trade Calculator</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="custom-investment-amount" class="form-label">
-                                            <strong>Enter Custom Investment Amount (USDT)</strong>
+                                            <strong>Enter Custom Trade Amount (USDT)</strong>
                                         </label>
                                         <div class="input-group">
                                             <span class="input-group-text">$</span>
@@ -76,7 +76,7 @@
                                                    min="100"
                                                    step="0.01">
                                         </div>
-                                        <small class="text-muted">Minimum investment: 100 USDT</small>
+                                        <small class="text-muted">Minimum Trade: 100 USDT</small>
                                     </div>
                                     <button type="button" class="btn btn-primary w-100" id="calculate-fee-btn">
                                         <i class="bi bi-calculator me-2"></i>Calculate Fee
@@ -87,7 +87,7 @@
                                         <h6 class="text-primary mb-3"><i class="bi bi-info-circle me-2"></i>Calculation Results</h6>
                                         <div class="alert alert-info">
                                             <div class="d-flex justify-content-between mb-2">
-                                                <span><strong>Investment Amount:</strong></span>
+                                                <span><strong>Trade Amount:</strong></span>
                                                 <span id="result-investment">$0.00</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2">
@@ -134,7 +134,7 @@
                 <!-- Back Button -->
                 <div class="text-center mt-4">
                     <a href="{{ route('customer.bots.index') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to Agents
+                        <i class="bi bi-arrow-left"></i> Back to BOTs
                     </a>
                 </div>
             </div>
@@ -248,7 +248,7 @@ $(document).ready(function() {
                                      <p><strong>Amount:</strong> $${plan.amount} USDT</p>` :
                                     `<p><strong>Bots Allowed:</strong> ${plan.bots_allowed}</p>
                                      <p><strong>Joining Fee:</strong> $${plan.joining_fee} USDT</p>
-                                     <p><strong>Investment:</strong> $${plan.investment_amount} USDT</p>
+                                     <p><strong>Trade Amount:</strong> $${plan.investment_amount} USDT</p>
                                      <p><strong>Trades/Day:</strong> ${plan.trades_per_day}</p>`
                                 }
                             </div>

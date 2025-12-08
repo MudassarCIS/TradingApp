@@ -26,6 +26,7 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
+                                    <th>Package Name</th>
                                     <th>Allowed Bots</th>
                                     <th>Allowed Trades</th>
                                     <th>Amount ($)</th>
@@ -38,6 +39,13 @@
                                 @forelse($packages as $package)
                                     <tr>
                                         <td>{{ $package->id }}</td>
+                                        <td>
+                                            @if($package->package_name)
+                                                <span class="badge bg-info">{{ $package->package_name }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $package->allowed_bots }}</td>
                                         <td>{{ $package->allowed_trades }}</td>
                                         <td>{{ number_format($package->amount, 2) }}</td>
@@ -60,7 +68,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center">No packages found.</td>
+                                        <td colspan="8" class="text-center">No packages found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

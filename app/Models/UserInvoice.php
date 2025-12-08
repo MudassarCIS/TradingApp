@@ -10,6 +10,7 @@ class UserInvoice extends Model
     protected $fillable = [
         'user_id',
         'plan_id',
+        'rent_bot_package_id',
         'invoice_type',
         'amount',
         'due_date',
@@ -62,6 +63,11 @@ class UserInvoice extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function rentBotPackage(): BelongsTo
+    {
+        return $this->belongsTo(RentBotPackage::class, 'rent_bot_package_id');
     }
 
     /**

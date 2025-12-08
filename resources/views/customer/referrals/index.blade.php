@@ -387,20 +387,23 @@
                 <ul class="nav nav-tabs nav-fill" id="referralTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="level1-tab" data-bs-toggle="tab" data-bs-target="#level1" type="button" role="tab">
-                            <i class="bi bi-1-circle"></i> Level 1 Referrals
+                            Level 1 Referrals
                             <span class="badge bg-primary ms-2">{{ $level1Count }}</span>
+                            <span class="badge bg-success ms-2">${{ number_format($level1TotalInvestment, 2) }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="level2-tab" data-bs-toggle="tab" data-bs-target="#level2" type="button" role="tab">
-                            <i class="bi bi-2-circle"></i> Level 2 Referrals
+                            Level 2 Referrals
                             <span class="badge bg-secondary ms-2">{{ $level2Count }}</span>
+                            <span class="badge bg-success ms-2">${{ number_format($level2TotalInvestment, 2) }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="level3-tab" data-bs-toggle="tab" data-bs-target="#level3" type="button" role="tab">
-                            <i class="bi bi-3-circle"></i> Level 3 Referrals
+                            Level 3 Referrals
                             <span class="badge bg-success ms-2">{{ $level3Count }}</span>
+                            <span class="badge bg-info ms-2">${{ number_format($level3TotalInvestment, 2) }}</span>
                         </button>
                     </li>
                 </ul>
@@ -440,7 +443,10 @@
                                         <td>{{ $referral->created_at->format('M d, Y') }}</td>
                                         <td>
                                             @php
-                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                                $totalInvestment = \App\Models\Deposit::where('user_id', $referral->id)
+                                                    ->where('status', 'approved')
+                                                    ->where('invoice_type', 'NEXA')
+                                                    ->sum('amount') ?? 0;
                                             @endphp
                                             @if($totalInvestment > 0)
                                                 <span class="investment-amount">
@@ -516,7 +522,10 @@
                                         <td>{{ $referral->created_at->format('M d, Y') }}</td>
                                         <td>
                                             @php
-                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                                $totalInvestment = \App\Models\Deposit::where('user_id', $referral->id)
+                                                    ->where('status', 'approved')
+                                                    ->where('invoice_type', 'NEXA')
+                                                    ->sum('amount') ?? 0;
                                             @endphp
                                             @if($totalInvestment > 0)
                                                 <span class="investment-amount">
@@ -592,7 +601,10 @@
                                         <td>{{ $referral->created_at->format('M d, Y') }}</td>
                                         <td>
                                             @php
-                                                $totalInvestment = $referral->wallets()->sum('total_deposited');
+                                                $totalInvestment = \App\Models\Deposit::where('user_id', $referral->id)
+                                                    ->where('status', 'approved')
+                                                    ->where('invoice_type', 'NEXA')
+                                                    ->sum('amount') ?? 0;
                                             @endphp
                                             @if($totalInvestment > 0)
                                                 <span class="investment-amount">
