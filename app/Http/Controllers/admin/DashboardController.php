@@ -63,6 +63,7 @@ class DashboardController extends Controller
         // Get counts for quick links
         $pendingDeposits = Deposit::where('status', 'pending')->count();
         $totalDepositsCount = Deposit::count();
+        $totalWithdrawalsCount = Transaction::where('type', 'withdrawal')->count();
         $totalUsersCount = User::where('user_type', 'customer')->count();
         $totalTransactionsCount = Transaction::count();
         $totalTradesCount = Trade::count();
@@ -111,6 +112,7 @@ class DashboardController extends Controller
             'userStats',
             'pendingDeposits',
             'totalDepositsCount',
+            'totalWithdrawalsCount',
             'totalUsersCount',
             'totalTransactionsCount',
             'totalTradesCount',
