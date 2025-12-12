@@ -10,6 +10,7 @@ use App\Models\Agent;
 use App\Models\Wallet;
 use App\Models\Message;
 use App\Models\Deposit;
+use App\Models\Withdrawal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -62,12 +63,19 @@ class DashboardController extends Controller
         
         // Get counts for quick links
         $pendingDeposits = Deposit::where('status', 'pending')->count();
+        $pendingWithdrawals = Withdrawal::where('status', 'pending')->count();
         $totalDepositsCount = Deposit::count();
-        $totalWithdrawalsCount = Transaction::where('type', 'withdrawal')->count();
+        $totalWithdrawalsCount = Withdrawal::count();
         $totalUsersCount = User::where('user_type', 'customer')->count();
         $totalTransactionsCount = Transaction::count();
         $totalTradesCount = Trade::count();
         $totalAgentsCount = Agent::count();
+        
+        // Get recent withdrawals
+        $recentWithdrawals = Withdrawal::with('user')
+            ->latest()
+            ->limit(5)
+            ->get();
         
         // Get trading statistics by day (last 7 days)
         $tradingStats = Trade::select(
@@ -107,10 +115,12 @@ class DashboardController extends Controller
             'recentUsers',
             'recentTrades',
             'recentTransactions',
+            'recentWithdrawals',
             'pendingMessages',
             'tradingStats',
             'userStats',
             'pendingDeposits',
+            'pendingWithdrawals',
             'totalDepositsCount',
             'totalWithdrawalsCount',
             'totalUsersCount',

@@ -334,9 +334,10 @@ class WalletController extends Controller
                 $withdrawal->refresh();
 
                 // Create entry in customers_wallets (credit - money going out)
+                // Deduct both amount and fee to match the balance check
                 $walletEntry = CustomersWallet::create([
                     'user_id' => $user->id,
-                    'amount' => $request->amount, // Only the withdrawal amount (not including fee in customers_wallets)
+                    'amount' => $totalRequired, // Deduct amount + fee to match balance check
                     'currency' => 'USDT',
                     'payment_type' => 'withdraw', // Use lowercase to match other entries
                     'transaction_type' => 'credit',
