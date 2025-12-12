@@ -167,6 +167,18 @@
                             <small class="badge bg-light text-dark mt-1">{{ $totalAgentsCount }} Total</small>
                         </a>
                     </div>
+                    <div class="col-md-2 col-sm-4">
+                        <a href="{{ route('admin.withdrawals.index') }}" class="btn btn-danger w-100 quick-action-btn">
+                            <i class="bi bi-dash-circle"></i>
+                            <span>All Withdrawals</span>
+                            <small class="badge bg-light text-dark mt-1">
+                                {{ $totalWithdrawalsCount }} Total
+                                @if(isset($pendingWithdrawals) && $pendingWithdrawals > 0)
+                                    <span class="badge bg-warning ms-1">{{ $pendingWithdrawals }} Pending</span>
+                                @endif
+                            </small>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -216,11 +228,15 @@
             </div>
             <div class="card-body">
                 <div class="row text-center">
-                    <div class="col-6">
-                        <h4 class="text-warning">{{ $pendingTransactions }}</h4>
-                        <small>Pending Transactions</small>
+                    <div class="col-4">
+                        <h4 class="text-warning">{{ $pendingDeposits }}</h4>
+                        <small>Pending Deposits</small>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
+                        <h4 class="text-danger">{{ $pendingWithdrawals ?? 0 }}</h4>
+                        <small>Pending Withdrawals</small>
+                    </div>
+                    <div class="col-4">
                         <h4 class="text-info">{{ $pendingMessages->count() }}</h4>
                         <small>Open Messages</small>
                     </div>
@@ -300,35 +316,35 @@
         </div>
     </div>
     
-    <!-- Recent Transactions -->
+    <!-- Recent Withdrawals -->
     <div class="col-md-4 mb-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Recent Transactions</h5>
+                <h5 class="mb-0"><i class="bi bi-dash-circle"></i> Recent Withdrawals</h5>
             </div>
             <div class="card-body">
                 <div class="recent-activity">
-                    @forelse($recentTransactions as $transaction)
+                    @forelse($recentWithdrawals ?? [] as $withdrawal)
                     <div class="activity-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong>{{ ucfirst($transaction->type) }}</strong>
+                                <strong>{{ $withdrawal->withdrawal_id ?? 'N/A' }}</strong>
                                 <br>
-                                <small class="text-muted">{{ $transaction->user->name }}</small>
+                                <small class="text-muted">{{ $withdrawal->user->name ?? 'N/A' }}</small>
                             </div>
                             <div class="text-end">
-                                <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : ($transaction->status === 'pending' ? 'warning' : 'secondary') }}">
-                                    {{ ucfirst($transaction->status) }}
+                                <span class="badge bg-{{ $withdrawal->status === 'completed' ? 'success' : ($withdrawal->status === 'pending' ? 'warning' : ($withdrawal->status === 'processing' ? 'info' : 'secondary')) }}">
+                                    {{ ucfirst($withdrawal->status) }}
                                 </span>
                                 <br>
-                                <small class="{{ $transaction->type === 'deposit' ? 'text-success' : 'text-danger' }}">
-                                    ${{ number_format($transaction->amount, 2) }}
+                                <small class="text-danger">
+                                    ${{ number_format($withdrawal->amount, 2) }}
                                 </small>
                             </div>
                         </div>
                     </div>
                     @empty
-                    <p class="text-muted">No recent transactions found.</p>
+                    <p class="text-muted">No recent withdrawals found.</p>
                     @endforelse
                 </div>
             </div>

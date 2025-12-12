@@ -9,6 +9,7 @@ use App\Models\Agent;
 use App\Models\Transaction;
 use App\Models\UserInvoice;
 use App\Models\Deposit;
+use App\Models\Withdrawal;
 use App\Models\CustomersWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -64,9 +65,16 @@ class DashboardController extends Controller
         $totalAgents = $user->agents()->count();
         $activeAgents = $user->agents()->where('status', 'active')->count();
         
-        // Get recent transactions
+        // Get recent transactions (deposits only, withdrawals are separate)
         $recentTransactions = $user->transactions()
+            ->where('type', 'deposit')
             ->with('user')
+            ->latest()
+            ->limit(5)
+            ->get();
+        
+        // Get recent withdrawals from withdrawals table
+        $recentWithdrawals = Withdrawal::where('user_id', $user->id)
             ->latest()
             ->limit(5)
             ->get();
@@ -88,6 +96,8 @@ class DashboardController extends Controller
         $unpaidInvoices = $user->invoices()->where('status', 'Unpaid')->count();
         $totalDeposits = $user->deposits()->count();
         $pendingDeposits = $user->deposits()->where('status', 'pending')->count();
+        $totalWithdrawals = Withdrawal::where('user_id', $user->id)->count();
+        $pendingWithdrawals = Withdrawal::where('user_id', $user->id)->where('status', 'pending')->count();
         $totalTransactions = $user->transactions()->count();
         
         // Get active packages (with paid invoices)
@@ -103,6 +113,7 @@ class DashboardController extends Controller
             'totalAgents',
             'activeAgents',
             'recentTransactions',
+            'recentWithdrawals',
             'recentTrades',
             'referralCount',
             'referralEarnings',
@@ -110,6 +121,8 @@ class DashboardController extends Controller
             'unpaidInvoices',
             'totalDeposits',
             'pendingDeposits',
+            'totalWithdrawals',
+            'pendingWithdrawals',
             'totalTransactions',
             'activePackages'
         ));

@@ -34,7 +34,12 @@
                 <li class="nav-item">
                     <a href="{{route('admin.withdrawals.index')}}" class="nav-link @if(request()->routeIs('admin.withdrawals.*')) active @endif">
                         <i class="nav-icon bi bi-dash-circle"></i>
-                        <p>{{ __('All Withdrawals') }}</p>
+                        <p>
+                            {{ __('All Withdrawals') }}
+                            @if(isset($pendingWithdrawalsCount) && $pendingWithdrawalsCount > 0)
+                                <span class="badge bg-warning float-end">{{ $pendingWithdrawalsCount }}</span>
+                            @endif
+                        </p>
                     </a>
                 </li>
                 <li class="nav-item">

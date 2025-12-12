@@ -335,19 +335,19 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($wallet->user->transactions()->where('type', 'withdrawal')->latest()->limit(5)->get() as $transaction)
+                            @forelse(\App\Models\Withdrawal::where('user_id', Auth::id())->latest()->limit(5)->get() as $withdrawal)
                             <tr>
                                 <td>
                                     <span class="text-danger fw-bold">
-                                        -${{ number_format($transaction->amount, 2) }}
+                                        -${{ number_format($withdrawal->amount, 2) }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : ($transaction->status === 'pending' ? 'warning' : 'secondary') }}">
-                                        {{ ucfirst($transaction->status) }}
+                                    <span class="badge bg-{{ $withdrawal->status === 'completed' ? 'success' : ($withdrawal->status === 'pending' ? 'warning' : ($withdrawal->status === 'processing' ? 'info' : 'secondary')) }}">
+                                        {{ ucfirst($withdrawal->status) }}
                                     </span>
                                 </td>
-                                <td>{{ $transaction->created_at->format('M d, Y') }}</td>
+                                <td>{{ $withdrawal->created_at->format('M d, Y') }}</td>
                             </tr>
                             @empty
                             <tr>
@@ -364,28 +364,19 @@
     </div>
 </div>
 
-<!-- Security Notice -->
+<!-- Withdrawal Requests Listing -->
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-warning text-dark">
-                <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Security Notice</h6>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Your Withdrawal Requests</h5>
             </div>
             <div class="card-body">
-                <ul class="mb-3">
-                    <li>Double-check the withdrawal address before confirming</li>
-                    <li>Only withdraw to addresses you control</li>
-                    <li>Withdrawals are processed manually for security</li>
-                    <li>Processing time: 2-3 Days</li>
-                </ul>
-                
-                <!-- Withdrawal Requests Table -->
-                <h6 class="mb-3"><i class="bi bi-list-ul"></i> Your Withdrawal Requests</h6>
                 <div class="table-responsive">
-                    <table id="withdrawals-table" class="table table-sm table-hover">
+                    <table id="withdrawals-table" class="table table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>Transaction ID</th>
+                                <th>Withdrawal ID</th>
                                 <th>Amount</th>
                                 <th>Fee</th>
                                 <th>Net Amount</th>
@@ -398,6 +389,25 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Notice -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Security Notice</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Double-check the withdrawal address before confirming</li>
+                    <li>Only withdraw to addresses you control</li>
+                    <li>Withdrawals are processed manually for security</li>
+                    <li>Processing time: 2-3 Days</li>
+                </ul>
             </div>
         </div>
     </div>

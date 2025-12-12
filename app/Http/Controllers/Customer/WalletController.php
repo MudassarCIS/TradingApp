@@ -275,8 +275,7 @@ class WalletController extends Controller
         
         // Count withdrawals this month
         $startOfMonth = now()->startOfMonth();
-        $withdrawalsThisMonth = Transaction::where('user_id', $user->id)
-            ->where('type', 'withdrawal')
+        $withdrawalsThisMonth = \App\Models\Withdrawal::where('user_id', $user->id)
             ->where('created_at', '>=', $startOfMonth)
             ->whereIn('status', ['pending', 'processing', 'completed'])
             ->count();
@@ -292,8 +291,7 @@ class WalletController extends Controller
         try {
             $result = DB::transaction(function () use ($user, $request, $totalRequired, $withdrawalFee) {
                 // Check for existing pending withdrawals - prevent multiple simultaneous withdrawals
-                $existingPendingWithdrawal = Transaction::where('user_id', $user->id)
-                    ->where('type', 'withdrawal')
+                $existingPendingWithdrawal = \App\Models\Withdrawal::where('user_id', $user->id)
                     ->where('status', 'pending')
                     ->lockForUpdate() // Lock row to prevent concurrent withdrawals
                     ->first();
@@ -319,24 +317,21 @@ class WalletController extends Controller
                     throw new \Exception('Insufficient balance. You need at least ' . number_format($totalRequired, 2) . ' USDT (including ' . $withdrawalFee . ' USDT fee)');
                 }
 
-                // Create withdrawal transaction first (with temporary transaction_id)
-                $transaction = Transaction::create([
+                // Create withdrawal record in withdrawals table
+                $withdrawal = \App\Models\Withdrawal::create([
                     'user_id' => $user->id,
-                    'transaction_id' => 'TEMP-' . time(), // Temporary ID, will be updated below
-                    'type' => 'withdrawal',
-                    'status' => 'pending',
-                    'currency' => 'USDT',
+                    'transaction_id' => null, // Optional: link to transaction if needed
+                    'withdrawal_id' => '', // Will be set by model boot event to WTD-000.id
                     'amount' => $request->amount,
                     'fee' => $withdrawalFee,
                     'net_amount' => $request->amount - $withdrawalFee,
                     'to_address' => $request->address,
+                    'status' => 'pending',
                     'notes' => 'Withdrawal request',
                 ]);
 
-                // Generate withdrawal_id with format WTD-00.id using the inserted transaction ID
-                $withdrawalId = 'WTD-' . str_pad($transaction->id, 4, '0', STR_PAD_LEFT);
-                $transaction->updateQuietly(['transaction_id' => $withdrawalId]);
-                $transaction->refresh();
+                // Refresh to get the generated withdrawal_id from model boot event
+                $withdrawal->refresh();
 
                 // Create entry in customers_wallets (credit - money going out)
                 $walletEntry = CustomersWallet::create([
@@ -345,24 +340,24 @@ class WalletController extends Controller
                     'currency' => 'USDT',
                     'payment_type' => 'withdraw', // Use lowercase to match other entries
                     'transaction_type' => 'credit',
-                    'related_id' => $transaction->id,
+                    'related_id' => $withdrawal->id, // Link to withdrawal table id
                 ]);
 
                 // Verify both entries were created successfully
-                if (!$transaction || !$walletEntry) {
+                if (!$withdrawal || !$walletEntry) {
                     throw new \Exception('Failed to create withdrawal records. Please try again.');
                 }
 
-                // Verify transaction has withdrawal_id
-                $transaction->refresh();
-                if (empty($transaction->transaction_id) || !str_starts_with($transaction->transaction_id, 'WTD-')) {
+                // Verify withdrawal has withdrawal_id
+                $withdrawal->refresh();
+                if (empty($withdrawal->withdrawal_id) || !str_starts_with($withdrawal->withdrawal_id, 'WTD-')) {
                     throw new \Exception('Failed to generate withdrawal ID. Please try again.');
                 }
 
                 return [
-                    'transaction' => $transaction,
+                    'withdrawal' => $withdrawal,
                     'wallet_entry' => $walletEntry,
-                    'withdrawal_id' => $transaction->transaction_id
+                    'withdrawal_id' => $withdrawal->withdrawal_id
                 ];
             });
 
@@ -388,12 +383,11 @@ class WalletController extends Controller
     {
         $user = Auth::user();
         
-        // Show ONLY current user's withdrawals
-        $query = Transaction::where('user_id', $user->id)
-            ->where('type', 'withdrawal')
+        // Show ONLY current user's withdrawals from withdrawals table
+        $query = \App\Models\Withdrawal::where('user_id', $user->id)
             ->select([
                 'id',
-                'transaction_id',
+                'withdrawal_id',
                 'amount',
                 'fee',
                 'net_amount',
@@ -405,19 +399,22 @@ class WalletController extends Controller
             ->orderBy('created_at', 'desc'); // Show newest first
         
         return DataTables::of($query)
-            ->addColumn('amount', function ($transaction) {
-                return '$' . number_format($transaction->amount, 2) . ' USDT';
+            ->addColumn('transaction_id', function ($withdrawal) {
+                return $withdrawal->withdrawal_id ?? 'N/A';
             })
-            ->addColumn('fee', function ($transaction) {
-                return '$' . number_format($transaction->fee, 2) . ' USDT';
+            ->addColumn('amount', function ($withdrawal) {
+                return '$' . number_format($withdrawal->amount, 2) . ' USDT';
             })
-            ->addColumn('net_amount', function ($transaction) {
-                return '$' . number_format($transaction->net_amount, 2) . ' USDT';
+            ->addColumn('fee', function ($withdrawal) {
+                return '$' . number_format($withdrawal->fee, 2) . ' USDT';
             })
-            ->addColumn('to_address', function ($transaction) {
-                return '<code>' . substr($transaction->to_address, 0, 10) . '...' . substr($transaction->to_address, -10) . '</code>';
+            ->addColumn('net_amount', function ($withdrawal) {
+                return '$' . number_format($withdrawal->net_amount, 2) . ' USDT';
             })
-            ->addColumn('status', function ($transaction) {
+            ->addColumn('to_address', function ($withdrawal) {
+                return '<code>' . substr($withdrawal->to_address, 0, 10) . '...' . substr($withdrawal->to_address, -10) . '</code>';
+            })
+            ->addColumn('status', function ($withdrawal) {
                 $badges = [
                     'pending' => '<span class="badge bg-warning">Pending</span>',
                     'processing' => '<span class="badge bg-info">Processing</span>',
@@ -425,10 +422,10 @@ class WalletController extends Controller
                     'failed' => '<span class="badge bg-danger">Failed</span>',
                     'cancelled' => '<span class="badge bg-secondary">Cancelled</span>',
                 ];
-                return $badges[$transaction->status] ?? '<span class="badge bg-secondary">' . ucfirst($transaction->status) . '</span>';
+                return $badges[$withdrawal->status] ?? '<span class="badge bg-secondary">' . ucfirst($withdrawal->status) . '</span>';
             })
-            ->addColumn('created_at', function ($transaction) {
-                return $transaction->created_at->format('M d, Y H:i');
+            ->addColumn('created_at', function ($withdrawal) {
+                return $withdrawal->created_at->format('M d, Y H:i');
             })
             ->rawColumns(['to_address', 'status'])
             ->make(true);

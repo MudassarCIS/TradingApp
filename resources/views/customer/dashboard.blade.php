@@ -282,6 +282,18 @@
                         </a>
                     </div>
                     <div class="col-md-3 col-sm-6">
+                        <a href="{{ route('customer.wallet.withdraw') }}" class="btn btn-danger w-100 quick-action-btn">
+                            <i class="bi bi-dash-circle"></i>
+                            <span>Withdraw</span>
+                            <small class="badge bg-light text-dark mt-1">
+                                {{ $totalWithdrawals ?? 0 }} Total
+                                @if(isset($pendingWithdrawals) && $pendingWithdrawals > 0)
+                                    <span class="badge bg-warning ms-1">{{ $pendingWithdrawals }} Pending</span>
+                                @endif
+                            </small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
                         <a href="{{ route('customer.bots.create') }}" class="btn btn-warning w-100 quick-action-btn">
                             <i class="bi bi-robot"></i>
                             <span>Create AI Bot</span>
@@ -415,13 +427,14 @@
 </div>
 @endif
 
-<!-- Recent Transactions -->
-@if($recentTransactions->count() > 0)
+<!-- Recent Activities -->
 <div class="row">
-    <div class="col-12">
+    <!-- Recent Deposits -->
+    @if($recentTransactions->count() > 0)
+    <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Transactions</h5>
+                <h5 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Recent Deposits</h5>
             </div>
             <div class="card-body">
                 <div class="recent-activity">
@@ -429,7 +442,7 @@
                     <div class="activity-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong>{{ ucfirst($transaction->type) }}</strong>
+                                <strong>Deposit</strong>
                                 <br>
                                 <small class="text-muted">{{ $transaction->created_at->format('M d, Y H:i') }}</small>
                             </div>
@@ -438,8 +451,8 @@
                                     {{ ucfirst($transaction->status) }}
                                 </span>
                                 <br>
-                                <strong class="{{ $transaction->type === 'deposit' ? 'text-success' : 'text-danger' }}">
-                                    {{ $transaction->type === 'deposit' ? '+' : '-' }}${{ number_format($transaction->amount, 2) }}
+                                <strong class="text-success">
+                                    +${{ number_format($transaction->amount, 2) }}
                                 </strong>
                             </div>
                         </div>
@@ -449,8 +462,43 @@
             </div>
         </div>
     </div>
+    @endif
+    
+    <!-- Recent Withdrawals -->
+    @if(isset($recentWithdrawals) && $recentWithdrawals->count() > 0)
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Recent Withdrawals</h5>
+            </div>
+            <div class="card-body">
+                <div class="recent-activity">
+                    @foreach($recentWithdrawals as $withdrawal)
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ $withdrawal->withdrawal_id ?? 'N/A' }}</strong>
+                                <br>
+                                <small class="text-muted">{{ $withdrawal->created_at->format('M d, Y H:i') }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{{ $withdrawal->status === 'completed' ? 'success' : ($withdrawal->status === 'pending' ? 'warning' : ($withdrawal->status === 'processing' ? 'info' : 'secondary')) }}">
+                                    {{ ucfirst($withdrawal->status) }}
+                                </span>
+                                <br>
+                                <strong class="text-danger">
+                                    -${{ number_format($withdrawal->amount, 2) }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
-@endif
 @endsection
 
 @push('scripts')

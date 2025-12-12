@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Withdrawal;
 use App\Models\Transaction;
 use App\Models\CustomersWallet;
 use Illuminate\Http\Request;
@@ -16,12 +17,12 @@ class WithdrawalController extends Controller
      */
     public function index()
     {
-        // Get statistics
-        $totalWithdrawals = Transaction::where('type', 'withdrawal')->count();
-        $pendingWithdrawals = Transaction::where('type', 'withdrawal')->where('status', 'pending')->count();
-        $processingWithdrawals = Transaction::where('type', 'withdrawal')->where('status', 'processing')->count();
-        $completedWithdrawals = Transaction::where('type', 'withdrawal')->where('status', 'completed')->count();
-        $totalAmount = Transaction::where('type', 'withdrawal')->where('status', 'completed')->sum('amount');
+        // Get statistics from withdrawals table
+        $totalWithdrawals = Withdrawal::count();
+        $pendingWithdrawals = Withdrawal::where('status', 'pending')->count();
+        $processingWithdrawals = Withdrawal::where('status', 'processing')->count();
+        $completedWithdrawals = Withdrawal::where('status', 'completed')->count();
+        $totalAmount = Withdrawal::where('status', 'completed')->sum('amount');
         
         return view('admin.withdrawals.index', compact(
             'totalWithdrawals',
@@ -37,13 +38,12 @@ class WithdrawalController extends Controller
      */
     public function getWithdrawalsData(Request $request)
     {
-        // Show ALL withdrawals for admin (no user filter)
-        $query = Transaction::with('user')
-            ->where('type', 'withdrawal')
+        // Show ALL withdrawals for admin (no user filter) from withdrawals table
+        $query = Withdrawal::with('user')
             ->select([
                 'id',
                 'user_id',
-                'transaction_id',
+                'withdrawal_id',
                 'amount',
                 'fee',
                 'net_amount',
@@ -62,25 +62,28 @@ class WithdrawalController extends Controller
         }
         
         return DataTables::of($query)
-            ->addColumn('user_name', function ($transaction) {
-                return $transaction->user ? $transaction->user->name : 'N/A';
+            ->addColumn('transaction_id', function ($withdrawal) {
+                return $withdrawal->withdrawal_id ?? 'N/A';
             })
-            ->addColumn('user_email', function ($transaction) {
-                return $transaction->user ? $transaction->user->email : 'N/A';
+            ->addColumn('user_name', function ($withdrawal) {
+                return $withdrawal->user ? $withdrawal->user->name : 'N/A';
             })
-            ->addColumn('amount', function ($transaction) {
-                return '$' . number_format($transaction->amount, 2) . ' USDT';
+            ->addColumn('user_email', function ($withdrawal) {
+                return $withdrawal->user ? $withdrawal->user->email : 'N/A';
             })
-            ->addColumn('fee', function ($transaction) {
-                return '$' . number_format($transaction->fee, 2) . ' USDT';
+            ->addColumn('amount', function ($withdrawal) {
+                return '$' . number_format($withdrawal->amount, 2) . ' USDT';
             })
-            ->addColumn('net_amount', function ($transaction) {
-                return '$' . number_format($transaction->net_amount, 2) . ' USDT';
+            ->addColumn('fee', function ($withdrawal) {
+                return '$' . number_format($withdrawal->fee, 2) . ' USDT';
             })
-            ->addColumn('to_address', function ($transaction) {
-                return '<code>' . substr($transaction->to_address, 0, 10) . '...' . substr($transaction->to_address, -10) . '</code>';
+            ->addColumn('net_amount', function ($withdrawal) {
+                return '$' . number_format($withdrawal->net_amount, 2) . ' USDT';
             })
-            ->addColumn('status', function ($transaction) {
+            ->addColumn('to_address', function ($withdrawal) {
+                return '<code>' . substr($withdrawal->to_address, 0, 10) . '...' . substr($withdrawal->to_address, -10) . '</code>';
+            })
+            ->addColumn('status', function ($withdrawal) {
                 $badges = [
                     'pending' => '<span class="badge bg-warning">Pending</span>',
                     'processing' => '<span class="badge bg-info">Processing</span>',
@@ -88,28 +91,28 @@ class WithdrawalController extends Controller
                     'failed' => '<span class="badge bg-danger">Failed</span>',
                     'cancelled' => '<span class="badge bg-secondary">Cancelled</span>',
                 ];
-                return $badges[$transaction->status] ?? '<span class="badge bg-secondary">' . ucfirst($transaction->status) . '</span>';
+                return $badges[$withdrawal->status] ?? '<span class="badge bg-secondary">' . ucfirst($withdrawal->status) . '</span>';
             })
-            ->addColumn('created_at', function ($transaction) {
-                return $transaction->created_at->format('M d, Y H:i');
+            ->addColumn('created_at', function ($withdrawal) {
+                return $withdrawal->created_at->format('M d, Y H:i');
             })
-            ->addColumn('actions', function ($transaction) {
+            ->addColumn('actions', function ($withdrawal) {
                 $actions = '';
                 
-                if ($transaction->status === 'pending') {
-                    $actions .= '<button class="btn btn-sm btn-success me-1" onclick="approveWithdrawal(' . $transaction->id . ')" title="Approve & Payout">
+                if ($withdrawal->status === 'pending') {
+                    $actions .= '<button class="btn btn-sm btn-success me-1" onclick="approveWithdrawal(' . $withdrawal->id . ')" title="Approve & Payout">
                         <i class="bi bi-check-circle"></i> Approve
                     </button>';
-                    $actions .= '<button class="btn btn-sm btn-danger" onclick="rejectWithdrawal(' . $transaction->id . ')" title="Reject">
+                    $actions .= '<button class="btn btn-sm btn-danger" onclick="rejectWithdrawal(' . $withdrawal->id . ')" title="Reject">
                         <i class="bi bi-x-circle"></i> Reject
                     </button>';
-                } elseif ($transaction->status === 'processing') {
-                    $actions .= '<button class="btn btn-sm btn-success me-1" onclick="completeWithdrawal(' . $transaction->id . ')" title="Mark as Completed">
+                } elseif ($withdrawal->status === 'processing') {
+                    $actions .= '<button class="btn btn-sm btn-success me-1" onclick="completeWithdrawal(' . $withdrawal->id . ')" title="Mark as Completed">
                         <i class="bi bi-check-circle"></i> Complete
                     </button>';
                 }
                 
-                $actions .= '<button class="btn btn-sm btn-info ms-1" onclick="viewWithdrawal(' . $transaction->id . ')" title="View Details">
+                $actions .= '<button class="btn btn-sm btn-info ms-1" onclick="viewWithdrawal(' . $withdrawal->id . ')" title="View Details">
                     <i class="bi bi-eye"></i> View
                 </button>';
                 
@@ -124,21 +127,17 @@ class WithdrawalController extends Controller
      */
     public function approve(Request $request, $id)
     {
-        $transaction = Transaction::findOrFail($id);
+        $withdrawal = Withdrawal::findOrFail($id);
         
-        if ($transaction->type !== 'withdrawal') {
-            return response()->json(['success' => false, 'message' => 'Invalid transaction type']);
-        }
-        
-        if ($transaction->status !== 'pending') {
+        if ($withdrawal->status !== 'pending') {
             return response()->json(['success' => false, 'message' => 'Withdrawal is not pending']);
         }
         
-        DB::transaction(function () use ($transaction) {
-            // Update transaction status to processing
-            $transaction->status = 'processing';
-            $transaction->notes = $request->notes ?? 'Withdrawal approved and processing';
-            $transaction->save();
+        DB::transaction(function () use ($withdrawal, $request) {
+            // Update withdrawal status to processing
+            $withdrawal->status = 'processing';
+            $withdrawal->notes = $request->notes ?? 'Withdrawal approved and processing';
+            $withdrawal->save();
         });
         
         return response()->json([
@@ -152,13 +151,9 @@ class WithdrawalController extends Controller
      */
     public function complete(Request $request, $id)
     {
-        $transaction = Transaction::findOrFail($id);
+        $withdrawal = Withdrawal::findOrFail($id);
         
-        if ($transaction->type !== 'withdrawal') {
-            return response()->json(['success' => false, 'message' => 'Invalid transaction type']);
-        }
-        
-        if ($transaction->status !== 'processing') {
+        if ($withdrawal->status !== 'processing') {
             return response()->json(['success' => false, 'message' => 'Withdrawal is not processing']);
         }
         
@@ -166,13 +161,13 @@ class WithdrawalController extends Controller
             'tx_hash' => 'nullable|string|max:255',
         ]);
         
-        DB::transaction(function () use ($transaction, $request) {
-            // Update transaction status to completed
-            $transaction->status = 'completed';
-            $transaction->tx_hash = $request->tx_hash;
-            $transaction->processed_at = now();
-            $transaction->notes = $request->notes ?? 'Withdrawal completed and paid out';
-            $transaction->save();
+        DB::transaction(function () use ($withdrawal, $request) {
+            // Update withdrawal status to completed
+            $withdrawal->status = 'completed';
+            $withdrawal->tx_hash = $request->tx_hash;
+            $withdrawal->processed_at = now();
+            $withdrawal->notes = $request->notes ?? 'Withdrawal completed and paid out';
+            $withdrawal->save();
         });
         
         return response()->json([
@@ -186,13 +181,9 @@ class WithdrawalController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $transaction = Transaction::findOrFail($id);
+        $withdrawal = Withdrawal::findOrFail($id);
         
-        if ($transaction->type !== 'withdrawal') {
-            return response()->json(['success' => false, 'message' => 'Invalid transaction type']);
-        }
-        
-        if ($transaction->status !== 'pending') {
+        if ($withdrawal->status !== 'pending') {
             return response()->json(['success' => false, 'message' => 'Withdrawal is not pending']);
         }
         
@@ -200,14 +191,14 @@ class WithdrawalController extends Controller
             'reason' => 'required|string|max:500',
         ]);
         
-        DB::transaction(function () use ($transaction, $request) {
-            // Update transaction status to cancelled
-            $transaction->status = 'cancelled';
-            $transaction->notes = 'Rejected: ' . $request->reason;
-            $transaction->save();
+        DB::transaction(function () use ($withdrawal, $request) {
+            // Update withdrawal status to cancelled
+            $withdrawal->status = 'cancelled';
+            $withdrawal->notes = 'Rejected: ' . $request->reason;
+            $withdrawal->save();
             
             // Refund the amount back to customer wallet
-            $walletEntry = CustomersWallet::where('related_id', $transaction->id)
+            $walletEntry = CustomersWallet::where('related_id', $withdrawal->id)
                 ->where('payment_type', 'withdraw')
                 ->where('transaction_type', 'credit')
                 ->first();
@@ -215,12 +206,12 @@ class WithdrawalController extends Controller
             if ($walletEntry) {
                 // Reverse the withdrawal - add back as debit
                 CustomersWallet::create([
-                    'user_id' => $transaction->user_id,
-                    'amount' => $transaction->amount + $transaction->fee,
+                    'user_id' => $withdrawal->user_id,
+                    'amount' => $withdrawal->amount + $withdrawal->fee,
                     'currency' => 'USDT',
                     'payment_type' => 'refund',
                     'transaction_type' => 'debit',
-                    'related_id' => $transaction->id,
+                    'related_id' => $withdrawal->id,
                 ]);
             }
         });
@@ -236,24 +227,24 @@ class WithdrawalController extends Controller
      */
     public function show($id)
     {
-        $transaction = Transaction::with('user')->findOrFail($id);
+        $withdrawal = Withdrawal::with('user')->findOrFail($id);
         
         return response()->json([
             'success' => true,
             'data' => [
-                'id' => $transaction->id,
-                'transaction_id' => $transaction->transaction_id,
-                'user_name' => $transaction->user->name ?? 'N/A',
-                'user_email' => $transaction->user->email ?? 'N/A',
-                'amount' => number_format($transaction->amount, 2),
-                'fee' => number_format($transaction->fee, 2),
-                'net_amount' => number_format($transaction->net_amount, 2),
-                'to_address' => $transaction->to_address,
-                'status' => $transaction->status,
-                'tx_hash' => $transaction->tx_hash,
-                'notes' => $transaction->notes,
-                'created_at' => $transaction->created_at->format('M d, Y H:i'),
-                'processed_at' => $transaction->processed_at ? $transaction->processed_at->format('M d, Y H:i') : null,
+                'id' => $withdrawal->id,
+                'transaction_id' => $withdrawal->withdrawal_id,
+                'user_name' => $withdrawal->user->name ?? 'N/A',
+                'user_email' => $withdrawal->user->email ?? 'N/A',
+                'amount' => number_format($withdrawal->amount, 2),
+                'fee' => number_format($withdrawal->fee, 2),
+                'net_amount' => number_format($withdrawal->net_amount, 2),
+                'to_address' => $withdrawal->to_address,
+                'status' => $withdrawal->status,
+                'tx_hash' => $withdrawal->tx_hash,
+                'notes' => $withdrawal->notes,
+                'created_at' => $withdrawal->created_at->format('M d, Y H:i'),
+                'processed_at' => $withdrawal->processed_at ? $withdrawal->processed_at->format('M d, Y H:i') : null,
             ]
         ]);
     }

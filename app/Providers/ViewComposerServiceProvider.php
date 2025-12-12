@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\UserInvoice;
 use App\Models\Deposit;
+use App\Models\Withdrawal;
 
 class ViewComposerServiceProvider extends ServiceProvider
 {
@@ -31,10 +32,12 @@ class ViewComposerServiceProvider extends ServiceProvider
             }
         });
         
-        // Share pending deposits count with admin layout
+        // Share pending deposits count and pending withdrawals count with admin layout
         View::composer('layouts.admin-includes.leftmenu', function ($view) {
             $pendingDepositsCount = Deposit::where('status', 'pending')->count();
+            $pendingWithdrawalsCount = Withdrawal::where('status', 'pending')->count();
             $view->with('pendingDepositsCount', $pendingDepositsCount);
+            $view->with('pendingWithdrawalsCount', $pendingWithdrawalsCount);
         });
     }
 }
