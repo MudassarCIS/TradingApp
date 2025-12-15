@@ -48,15 +48,20 @@
 @endif
 
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-graph-up"></i> Trading History</h5>
+                @if($hasNexaPackage)
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#startTradeModal">
+                    <i class="bi bi-play-circle"></i> Start Trade
+                </button>
+                @endif
             </div>
             <div class="card-body">
                 @if($trades->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Symbol</th>
@@ -66,12 +71,13 @@
                                 <th>P&L</th>
                                 <th>Status</th>
                                 <th>Date</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($trades as $trade)
                             <tr>
-                                <td>{{ $trade->symbol }}</td>
+                                <td><strong>{{ $trade->symbol }}</strong></td>
                                 <td>
                                     <span class="badge {{ $trade->side === 'buy' ? 'bg-success' : 'bg-danger' }}">
                                         {{ strtoupper($trade->side) }}
@@ -81,85 +87,179 @@
                                 <td>${{ number_format($trade->price, 2) }}</td>
                                 <td class="{{ $trade->profit_loss >= 0 ? 'text-success' : 'text-danger' }}">
                                     ${{ number_format($trade->profit_loss, 2) }}
+                                    @if($trade->profit_loss_percentage)
+                                    <small>({{ number_format($trade->profit_loss_percentage, 2) }}%)</small>
+                                    @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $trade->status === 'filled' ? 'success' : ($trade->status === 'pending' ? 'warning' : 'secondary') }}">
-                                        {{ ucfirst($trade->status) }}
+                                    @php
+                                        $statusClass = match($trade->status) {
+                                            'filled' => 'success',
+                                            'pending', 'partially_filled' => 'warning',
+                                            'cancelled', 'rejected' => 'danger',
+                                            default => 'secondary'
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $statusClass }}">
+                                        {{ ucfirst(str_replace('_', ' ', $trade->status)) }}
                                     </span>
                                 </td>
                                 <td>{{ $trade->created_at->format('M d, Y H:i') }}</td>
+                                <td>
+                                    @if(in_array($trade->status, ['pending', 'partially_filled']))
+                                    <button type="button" class="btn btn-danger btn-sm close-trade-btn" data-trade-id="{{ $trade->trade_id ?: $trade->exchange_order_id ?: $trade->id }}">
+                                        <i class="bi bi-x-circle"></i> Close Trade
+                                    </button>
+                                    @else
+                                    <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
                 
-                <div class="d-flex justify-content-center">
+                <div class="d-flex justify-content-center mt-3">
                     {{ $trades->links() }}
                 </div>
                 @else
                 <div class="text-center py-5">
                     <i class="bi bi-graph-up display-1 text-muted"></i>
                     <h4 class="text-muted mt-3">No trades yet</h4>
-                    <p class="text-muted">Start by creating an AI agent to begin trading.</p>
-                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
-                        <i class="bi bi-robot"></i> Create AI Agent
-                    </a>
+                    <p class="text-muted">Start trading by creating an AI agent or manually starting a trade.</p>
+                    @if($hasNexaPackage)
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#startTradeModal">
+                        <i class="bi bi-play-circle"></i> Start Trade
+                    </button>
+                    @endif
                 </div>
                 @endif
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-robot"></i> Active Agents</h5>
-            </div>
-            <div class="card-body">
-                @if($agents->count() > 0)
-                    @foreach($agents as $agent)
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <h6 class="mb-0">{{ $agent->name }}</h6>
-                            <small class="text-muted">{{ ucfirst($agent->strategy) }}</small>
-                        </div>
-                        <div class="text-end">
-                            <div class="text-success">${{ number_format($agent->current_balance, 2) }}</div>
-                            <small class="text-muted">Balance</small>
-                        </div>
-                    </div>
-                    @endforeach
-                @else
-                <div class="text-center py-3">
-                    <i class="bi bi-robot display-4 text-muted"></i>
-                    <p class="text-muted mt-2">No active agents</p>
-                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary btn-sm">
-                        Create Agent
-                    </a>
-                </div>
-                @endif
-            </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('customer.bots.create') }}" class="btn btn-primary">
-                        <i class="bi bi-robot"></i> Create AI Agent
-                    </a>
-                    <a href="{{ route('customer.market.index') }}" class="btn btn-info">
-                        <i class="bi bi-currency-exchange"></i> View Market
-                    </a>
-                    <a href="{{ route('customer.wallet.index') }}" class="btn btn-success">
-                        <i class="bi bi-wallet2"></i> Manage Wallet
-                    </a>
-                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Start Trade Modal -->
+<div class="modal fade" id="startTradeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Start New Trade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="startTradeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="symbol" class="form-label">Symbol <span class="text-danger">*</span></label>
+                        <select class="form-select" id="symbol" name="symbol" required>
+                            <option value="BTCUSDT">BTC/USDT</option>
+                            <option value="ETHUSDT">ETH/USDT</option>
+                            <option value="BNBUSDT">BNB/USDT</option>
+                            <option value="ADAUSDT">ADA/USDT</option>
+                            <option value="SOLUSDT">SOL/USDT</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="side" class="form-label">Side <span class="text-danger">*</span></label>
+                        <select class="form-select" id="side" name="side" required>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" step="0.0001" min="0.0001" required>
+                        <small class="text-muted">Minimum: 0.0001</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Order Type</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="MARKET">Market</option>
+                            <option value="LIMIT">Limit</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-circle"></i> Start Trade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Start Trade Form Submission
+    $('#startTradeForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            symbol: $('#symbol').val(),
+            side: $('#side').val(),
+            quantity: parseFloat($('#quantity').val()),
+            type: $('#type').val()
+        };
+        
+        $.ajax({
+            url: '{{ route("customer.trading.start") }}',
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#startTradeModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.message || 'Failed to start trade'));
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.message || 'An error occurred';
+                alert('Error: ' + error);
+            }
+        });
+    });
+    
+    // Close Trade Button
+    $('.close-trade-btn').on('click', function() {
+        const tradeId = $(this).data('trade-id');
+        const btn = $(this);
+        
+        if (!confirm('Are you sure you want to close this trade?')) {
+            return;
+        }
+        
+        btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Closing...');
+        
+        $.ajax({
+            url: '/customer/trading/close/' + tradeId,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.message || 'Failed to close trade'));
+                    btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Close Trade');
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.message || 'An error occurred';
+                alert('Error: ' + error);
+                btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Close Trade');
+            }
+        });
+    });
+});
+</script>
+@endpush

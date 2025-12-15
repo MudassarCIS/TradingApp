@@ -29,6 +29,9 @@ class User extends Authenticatable
         'active_plan_id',
         'active_pex_plan_id',
         'active_investment_amount',
+        'api_token',
+        'refresh_token',
+        'api_password',
     ];
     
     // Dynamically add active_plan_name if column exists
@@ -56,6 +59,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'api_token',
+        'refresh_token',
+        'api_password',
     ];
 
     /**

@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('plans', function (Blueprint $table) {
-            $table->decimal('fee_percentage', 5, 2)->nullable()->after('joining_fee');
+            if (!Schema::hasColumn('plans', 'fee_percentage')) {
+                $table->decimal('fee_percentage', 5, 2)->nullable()->after('joining_fee');
+            }
         });
     }
 

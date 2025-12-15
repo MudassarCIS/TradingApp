@@ -225,6 +225,8 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     
     // Trading
     Route::get('/trading', [TradingController::class, 'index'])->name('trading.index');
+    Route::post('/trading/start', [TradingController::class, 'startTrade'])->name('trading.start');
+    Route::post('/trading/close/{tradeId}', [TradingController::class, 'closeTrade'])->name('trading.close');
     
     // Market
     Route::get('/market', [MarketController::class, 'index'])->name('market.index');

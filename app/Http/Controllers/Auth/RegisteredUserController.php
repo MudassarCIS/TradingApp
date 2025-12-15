@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Referral;
+use App\Services\ExternalApiService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -46,10 +49,14 @@ class RegisteredUserController extends Controller
             }
         }
 
+        // Encrypt password for API use
+        $encryptedPassword = Crypt::encryptString($data['password']);
+        
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'api_password' => $encryptedPassword, // Encrypted password for API login
             'user_type' => 'customer',
             'is_active' => true,
             'referred_by' => $data['referred_by'] ?? null,
@@ -70,6 +77,26 @@ class RegisteredUserController extends Controller
         $user->assignRole('customer');
 
         event(new Registered($user));
+
+        // Call external API to register user and save tokens
+        try {
+            $apiService = new ExternalApiService($user);
+            $apiResponse = $apiService->registerUser([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'password' => $data['password'], // Send plain password for registration
+                'created_at' => $user->created_at->toDateTimeString(),
+            ]);
+            
+            // Tokens are automatically saved by the service if registration is successful
+            if ($apiResponse && isset($apiResponse['success']) && $apiResponse['success']) {
+                Log::info('User registered successfully to external API', ['user_id' => $user->id]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail registration
+            Log::warning('Failed to register user to external API: ' . $e->getMessage());
+        }
 
         Auth::login($user);
 
