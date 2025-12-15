@@ -18,18 +18,32 @@ class CustomerApiController extends Controller
     public function getCustomerDetails(Request $request)
     {
         try {
-            // Validate customer_id parameter
+            // Validate that either customer_id or email is provided
             $validated = $request->validate([
-                'customer_id' => 'required|integer|exists:users,id'
+                'customer_id' => 'nullable|integer|exists:users,id',
+                'email' => 'nullable|email|exists:users,email'
+            ], [
+                'customer_id.exists' => 'Customer with the provided ID does not exist.',
+                'email.exists' => 'Customer with the provided email does not exist.',
+                'email.email' => 'Please provide a valid email address.'
             ]);
 
-            // Get customer ID from request
-            $customerId = $validated['customer_id'];
-            
-            // Find the customer
-            $user = User::find($customerId);
+            // Check if at least one parameter is provided
+            if (empty($validated['customer_id']) && empty($validated['email'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please provide either customer_id or email parameter.'
+                ], 400);
+            }
 
-            // Check if user exists (this should not happen due to validation, but keeping for safety)
+            // Find the customer by ID or email
+            if (!empty($validated['customer_id'])) {
+                $user = User::find($validated['customer_id']);
+            } else {
+                $user = User::where('email', $validated['email'])->first();
+            }
+
+            // Check if user exists
             if (!$user) {
                 return response()->json([
                     'success' => false,
