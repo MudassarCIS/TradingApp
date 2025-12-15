@@ -22,9 +22,10 @@ class InvoiceController extends Controller
     public function getInvoicesData()
     {
         $user = Auth::user();
-        $invoices = $user->invoices()->with(['plan', 'rentBotPackage'])->latest()->get();
+        $invoices = $user->invoices()->with(['plan', 'rentBotPackage'])->orderBy('created_at', 'desc');
 
         return DataTables::of($invoices)
+            ->orderColumn('formatted_created_at', 'created_at $1') // Map formatted_created_at to created_at for ordering
             ->addColumn('formatted_invoice_id', function ($invoice) {
                 return $invoice->formatted_invoice_id;
             })

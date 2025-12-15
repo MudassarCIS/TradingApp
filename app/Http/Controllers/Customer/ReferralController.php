@@ -100,7 +100,7 @@ class ReferralController extends Controller
             return null;
         }
         
-        $referrals = $user->referredUsers()->with('profile')->get();
+        $referrals = $user->referredUsers()->with('profile')->orderBy('created_at', 'desc')->get();
         $tree = [
             'user' => $user,
             'referrals' => [],
@@ -127,7 +127,7 @@ class ReferralController extends Controller
             return;
         }
         
-        $referrals = $user->referredUsers()->with(['wallets', 'activePlan'])->get();
+        $referrals = $user->referredUsers()->with(['wallets', 'activePlan'])->orderBy('created_at', 'desc')->get();
         
         foreach ($referrals as $referral) {
             // Get total investment amount from wallets
@@ -153,11 +153,11 @@ class ReferralController extends Controller
         
         if ($level === 1) {
             // Direct referrals
-            $query = $user->referredUsers()->with(['wallets', 'activePlan', 'profile']);
+            $query = $user->referredUsers()->with(['wallets', 'activePlan', 'profile'])->orderBy('created_at', 'desc');
         } else {
             // Get referrals at specific level using recursive approach
             $userIds = $this->getUserIdsAtLevel($user, $level);
-            $query = User::whereIn('id', $userIds)->with(['wallets', 'activePlan', 'profile']);
+            $query = User::whereIn('id', $userIds)->with(['wallets', 'activePlan', 'profile'])->orderBy('created_at', 'desc');
         }
         
         return $query->paginate($perPage)->appends($request->query());

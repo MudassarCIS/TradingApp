@@ -86,7 +86,7 @@ $(document).ready(function() {
     // Initialize DataTable
     $('#invoices-table').DataTable({
         processing: true,
-        serverSide: true,
+        serverSide: true, // Use server-side processing for proper ordering
         ajax: {
             url: '{{ route("customer.invoices.data") }}',
             type: 'GET'
@@ -102,12 +102,13 @@ $(document).ready(function() {
             { data: 'formatted_amount' },
             { data: 'formatted_due_date' },
             { data: 'status_badge' },
-            { data: 'formatted_created_at' },
+            { data: 'formatted_created_at', name: 'created_at' },
             { data: 'payment_action', orderable: false, searchable: false }
         ],
-        order: [[0, 'desc']],
+        order: [[5, 'desc']], // Order by Created At column (index 5) descending
         pageLength: 10,
-        responsive: true
+        responsive: true,
+        orderMulti: false // Disable multi-column ordering to ensure single column order
     });
 });
 
