@@ -14,9 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // CORS middleware for API routes
+        // CORS middleware for API and web routes
         $middleware->api(prepend: [
-            \Fruitcake\Cors\HandleCors::class,
+            \App\Http\Middleware\HandleCors::class,
+        ]);
+        
+        // Also apply CORS to web routes for API endpoints
+        $middleware->web(prepend: [
+            \App\Http\Middleware\HandleCors::class,
         ]);
         
         // spatti rolls and permissions

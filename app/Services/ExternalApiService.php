@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\User;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Crypt;
 
@@ -215,7 +218,11 @@ class ExternalApiService
             
             return $body ?? [];
         } catch (GuzzleException $e) {
-            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 0;
+            // Get status code safely (ConnectException doesn't have hasResponse)
+            $statusCode = 0;
+            if ($e instanceof ClientException || $e instanceof ServerException) {
+                $statusCode = $e->getResponse()->getStatusCode();
+            }
             
             // If unauthorized and using auth, try to refresh token and retry
             if ($useAuth && $statusCode === 401 && $this->user) {
