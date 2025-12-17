@@ -18,6 +18,17 @@ class ExternalApiService
     protected $apiKey;
     protected $user;
     
+    // Configurable API endpoints
+    protected $endpoints = [
+        'register' => '/auth/register',
+        'login' => '/auth/login',
+        'refresh_token' => '/auth/refresh',
+        'logout' => '/auth/logout',
+        'trading_history' => '/api/trading/history',
+        'start_trade' => '/api/trading/start',
+        'close_trade' => '/api/trading/close',
+    ];
+    
     public function __construct(?User $user = null)
     {
         $this->client = new Client([
@@ -27,6 +38,48 @@ class ExternalApiService
         $this->baseUrl = env('EXTERNAL_API_URL', 'https://api.example.com');
         $this->apiKey = env('EXTERNAL_API_KEY', '');
         $this->user = $user;
+        
+        // Load custom endpoints from config if available
+        $this->loadCustomEndpoints();
+        
+        // Warn if API URL is still using default placeholder
+        if ($this->baseUrl === 'https://api.example.com') {
+            Log::warning('External API URL not configured - using default placeholder', [
+                'current_url' => $this->baseUrl,
+                'action' => 'configuration_warning',
+                'note' => 'Please set EXTERNAL_API_URL in your .env file to the actual 3rd party API URL',
+            ]);
+        }
+    }
+    
+    /**
+     * Load custom endpoints from environment variables
+     */
+    protected function loadCustomEndpoints(): void
+    {
+        $customEndpoints = [
+            'register' => env('EXTERNAL_API_ENDPOINT_REGISTER'),
+            'login' => env('EXTERNAL_API_ENDPOINT_LOGIN'),
+            'refresh_token' => env('EXTERNAL_API_ENDPOINT_REFRESH_TOKEN'),
+            'logout' => env('EXTERNAL_API_ENDPOINT_LOGOUT'),
+            'trading_history' => env('EXTERNAL_API_ENDPOINT_TRADING_HISTORY'),
+            'start_trade' => env('EXTERNAL_API_ENDPOINT_START_TRADE'),
+            'close_trade' => env('EXTERNAL_API_ENDPOINT_CLOSE_TRADE'),
+        ];
+        
+        foreach ($customEndpoints as $key => $endpoint) {
+            if ($endpoint !== null) {
+                $this->endpoints[$key] = $endpoint;
+            }
+        }
+    }
+    
+    /**
+     * Get endpoint path
+     */
+    protected function getEndpoint(string $key): string
+    {
+        return $this->endpoints[$key] ?? '/api/' . $key;
     }
     
     /**
@@ -42,11 +95,37 @@ class ExternalApiService
      */
     public function registerUser(array $userData): ?array
     {
+        $endpoint = $this->getEndpoint('register');
+        $logContext = [
+            'action' => 'register_user',
+            'user_id' => $this->user?->id,
+            'email' => $userData['email'] ?? null,
+            'endpoint' => $endpoint,
+        ];
+        
+        // Log request (without password)
+        $logData = $userData;
+        if (isset($logData['password'])) {
+            $logData['password'] = '***REDACTED***';
+        }
+        Log::info('3rd Party API Call - Register User [REQUEST]', array_merge($logContext, ['request_data' => $logData]));
+        
         try {
-            $response = $this->makeRequest('POST', '/api/register', $userData, false);
+            $response = $this->makeRequest('POST', $endpoint, $userData, false);
             
-            // If registration successful and tokens provided, save them
+            // Log response
             if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Register User [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'message' => $response['message'] ?? null,
+                        'has_token' => isset($response['data']['token']) || isset($response['data']['access_token']),
+                        'has_refresh_token' => isset($response['data']['refresh_token']),
+                    ]
+                ]));
+                
+                // If registration successful and tokens provided, save them
                 if (isset($response['data']['token']) || isset($response['data']['access_token'])) {
                     $token = $response['data']['token'] ?? $response['data']['access_token'] ?? null;
                     $refreshToken = $response['data']['refresh_token'] ?? null;
@@ -56,13 +135,26 @@ class ExternalApiService
                             'api_token' => $token,
                             'refresh_token' => $refreshToken,
                         ]);
+                        Log::info('3rd Party API Call - Register User [TOKEN SAVED]', array_merge($logContext, [
+                            'token_saved' => true,
+                        ]));
                     }
                 }
+            } else {
+                Log::warning('3rd Party API Call - Register User [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Unknown error',
+                ]));
             }
             
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Register User: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Register User [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
             return null;
         }
     }
@@ -72,14 +164,34 @@ class ExternalApiService
      */
     public function loginUser(string $email, string $password): ?array
     {
+        $endpoint = $this->getEndpoint('login');
+        $logContext = [
+            'action' => 'login_user',
+            'user_id' => $this->user?->id,
+            'email' => $email,
+            'endpoint' => $endpoint,
+        ];
+        
+        Log::info('3rd Party API Call - Login User [REQUEST]', $logContext);
+        
         try {
-            $response = $this->makeRequest('POST', '/api/login', [
+            $response = $this->makeRequest('POST', $endpoint, [
                 'email' => $email,
                 'password' => $password
             ], false);
             
-            // If login successful, save tokens
+            // Log response
             if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Login User [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'message' => $response['message'] ?? null,
+                        'has_token' => isset($response['data']['token']) || isset($response['data']['access_token']),
+                    ]
+                ]));
+                
+                // If login successful, save tokens
                 $token = $response['data']['token'] ?? $response['data']['access_token'] ?? null;
                 $refreshToken = $response['data']['refresh_token'] ?? null;
                 
@@ -88,12 +200,25 @@ class ExternalApiService
                         'api_token' => $token,
                         'refresh_token' => $refreshToken,
                     ]);
+                    Log::info('3rd Party API Call - Login User [TOKEN SAVED]', array_merge($logContext, [
+                        'token_saved' => true,
+                    ]));
                 }
+            } else {
+                Log::warning('3rd Party API Call - Login User [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Login failed',
+                ]));
             }
             
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Login User: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Login User [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
             return null;
         }
     }
@@ -104,16 +229,39 @@ class ExternalApiService
     public function refreshToken(): ?array
     {
         if (!$this->user || !$this->user->refresh_token) {
+            Log::warning('3rd Party API Call - Refresh Token [SKIPPED]', [
+                'action' => 'refresh_token',
+                'user_id' => $this->user?->id,
+                'reason' => 'No user or refresh token available',
+            ]);
             return null;
         }
         
+        $endpoint = $this->getEndpoint('refresh_token');
+        $logContext = [
+            'action' => 'refresh_token',
+            'user_id' => $this->user->id,
+            'endpoint' => $endpoint,
+        ];
+        
+        Log::info('3rd Party API Call - Refresh Token [REQUEST]', $logContext);
+        
         try {
-            $response = $this->makeRequest('POST', '/api/refresh-token', [
+            $response = $this->makeRequest('POST', $endpoint, [
                 'refresh_token' => $this->user->refresh_token
             ], false);
             
-            // If refresh successful, update tokens
+            // Log response
             if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Refresh Token [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'has_token' => isset($response['data']['token']) || isset($response['data']['access_token']),
+                    ]
+                ]));
+                
+                // If refresh successful, update tokens
                 $token = $response['data']['token'] ?? $response['data']['access_token'] ?? null;
                 $refreshToken = $response['data']['refresh_token'] ?? $this->user->refresh_token;
                 
@@ -122,12 +270,103 @@ class ExternalApiService
                         'api_token' => $token,
                         'refresh_token' => $refreshToken,
                     ]);
+                    Log::info('3rd Party API Call - Refresh Token [TOKEN UPDATED]', array_merge($logContext, [
+                        'token_updated' => true,
+                    ]));
                 }
+            } else {
+                Log::warning('3rd Party API Call - Refresh Token [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Token refresh failed',
+                ]));
             }
             
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Refresh Token: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Refresh Token [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
+            return null;
+        }
+    }
+    
+    /**
+     * Logout user from external API
+     */
+    public function logoutUser(): ?array
+    {
+        if (!$this->user) {
+            Log::warning('3rd Party API Call - Logout User [SKIPPED]', [
+                'action' => 'logout_user',
+                'reason' => 'No user available',
+            ]);
+            return null;
+        }
+        
+        $endpoint = $this->getEndpoint('logout');
+        $logContext = [
+            'action' => 'logout_user',
+            'user_id' => $this->user->id,
+            'email' => $this->user->email,
+            'endpoint' => $endpoint,
+        ];
+        
+        Log::info('3rd Party API Call - Logout User [REQUEST]', $logContext);
+        
+        try {
+            $response = $this->makeRequest('POST', $endpoint, [], true);
+            
+            // Log response
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Logout User [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'message' => $response['message'] ?? null,
+                    ]
+                ]));
+                
+                // Clear tokens after successful logout
+                if ($this->user) {
+                    $this->user->update([
+                        'api_token' => null,
+                        'refresh_token' => null,
+                    ]);
+                    Log::info('3rd Party API Call - Logout User [TOKENS CLEARED]', array_merge($logContext, [
+                        'tokens_cleared' => true,
+                    ]));
+                }
+            } else {
+                Log::warning('3rd Party API Call - Logout User [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Logout failed',
+                ]));
+            }
+            
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('3rd Party API Call - Logout User [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
+            
+            // Clear tokens even if API call fails (local logout)
+            if ($this->user) {
+                $this->user->update([
+                    'api_token' => null,
+                    'refresh_token' => null,
+                ]);
+                Log::info('3rd Party API Call - Logout User [TOKENS CLEARED ON EXCEPTION]', array_merge($logContext, [
+                    'tokens_cleared' => true,
+                    'note' => 'Tokens cleared locally despite API call failure',
+                ]));
+            }
+            
             return null;
         }
     }
@@ -137,12 +376,46 @@ class ExternalApiService
      */
     public function getTradingHistory(int $userId, array $params = []): ?array
     {
+        $endpoint = $this->getEndpoint('trading_history');
+        $logContext = [
+            'action' => 'get_trading_history',
+            'user_id' => $userId,
+            'endpoint' => $endpoint,
+            'params' => $params,
+        ];
+        
+        Log::info('3rd Party API Call - Get Trading History [REQUEST]', $logContext);
+        
         try {
             $queryParams = array_merge(['user_id' => $userId], $params);
-            $response = $this->makeRequest('GET', '/api/trading/history', $queryParams);
+            $response = $this->makeRequest('GET', $endpoint, $queryParams);
+            
+            // Log response
+            if ($response && isset($response['success']) && $response['success']) {
+                $tradeCount = isset($response['data']) && is_array($response['data']) ? count($response['data']) : 0;
+                Log::info('3rd Party API Call - Get Trading History [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'trade_count' => $tradeCount,
+                        'message' => $response['message'] ?? null,
+                    ]
+                ]));
+            } else {
+                Log::warning('3rd Party API Call - Get Trading History [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Failed to get trading history',
+                ]));
+            }
+            
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Get Trading History: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Get Trading History [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
             return null;
         }
     }
@@ -152,12 +425,48 @@ class ExternalApiService
      */
     public function startTrade(int $userId, array $tradeData): ?array
     {
+        $endpoint = $this->getEndpoint('start_trade');
+        $logContext = [
+            'action' => 'start_trade',
+            'user_id' => $userId,
+            'endpoint' => $endpoint,
+            'trade_data' => $tradeData,
+        ];
+        
+        Log::info('3rd Party API Call - Start Trade [REQUEST]', $logContext);
+        
         try {
             $data = array_merge(['user_id' => $userId], $tradeData);
-            $response = $this->makeRequest('POST', '/api/trading/start', $data);
+            $response = $this->makeRequest('POST', $endpoint, $data);
+            
+            // Log response
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Start Trade [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'message' => $response['message'] ?? null,
+                        'trade_id' => $response['data']['trade_id'] ?? $response['data']['id'] ?? null,
+                        'symbol' => $tradeData['symbol'] ?? null,
+                        'side' => $tradeData['side'] ?? null,
+                        'quantity' => $tradeData['quantity'] ?? null,
+                    ]
+                ]));
+            } else {
+                Log::warning('3rd Party API Call - Start Trade [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Failed to start trade',
+                ]));
+            }
+            
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Start Trade: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Start Trade [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
             return null;
         }
     }
@@ -167,14 +476,48 @@ class ExternalApiService
      */
     public function closeTrade(int $userId, string $tradeId): ?array
     {
+        $endpoint = $this->getEndpoint('close_trade');
+        $logContext = [
+            'action' => 'close_trade',
+            'user_id' => $userId,
+            'trade_id' => $tradeId,
+            'endpoint' => $endpoint,
+        ];
+        
+        Log::info('3rd Party API Call - Close Trade [REQUEST]', $logContext);
+        
         try {
-            $response = $this->makeRequest('POST', '/api/trading/close', [
+            $response = $this->makeRequest('POST', $endpoint, [
                 'user_id' => $userId,
                 'trade_id' => $tradeId
             ]);
+            
+            // Log response
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('3rd Party API Call - Close Trade [SUCCESS]', array_merge($logContext, [
+                    'status' => 'success',
+                    'response' => [
+                        'success' => $response['success'] ?? false,
+                        'message' => $response['message'] ?? null,
+                        'profit_loss' => $response['data']['profit_loss'] ?? null,
+                        'closed_at' => $response['data']['closed_at'] ?? null,
+                    ]
+                ]));
+            } else {
+                Log::warning('3rd Party API Call - Close Trade [FAILURE]', array_merge($logContext, [
+                    'status' => 'failure',
+                    'response' => $response,
+                    'error_message' => $response['message'] ?? 'Failed to close trade',
+                ]));
+            }
+            
             return $response;
         } catch (\Exception $e) {
-            Log::error('External API Error - Close Trade: ' . $e->getMessage());
+            Log::error('3rd Party API Call - Close Trade [EXCEPTION]', array_merge($logContext, [
+                'status' => 'exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]));
             return null;
         }
     }
@@ -212,9 +555,45 @@ class ExternalApiService
             $options['json'] = $params;
         }
         
+        // Log request details
+        $requestLogContext = [
+            'action' => 'api_request',
+            'method' => $method,
+            'url' => $url,
+            'endpoint' => $endpoint,
+            'user_id' => $this->user?->id,
+            'use_auth' => $useAuth,
+            'has_params' => !empty($params),
+        ];
+        
+        // Log request (sanitize sensitive data)
+        $sanitizedParams = $params;
+        if (isset($sanitizedParams['password'])) {
+            $sanitizedParams['password'] = '***REDACTED***';
+        }
+        if (isset($sanitizedParams['refresh_token'])) {
+            $sanitizedParams['refresh_token'] = '***REDACTED***';
+        }
+        
+        Log::info('3rd Party API Request [OUTGOING]', array_merge($requestLogContext, [
+            'params' => $sanitizedParams,
+        ]));
+        
         try {
+            $startTime = microtime(true);
             $response = $this->client->request($method, $url, $options);
+            $duration = round((microtime(true) - $startTime) * 1000, 2); // milliseconds
+            
+            $statusCode = $response->getStatusCode();
             $body = json_decode($response->getBody()->getContents(), true);
+            
+            // Log successful response
+            Log::info('3rd Party API Response [SUCCESS]', array_merge($requestLogContext, [
+                'status_code' => $statusCode,
+                'duration_ms' => $duration,
+                'response_success' => $body['success'] ?? null,
+                'response_message' => $body['message'] ?? null,
+            ]));
             
             return $body ?? [];
         } catch (GuzzleException $e) {
@@ -239,11 +618,21 @@ class ExternalApiService
                         $options['headers'] = $headers;
                         
                         try {
+                            Log::info('3rd Party API Request [RETRY AFTER REFRESH]', array_merge($requestLogContext, [
+                                'retry_reason' => 'token_refreshed',
+                            ]));
                             $response = $this->client->request($method, $url, $options);
                             $body = json_decode($response->getBody()->getContents(), true);
+                            Log::info('3rd Party API Response [RETRY SUCCESS]', array_merge($requestLogContext, [
+                                'status_code' => $response->getStatusCode(),
+                                'retry_reason' => 'token_refreshed',
+                            ]));
                             return $body ?? [];
                         } catch (GuzzleException $retryException) {
-                            Log::error('Retry after refresh failed: ' . $retryException->getMessage());
+                            Log::error('3rd Party API Response [RETRY FAILED]', array_merge($requestLogContext, [
+                                'retry_reason' => 'token_refreshed',
+                                'error' => $retryException->getMessage(),
+                            ]));
                         }
                     }
                 }
@@ -260,22 +649,58 @@ class ExternalApiService
                         $options['headers'] = $headers;
                         
                         try {
+                            Log::info('3rd Party API Request [RETRY AFTER LOGIN]', array_merge($requestLogContext, [
+                                'retry_reason' => 'reauthenticated',
+                            ]));
                             $response = $this->client->request($method, $url, $options);
                             $body = json_decode($response->getBody()->getContents(), true);
+                            Log::info('3rd Party API Response [RETRY SUCCESS]', array_merge($requestLogContext, [
+                                'status_code' => $response->getStatusCode(),
+                                'retry_reason' => 'reauthenticated',
+                            ]));
                             return $body ?? [];
                         } catch (GuzzleException $retryException) {
-                            Log::error('Retry after login failed: ' . $retryException->getMessage());
+                            Log::error('3rd Party API Response [RETRY FAILED]', array_merge($requestLogContext, [
+                                'retry_reason' => 'reauthenticated',
+                                'error' => $retryException->getMessage(),
+                            ]));
                         }
                     }
                 }
             }
             
-            Log::error('External API Request Failed: ' . $e->getMessage(), [
-                'url' => $url,
-                'method' => $method,
+            // Get error response body if available
+            $errorBody = null;
+            if ($e instanceof ClientException || $e instanceof ServerException) {
+                try {
+                    $errorBody = json_decode($e->getResponse()->getBody()->getContents(), true);
+                } catch (\Exception $bodyException) {
+                    // Ignore if can't read body
+                }
+            }
+            
+            // Enhanced error logging for 404 errors
+            $errorDetails = [
                 'status_code' => $statusCode,
-                'params' => $params
-            ]);
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_response' => $errorBody,
+            ];
+            
+            // Add helpful message for 404 errors
+            if ($statusCode === 404) {
+                $errorDetails['helpful_message'] = 'Endpoint not found (404). Please verify:';
+                $errorDetails['suggestions'] = [
+                    '1. Check if the endpoint path is correct',
+                    '2. Verify EXTERNAL_API_URL is correct: ' . $this->baseUrl,
+                    '3. Check if endpoint requires different path (e.g., /register instead of /api/register)',
+                    '4. Set custom endpoint via EXTERNAL_API_ENDPOINT_REGISTER env variable',
+                ];
+                $errorDetails['current_endpoint'] = $endpoint;
+                $errorDetails['full_url'] = $url;
+            }
+            
+            Log::error('3rd Party API Response [FAILURE]', array_merge($requestLogContext, $errorDetails));
             throw $e;
         }
     }

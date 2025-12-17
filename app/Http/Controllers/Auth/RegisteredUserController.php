@@ -80,6 +80,12 @@ class RegisteredUserController extends Controller
 
         // Call external API to register user and save tokens
         try {
+            Log::info('User Registration - Calling 3rd Party API', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+            ]);
+            
             $apiService = new ExternalApiService($user);
             $apiResponse = $apiService->registerUser([
                 'id' => $user->id,
@@ -91,11 +97,38 @@ class RegisteredUserController extends Controller
             
             // Tokens are automatically saved by the service if registration is successful
             if ($apiResponse && isset($apiResponse['success']) && $apiResponse['success']) {
-                Log::info('User registered successfully to external API', ['user_id' => $user->id]);
+                Log::info('User Registration - 3rd Party API Registration Successful', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'has_token' => isset($apiResponse['data']['token']) || isset($apiResponse['data']['access_token']),
+                ]);
+            } else {
+                // Handle both null response (exception occurred) and failed response
+                $errorMessage = 'Unknown error';
+                if ($apiResponse === null) {
+                    $errorMessage = 'API call failed - check logs for details (likely connection error or invalid API URL)';
+                } elseif (isset($apiResponse['message'])) {
+                    $errorMessage = $apiResponse['message'];
+                } elseif (isset($apiResponse['error'])) {
+                    $errorMessage = $apiResponse['error'];
+                }
+                
+                Log::warning('User Registration - 3rd Party API Registration Failed', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'response' => $apiResponse,
+                    'error_message' => $errorMessage,
+                    'note' => $apiResponse === null ? 'API returned null - check ExternalApiService logs for exception details' : 'API returned failure response',
+                ]);
             }
         } catch (\Exception $e) {
             // Log error but don't fail registration
-            Log::warning('Failed to register user to external API: ' . $e->getMessage());
+            Log::error('User Registration - 3rd Party API Exception', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
         Auth::login($user);
