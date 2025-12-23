@@ -48,6 +48,19 @@
                         <p>{{ __('Manage Invoices') }}</p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{route('admin.support.index')}}" class="nav-link @if(request()->routeIs('admin.support.*')) active @endif">
+                        <i class="nav-icon bi bi-headset"></i>
+                        <p>
+                            {{ __('Support Messages') }}
+                            @if(isset($unreadSupportCount) && $unreadSupportCount > 0)
+                                <span class="badge bg-danger float-end">{{ $unreadSupportCount }}</span>
+                            @else
+                                <span class="badge bg-danger float-end" style="display: none;">0</span>
+                            @endif
+                        </p>
+                    </a>
+                </li>
 
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">

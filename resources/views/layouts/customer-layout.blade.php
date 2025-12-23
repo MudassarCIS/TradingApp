@@ -9,6 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'AI Trade App')</title>
     
     <!-- Bootstrap 5 CSS -->
@@ -303,6 +304,11 @@
                             <a class="nav-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
                                 <i class="bi bi-headset"></i>
                                 Support
+                                @if(isset($unreadSupportCount) && $unreadSupportCount > 0)
+                                    <span class="badge bg-danger ms-2 support-badge">{{ $unreadSupportCount }}</span>
+                                @else
+                                    <span class="badge bg-danger ms-2 support-badge" style="display: none;">0</span>
+                                @endif
                             </a>
                         </li>
                         <li class="nav-item">
@@ -440,6 +446,11 @@
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.support.*') ? 'active' : '' }}" href="{{ route('customer.support.index') }}">
                         <i class="bi bi-headset"></i>
                         Support
+                        @if(isset($unreadSupportCount) && $unreadSupportCount > 0)
+                            <span class="badge bg-danger ms-2 support-badge">{{ $unreadSupportCount }}</span>
+                        @else
+                            <span class="badge bg-danger ms-2 support-badge" style="display: none;">0</span>
+                        @endif
                     </a>
                 </li>
                 <li class="nav-item">

@@ -1,7 +1,6 @@
-@extends('layouts.customer-layout')
+@extends('layouts.admin-layout')
 
-@section('title', 'Support - AI Trade App')
-@section('page-title', 'Support')
+@section('title', 'Support Thread - ' . $customer->name)
 
 @push('styles')
 <style>
@@ -77,11 +76,11 @@
     }
 
     .message-wrapper.customer {
-        justify-content: flex-end;
+        justify-content: flex-start;
     }
 
     .message-wrapper.admin {
-        justify-content: flex-start;
+        justify-content: flex-end;
     }
 
     .message-bubble {
@@ -94,13 +93,13 @@
     }
 
     .message-wrapper.customer .message-bubble {
-        background: #dcf8c6;
-        border-bottom-right-radius: 4px;
+        background: #ffffff;
+        border-bottom-left-radius: 4px;
     }
 
     .message-wrapper.admin .message-bubble {
-        background: #ffffff;
-        border-bottom-left-radius: 4px;
+        background: #dcf8c6;
+        border-bottom-right-radius: 4px;
     }
 
     .message-sender {
@@ -111,11 +110,11 @@
     }
 
     .message-wrapper.customer .message-sender {
-        text-align: right;
+        text-align: left;
     }
 
     .message-wrapper.admin .message-sender {
-        text-align: left;
+        text-align: right;
     }
 
     .message-text {
@@ -129,11 +128,11 @@
         font-size: 0.7rem;
         color: #667781;
         margin-top: 4px;
-        text-align: right;
+        text-align: left;
     }
 
     .message-wrapper.admin .message-time {
-        text-align: left;
+        text-align: right;
     }
 
     .message-input-container {
@@ -199,70 +198,92 @@
         opacity: 0.5;
     }
 
-    .loading {
-        text-align: center;
-        padding: 20px;
-        color: #667781;
+    .back-button {
+        margin-bottom: 20px;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="support-container">
-    <div class="card" style="border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-        <div class="support-header">
-            <div>
-                <h5 class="mb-0"><i class="bi bi-headset"></i> Support Chat</h5>
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Support Thread</h1>
+                </div>
             </div>
-            @if($hasOldMessages)
-            <a href="#" class="show-old-messages-link" id="toggleOldMessages">
-                <i class="bi bi-clock-history"></i> Show old messages
-            </a>
-            @endif
-        </div>
-
-        <div class="messages-container" id="messagesContainer">
-            <div id="oldMessagesContainer" class="old-messages-container"></div>
-            <div id="recentMessagesContainer">
-                @if($recentMessages->count() > 0)
-                    @foreach($recentMessages as $message)
-                        <div class="message-wrapper {{ $message->sender_type }}">
-                            <div class="message-bubble">
-                                @if($message->sender_type === 'admin')
-                                    <div class="message-sender">{{ $message->admin ? $message->admin->name : 'Admin' }}</div>
-                                @else
-                                    <div class="message-sender">You</div>
-                                @endif
-                                <p class="message-text">{{ $message->message }}</p>
-                                <div class="message-time">{{ $message->created_at->format('h:i A') }}</div>
-                            </div>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="empty-state">
-                        <i class="bi bi-chat-dots"></i>
-                        <h5>No messages yet</h5>
-                        <p>Start a conversation by sending a message below.</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        <div class="message-input-container">
-            <form id="messageForm" class="message-input-form">
-                @csrf
-                <textarea 
-                    id="messageInput" 
-                    class="message-input" 
-                    placeholder="Type a message..." 
-                    rows="1"
-                    required></textarea>
-                <button type="submit" class="send-button" id="sendButton">
-                    <i class="bi bi-send-fill"></i>
-                </button>
-            </form>
         </div>
     </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="back-button">
+                <a href="{{ route('admin.support.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Messages
+                </a>
+            </div>
+
+            <div class="support-container">
+                <div class="card" style="border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="support-header">
+                        <div>
+                            <h5 class="mb-0"><i class="bi bi-person"></i> {{ $customer->name }}</h5>
+                            <small>{{ $customer->email }}</small>
+                        </div>
+                        @if($hasOldMessages)
+                        <a href="#" class="show-old-messages-link" id="toggleOldMessages">
+                            <i class="bi bi-clock-history"></i> Show old messages
+                        </a>
+                        @endif
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div id="oldMessagesContainer" class="old-messages-container"></div>
+                        <div id="recentMessagesContainer">
+                            @if($recentMessages->count() > 0)
+                                @foreach($recentMessages as $message)
+                                    <div class="message-wrapper {{ $message->sender_type }}">
+                                        <div class="message-bubble">
+                                            @if($message->sender_type === 'admin')
+                                                <div class="message-sender">You</div>
+                                            @else
+                                                <div class="message-sender">{{ $customer->name }}</div>
+                                            @endif
+                                            <p class="message-text">{{ $message->message }}</p>
+                                            <div class="message-time">{{ $message->created_at->format('h:i A') }}</div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="empty-state">
+                                    <i class="bi bi-chat-dots"></i>
+                                    <h5>No messages yet</h5>
+                                    <p>Start a conversation by sending a message below.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="message-input-container">
+                        <form id="messageForm" class="message-input-form">
+                            @csrf
+                            <input type="hidden" name="thread_id" value="{{ $threadId }}">
+                            <textarea 
+                                id="messageInput" 
+                                class="message-input" 
+                                placeholder="Type a message..." 
+                                rows="1"
+                                required></textarea>
+                            <button type="submit" class="send-button" id="sendButton">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
 @push('scripts')
@@ -279,7 +300,7 @@
 
     // Load messages via AJAX
     function loadMessages(includeOld = false) {
-        const url = new URL('{{ route("customer.support.messages") }}', window.location.origin);
+        const url = new URL(`{{ url('admin/support') }}/${threadId}/messages`, window.location.origin);
         if (includeOld) {
             url.searchParams.append('old', '1');
         }
@@ -313,7 +334,6 @@
         if (isOld) {
             container.innerHTML = '';
         } else {
-            // Clear only if we're refreshing recent messages
             if (messages.length > 0) {
                 container.innerHTML = '';
             }
@@ -335,8 +355,8 @@
             wrapper.className = `message-wrapper ${message.sender_type}`;
             
             const senderName = message.sender_type === 'admin' ? 
-                (message.admin_name || 'Support System') : 
-                'You';
+                'You' : 
+                (message.customer_name || 'Customer');
             
             wrapper.innerHTML = `
                 <div class="message-bubble">
@@ -395,7 +415,7 @@
         const sendButton = document.getElementById('sendButton');
         sendButton.disabled = true;
         
-        fetch('{{ route("customer.support.store") }}', {
+        fetch('{{ route("admin.support.reply") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -404,7 +424,10 @@
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify({ 
+                thread_id: threadId,
+                message: message 
+            })
         })
         .then(response => response.json())
         .then(data => {
@@ -436,33 +459,6 @@
 
     // Initial scroll
     setTimeout(scrollToBottom, 100);
-
-    // Update unread count badge
-    function updateUnreadCount() {
-        fetch('{{ route("customer.support.unread-count") }}', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const badge = document.querySelector('.support-badge');
-            if (badge) {
-                if (data.count > 0) {
-                    badge.textContent = data.count;
-                    badge.style.display = 'inline-block';
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
-        })
-        .catch(error => console.error('Error updating unread count:', error));
-    }
-
-    // Update unread count every 30 seconds
-    setInterval(updateUnreadCount, 30000);
-    updateUnreadCount();
 </script>
 @endpush
 @endsection

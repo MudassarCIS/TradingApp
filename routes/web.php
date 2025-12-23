@@ -216,6 +216,14 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::get('/withdrawals/{id}/show', [App\Http\Controllers\Admin\WithdrawalController::class, 'show'])->name('withdrawals.show');
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
+    
+    // Support Messages
+    Route::get('/support', [App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
+    Route::get('/support/{threadId}', [App\Http\Controllers\Admin\SupportController::class, 'show'])->name('support.show');
+    Route::post('/support/reply', [App\Http\Controllers\Admin\SupportController::class, 'reply'])->name('support.reply');
+    Route::post('/support/mark-read', [App\Http\Controllers\Admin\SupportController::class, 'markAsRead'])->name('support.mark-read');
+    Route::get('/support/unread-count', [App\Http\Controllers\Admin\SupportController::class, 'getUnreadCount'])->name('support.unread-count');
+    Route::get('/support/{threadId}/messages', [App\Http\Controllers\Admin\SupportController::class, 'getMessages'])->name('support.messages');
 });
 
 // Customer Routes (only for customers)
@@ -265,6 +273,9 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     // Support
     Route::get('/support', [SupportController::class, 'index'])->name('support.index');
     Route::post('/support', [SupportController::class, 'store'])->name('support.store');
+    Route::get('/support/messages', [SupportController::class, 'getMessages'])->name('support.messages');
+    Route::post('/support/mark-read', [SupportController::class, 'markAsRead'])->name('support.mark-read');
+    Route::get('/support/unread-count', [SupportController::class, 'getUnreadCount'])->name('support.unread-count');
     
     // Invoices
     Route::get('/invoices', [App\Http\Controllers\Customer\InvoiceController::class, 'index'])->name('invoices.index');
