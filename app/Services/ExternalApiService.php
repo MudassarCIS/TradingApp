@@ -103,15 +103,27 @@ class ExternalApiService
             'endpoint' => $endpoint,
         ];
         
+        // Format payload to match external API requirements
+        // Expected format: email, password, name, hb_master_password (same as password)
+        $payload = [
+            'email' => $userData['email'] ?? null,
+            'password' => $userData['password'] ?? null,
+            'name' => $userData['name'] ?? null,
+            'hb_master_password' => $userData['password'] ?? null, // Same as password
+        ];
+        
         // Log request (without password)
-        $logData = $userData;
+        $logData = $payload;
         if (isset($logData['password'])) {
             $logData['password'] = '***REDACTED***';
+        }
+        if (isset($logData['hb_master_password'])) {
+            $logData['hb_master_password'] = '***REDACTED***';
         }
         Log::info('3rd Party API Call - Register User [REQUEST]', array_merge($logContext, ['request_data' => $logData]));
         
         try {
-            $response = $this->makeRequest('POST', $endpoint, $userData, false);
+            $response = $this->makeRequest('POST', $endpoint, $payload, false);
             
             // Log response
             if ($response && isset($response['success']) && $response['success']) {

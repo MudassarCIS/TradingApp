@@ -221,6 +221,12 @@
             @endif
         </div>
 
+        <!-- Support Note Alert -->
+        <div class="alert alert-info mb-0" style="border-radius: 0; border-left: 4px solid #0dcaf0; background-color: #d1ecf1; color: #0c5460; padding: 12px 20px; margin: 0;">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Note:</strong> Support Agent will replay shortly after you send message to support
+        </div>
+
         <div class="messages-container" id="messagesContainer">
             <div id="oldMessagesContainer" class="old-messages-container"></div>
             <div id="recentMessagesContainer">

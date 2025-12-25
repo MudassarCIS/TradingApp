@@ -56,17 +56,6 @@ class SupportController extends Controller
             'is_read_by_admin' => false,
         ]);
         
-        // Automatically send confirmation message from support system
-        SupportMessage::create([
-            'thread_id' => $threadId,
-            'user_id' => $user->id,
-            'admin_id' => null, // System message, no specific admin
-            'message' => 'Thank you for your message, our support agent will reply shortly to your message. Thanks',
-            'sender_type' => 'admin',
-            'is_read_by_customer' => false,
-            'is_read_by_admin' => true, // System message is considered read by admin
-        ]);
-        
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,

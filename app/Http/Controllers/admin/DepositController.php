@@ -40,7 +40,10 @@ class DepositController extends Controller
             // Get all active PEX packages ordered by amount ASC for plan name matching
             $pexPackages = RentBotPackage::active()->orderBy('amount', 'asc')->get();
             
-            $query = Deposit::with(['user.activeBots', 'approver', 'invoice.plan']);
+            // Start with query and apply default ordering (latest first) - same pattern as invoices
+            $query = Deposit::with(['user.activeBots', 'approver', 'invoice.plan'])
+                ->select('*')
+                ->orderBy('created_at', 'desc');
 
             // Get total records count (before any filters)
             $totalRecords = Deposit::count();
@@ -84,74 +87,15 @@ class DepositController extends Controller
                 });
             }
 
-            // Get filtered count after search
-            $filteredRecords = $query->count();
+            // Clone query for counting to avoid affecting main query builder state
+            $countQuery = clone $query;
+            $filteredRecords = $countQuery->count();
 
-            // Apply ordering - Default to created_at desc (latest first)
-            $orderColumn = 9; // Default to created_at (column index 9)
-            $orderDirection = 'desc'; // Default to descending (latest first)
+            // Let DataTables handle ordering automatically (same pattern as invoices)
+            // The default orderBy('created_at', 'desc') ensures latest deposits first
+            // DataTables will override this when user clicks column headers based on order: [[9, 'desc']] in view
             
-            // Check if DataTables sent order parameters
-            if ($request->has('order') && is_array($request->get('order')) && count($request->get('order')) > 0) {
-                $orderData = $request->get('order')[0];
-                if (isset($orderData['column']) && $orderData['column'] !== null && $orderData['column'] !== '') {
-                    $orderColumn = (int) $orderData['column'];
-                }
-                if (isset($orderData['dir']) && !empty($orderData['dir'])) {
-                    $orderDirection = strtolower($orderData['dir']) === 'asc' ? 'asc' : 'desc';
-                }
-            }
-
-            $columns = [
-                0 => 'deposit_id',
-                1 => 'user_id',
-                2 => 'amount',
-                3 => 'currency',
-                4 => 'network',
-                5 => 'invoice_type',
-                6 => 'trans_id',
-                7 => 'status',
-                8 => 'proof_image',
-                9 => 'created_at'
-            ];
-
-            // Always apply ordering - default to created_at desc if column not found
-            if (isset($columns[$orderColumn])) {
-                if ($orderColumn == 1) {
-                    // Order by user name using join
-                    if (!$query->getQuery()->joins) {
-                        $query->join('users', 'deposits.user_id', '=', 'users.id')
-                              ->select('deposits.*')
-                              ->groupBy('deposits.id');
-                    }
-                    $query->orderBy('users.name', $orderDirection);
-                    // Add secondary sort by created_at desc
-                    $query->orderBy('deposits.created_at', 'desc');
-                } elseif ($orderColumn == 5) {
-                    // Order by invoice_type (from deposits table or invoice relationship)
-                    $query->orderBy('deposits.invoice_type', $orderDirection);
-                    // Add secondary sort by created_at desc
-                    $query->orderBy('deposits.created_at', 'desc');
-                } elseif ($orderColumn == 9) {
-                    // Order by created_at (primary sort)
-                    $query->orderBy('deposits.created_at', $orderDirection);
-                } else {
-                    // Order by other columns
-                    $query->orderBy('deposits.' . $columns[$orderColumn], $orderDirection);
-                    // Add secondary sort by created_at desc
-                    $query->orderBy('deposits.created_at', 'desc');
-                }
-            } else {
-                // Always default to latest first
-                $query->orderBy('deposits.created_at', 'desc');
-            }
-
-            // Apply pagination
-            $start = $request->get('start', 0);
-            $length = $request->get('length', 25);
-            $deposits = $query->offset($start)->limit($length)->get();
-
-            return DataTables::of($deposits)
+            return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('user_name', function ($deposit) {
                     return $deposit->user->name ?? '-';
@@ -639,36 +583,58 @@ class DepositController extends Controller
 
             // Update invoice status to Paid if deposit is associated with an invoice
             $invoiceType = null;
-            if ($deposit->invoice_id && $deposit->invoice) {
-                $deposit->invoice->update(['status' => 'Paid']);
-                $invoiceType = $deposit->invoice->invoice_type ?? null;
+            $invoice = null;
+            if ($deposit->invoice_id) {
+                // Try to load invoice relationship first
+                if (!$deposit->relationLoaded('invoice')) {
+                    $deposit->load('invoice');
+                }
                 
-                // If invoice has plan_id, update user's plan and plan history
-                if ($deposit->invoice->plan_id) {
-                    $plan = Plan::find($deposit->invoice->plan_id);
-                    if ($plan) {
-                        $user = $deposit->user;
-                        $oldPlanId = $user->active_plan_id;
-                        $oldPlanName = $user->active_plan_name ?? null;
-                        
-                        // Update user's active plan
-                        $user->active_plan_id = $plan->id;
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
-                            $user->active_plan_name = $plan->name;
+                // If relationship didn't load, find invoice directly
+                $invoice = $deposit->invoice;
+                if (!$invoice) {
+                    $invoice = UserInvoice::find($deposit->invoice_id);
+                }
+                
+                // Update invoice status to Paid if invoice is found
+                if ($invoice) {
+                    $invoice->update(['status' => 'Paid']);
+                    $invoiceType = $invoice->invoice_type ?? null;
+                
+                    // If invoice has plan_id, update user's plan and plan history
+                    if ($invoice->plan_id) {
+                        $plan = Plan::find($invoice->plan_id);
+                        if ($plan) {
+                            $user = $deposit->user;
+                            $oldPlanId = $user->active_plan_id;
+                            $oldPlanName = $user->active_plan_name ?? null;
+                            
+                            // Update user's active plan
+                            $user->active_plan_id = $plan->id;
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'active_plan_name')) {
+                                $user->active_plan_name = $plan->name;
+                            }
+                            $user->active_investment_amount = $deposit->amount;
+                            $user->save();
+                            
+                            // Save to plan history
+                            UserPlanHistory::create([
+                                'user_id' => $user->id,
+                                'plan_id' => $plan->id,
+                                'plan_name' => $plan->name,
+                                'joining_fee' => $plan->joining_fee ?? 0,
+                                'investment_amount' => $deposit->amount,
+                                'notes' => $oldPlanName ? "Changed from {$oldPlanName} to {$plan->name}" : "Plan purchased: {$plan->name}",
+                            ]);
                         }
-                        $user->active_investment_amount = $deposit->amount;
-                        $user->save();
-                        
-                        // Save to plan history
-                        UserPlanHistory::create([
-                            'user_id' => $user->id,
-                            'plan_id' => $plan->id,
-                            'plan_name' => $plan->name,
-                            'joining_fee' => $plan->joining_fee ?? 0,
-                            'investment_amount' => $deposit->amount,
-                            'notes' => $oldPlanName ? "Changed from {$oldPlanName} to {$plan->name}" : "Plan purchased: {$plan->name}",
-                        ]);
                     }
+                } else {
+                    // Log if invoice_id exists but invoice not found
+                    \Log::warning('Invoice not found when approving deposit', [
+                        'deposit_id' => $deposit->id,
+                        'invoice_id' => $deposit->invoice_id,
+                        'user_id' => $deposit->user_id,
+                    ]);
                 }
             }
             
@@ -691,7 +657,7 @@ class DepositController extends Controller
             // For "profit invoice": 3-level bonuses using referral_level percentages
             try {
                 if ($invoiceType === null) {
-                    $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
+                    $invoiceType = $deposit->invoice_type ?? ($invoice->invoice_type ?? null);
                 }
                 
                 if ($invoiceType === 'NEXA') {
@@ -707,7 +673,7 @@ class DepositController extends Controller
                     'deposit_id' => $deposit->id,
                     'user_id' => $deposit->user_id,
                     'invoice_id' => $deposit->invoice_id,
-                    'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
+                    'invoice_type' => $invoice->invoice_type ?? $deposit->invoice_type ?? 'none',
                     'error' => $e->getTraceAsString()
                 ]);
             }
@@ -860,15 +826,27 @@ class DepositController extends Controller
 
                     // Update invoice status to Paid if deposit is associated with an invoice
                     $invoiceType = null;
+                    $invoice = null;
                     if ($deposit->invoice_id) {
-                        $deposit->load('invoice');
-                        if ($deposit->invoice) {
-                            $deposit->invoice->update(['status' => 'Paid']);
-                            $invoiceType = $deposit->invoice->invoice_type ?? null;
+                        // Try to load invoice relationship first
+                        if (!$deposit->relationLoaded('invoice')) {
+                            $deposit->load('invoice');
+                        }
+                        
+                        // If relationship didn't load, find invoice directly
+                        $invoice = $deposit->invoice;
+                        if (!$invoice) {
+                            $invoice = UserInvoice::find($deposit->invoice_id);
+                        }
+                        
+                        // Update invoice status to Paid if invoice is found
+                        if ($invoice) {
+                            $invoice->update(['status' => 'Paid']);
+                            $invoiceType = $invoice->invoice_type ?? null;
                             
                             // If invoice has plan_id, update user's plan and plan history
-                            if ($deposit->invoice->plan_id) {
-                                $plan = Plan::find($deposit->invoice->plan_id);
+                            if ($invoice->plan_id) {
+                                $plan = Plan::find($invoice->plan_id);
                                 if ($plan) {
                                     $user = $deposit->user;
                                     $oldPlanId = $user->active_plan_id;
@@ -893,6 +871,13 @@ class DepositController extends Controller
                                     ]);
                                 }
                             }
+                        } else {
+                            // Log if invoice_id exists but invoice not found
+                            \Log::warning('Invoice not found when updating deposit to approved', [
+                                'deposit_id' => $deposit->id,
+                                'invoice_id' => $deposit->invoice_id,
+                                'user_id' => $deposit->user_id,
+                            ]);
                         }
                     }
                     
@@ -920,7 +905,7 @@ class DepositController extends Controller
                         }
                         
                         if ($invoiceType === null) {
-                            $invoiceType = $deposit->invoice_type ?? ($deposit->invoice->invoice_type ?? null);
+                            $invoiceType = $deposit->invoice_type ?? ($invoice->invoice_type ?? null);
                         }
                         
                         if ($invoiceType === 'NEXA') {
@@ -947,7 +932,7 @@ class DepositController extends Controller
                             'deposit_id' => $deposit->id,
                             'user_id' => $deposit->user_id,
                             'invoice_id' => $deposit->invoice_id,
-                            'invoice_type' => $deposit->invoice->invoice_type ?? 'none',
+                            'invoice_type' => $invoice->invoice_type ?? $deposit->invoice_type ?? 'none',
                             'error' => $e->getTraceAsString()
                         ]);
                     }

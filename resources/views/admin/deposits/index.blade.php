@@ -253,10 +253,11 @@ $(document).ready(function() {
         $('#depositsTable').DataTable().destroy();
     }
     
-    // Initialize DataTable
+    // Initialize DataTable with server-side processing
+    // serverSide: true ensures all sorting, filtering, and pagination happens on the server
     var table = $('#depositsTable').DataTable({
         processing: true,
-        serverSide: true,
+        serverSide: true, // Server-side processing enabled - all operations on server
         autoWidth: false,
         ajax: {
             url: "{{ route('admin.deposits.index') }}",

@@ -88,11 +88,10 @@ class RegisteredUserController extends Controller
             
             $apiService = new ExternalApiService($user);
             $apiResponse = $apiService->registerUser([
-                'id' => $user->id,
-                'name' => $user->name,
                 'email' => $user->email,
                 'password' => $data['password'], // Send plain password for registration
-                'created_at' => $user->created_at->toDateTimeString(),
+                'name' => $user->name,
+                // hb_master_password will be set to same as password in ExternalApiService
             ]);
             
             // Tokens are automatically saved by the service if registration is successful
