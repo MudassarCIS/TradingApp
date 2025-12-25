@@ -258,6 +258,12 @@
                                 Trading
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customer.trading.dashboard') ? 'active' : '' }}" href="{{ route('customer.trading.dashboard') }}">
+                                <i class="bi bi-speedometer2"></i>
+                                Trades Dashboard
+                            </a>
+                        </li>
                         
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('customer.invoices.*') ? 'active' : '' }}" href="{{ route('customer.invoices.index') }}">
@@ -399,6 +405,13 @@
                     <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.trading.*') ? 'active' : '' }}" href="{{ route('customer.trading.index') }}">
                         <i class="bi bi-graph-up"></i>
                         Trading
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link mobile-menu-link {{ request()->routeIs('customer.trading.dashboard') ? 'active' : '' }}" href="{{ route('customer.trading.dashboard') }}">
+                        <i class="bi bi-speedometer2"></i>
+                        Trades Dashboard
                     </a>
                 </li>
 

@@ -233,6 +233,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     
     // Trading
     Route::get('/trading', [TradingController::class, 'index'])->name('trading.index');
+    Route::get('/trading/dashboard', [TradingController::class, 'dashboard'])->name('trading.dashboard');
     Route::post('/trading/start', [TradingController::class, 'startTrade'])->name('trading.start');
     Route::post('/trading/close/{tradeId}', [TradingController::class, 'closeTrade'])->name('trading.close');
     

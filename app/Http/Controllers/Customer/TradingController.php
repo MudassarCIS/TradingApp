@@ -38,6 +38,14 @@ class TradingController extends Controller
     }
     
     /**
+     * Display the Trades Dashboard with embedded external page
+     */
+    public function dashboard()
+    {
+        return view('customer.trading.dashboard');
+    }
+    
+    /**
      * Sync trade history from external API
      */
     protected function syncTradeHistory($user)
