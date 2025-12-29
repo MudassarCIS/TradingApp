@@ -11,23 +11,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('support_messages', function (Blueprint $table) {
-            $table->id();
-            $table->string('thread_id')->index(); // groups messages in a conversation (format: user_{user_id})
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // customer
-            $table->foreignId('admin_id')->nullable()->constrained('users')->onDelete('set null'); // admin who replied
-            $table->text('message'); // message content
-            $table->enum('sender_type', ['customer', 'admin']); // who sent the message
-            $table->boolean('is_read_by_customer')->default(false);
-            $table->boolean('is_read_by_admin')->default(false);
-            $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-            
-            // Indexes for performance
-            $table->index(['thread_id', 'created_at']);
-            $table->index(['user_id', 'created_at']);
-            $table->index(['admin_id', 'created_at']);
-        });
+        if (!Schema::hasTable('support_messages')) {
+            try {
+                Schema::create('support_messages', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('thread_id')->index(); // groups messages in a conversation (format: user_{user_id})
+                    $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // customer
+                    $table->foreignId('admin_id')->nullable()->constrained('users')->onDelete('set null'); // admin who replied
+                    $table->text('message'); // message content
+                    $table->enum('sender_type', ['customer', 'admin']); // who sent the message
+                    $table->boolean('is_read_by_customer')->default(false);
+                    $table->boolean('is_read_by_admin')->default(false);
+                    $table->timestamp('read_at')->nullable();
+                    $table->timestamps();
+                    
+                    // Indexes for performance
+                    $table->index(['thread_id', 'created_at']);
+                    $table->index(['user_id', 'created_at']);
+                    $table->index(['admin_id', 'created_at']);
+                });
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Table already exists, skip silently
+                if (str_contains($e->getMessage(), 'already exists')) {
+                    return;
+                }
+                throw $e;
+            }
+        }
     }
 
     /**

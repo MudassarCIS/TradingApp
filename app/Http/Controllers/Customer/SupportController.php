@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SupportController extends Controller
 {
@@ -40,17 +42,63 @@ class SupportController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'message' => 'required|string|max:5000',
+            'message' => 'nullable|string|max:5000',
+            'attachment' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf,doc,docx|max:10240', // 10MB max
         ]);
+        
+        // At least message or attachment must be provided
+        if (!$request->has('message') && !$request->hasFile('attachment')) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please provide a message or attachment'
+                ], 422);
+            }
+            return redirect()->route('customer.support.index')
+                ->with('error', 'Please provide a message or attachment');
+        }
         
         $user = Auth::user();
         $threadId = SupportMessage::generateThreadId($user->id);
+        
+        $attachmentPath = null;
+        $attachmentName = null;
+        $attachmentType = null;
+        
+        // Handle file upload
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $extension = $file->getClientOriginalExtension();
+            $originalName = $file->getClientOriginalName();
+            
+            // Determine file type
+            $imageExtensions = ['jpeg', 'jpg', 'png', 'gif'];
+            $pdfExtensions = ['pdf'];
+            $wordExtensions = ['doc', 'docx'];
+            
+            if (in_array(strtolower($extension), $imageExtensions)) {
+                $attachmentType = 'image';
+            } elseif (in_array(strtolower($extension), $pdfExtensions)) {
+                $attachmentType = 'pdf';
+            } elseif (in_array(strtolower($extension), $wordExtensions)) {
+                $attachmentType = 'word';
+            }
+            
+            // Store file in public/support-attachments directory
+            $filename = Str::random(40) . '.' . $extension;
+            $path = $file->storeAs('support-attachments', $filename, 'public');
+            $attachmentPath = $path;
+            $attachmentName = $originalName;
+        }
         
         // Save customer message
         SupportMessage::create([
             'thread_id' => $threadId,
             'user_id' => $user->id,
-            'message' => $request->message,
+            'message' => $request->message ?? '',
+            'attachment' => $attachmentPath,
+            'attachment_name' => $attachmentName,
+            'attachment_type' => $attachmentType,
             'sender_type' => 'customer',
             'is_read_by_customer' => true, // Customer always reads their own messages
             'is_read_by_admin' => false,
@@ -89,9 +137,17 @@ class SupportController extends Controller
                 // For system messages (admin_id is null), show "Support System"
                 $adminName = $message->admin ? $message->admin->name : ($message->sender_type === 'admin' && !$message->admin_id ? 'Support System' : null);
                 
+                $attachmentUrl = null;
+                if ($message->attachment) {
+                    $attachmentUrl = Storage::url($message->attachment);
+                }
+                
                 return [
                     'id' => $message->id,
                     'message' => $message->message,
+                    'attachment' => $attachmentUrl,
+                    'attachment_name' => $message->attachment_name,
+                    'attachment_type' => $message->attachment_type,
                     'sender_type' => $message->sender_type,
                     'admin_name' => $adminName,
                     'created_at' => $message->created_at->format('Y-m-d H:i:s'),
@@ -127,5 +183,29 @@ class SupportController extends Controller
             ->count();
         
         return response()->json(['count' => $count]);
+    }
+    
+    public function viewAttachment($id)
+    {
+        $user = Auth::user();
+        $message = SupportMessage::findOrFail($id);
+        
+        // Verify user has access to this message
+        $threadId = SupportMessage::generateThreadId($user->id);
+        if ($message->thread_id !== $threadId) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        if (!$message->attachment || !Storage::disk('public')->exists($message->attachment)) {
+            abort(404, 'File not found');
+        }
+        
+        $filePath = Storage::disk('public')->path($message->attachment);
+        $mimeType = Storage::disk('public')->mimeType($message->attachment);
+        
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $message->attachment_name . '"',
+        ]);
     }
 }
