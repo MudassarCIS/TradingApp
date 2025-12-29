@@ -11,11 +11,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('support_messages', function (Blueprint $table) {
-            $table->string('attachment')->nullable()->after('message');
-            $table->string('attachment_name')->nullable()->after('attachment');
-            $table->string('attachment_type')->nullable()->after('attachment_name'); // image, pdf, word
-        });
+        if (!Schema::hasTable('support_messages')) {
+            return; // Table doesn't exist, skip this migration
+        }
+
+        // Check and add columns if they don't exist
+        if (!Schema::hasColumn('support_messages', 'attachment')) {
+            Schema::table('support_messages', function (Blueprint $table) {
+                $table->string('attachment')->nullable()->after('message');
+            });
+        }
+
+        if (!Schema::hasColumn('support_messages', 'attachment_name')) {
+            Schema::table('support_messages', function (Blueprint $table) {
+                $table->string('attachment_name')->nullable()->after('attachment');
+            });
+        }
+
+        if (!Schema::hasColumn('support_messages', 'attachment_type')) {
+            Schema::table('support_messages', function (Blueprint $table) {
+                $table->string('attachment_type')->nullable()->after('attachment_name'); // image, pdf, word
+            });
+        }
     }
 
     /**
