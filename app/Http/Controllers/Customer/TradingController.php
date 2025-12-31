@@ -42,7 +42,21 @@ class TradingController extends Controller
      */
     public function dashboard()
     {
-        return view('customer.trading.dashboard');
+        // Get dashboard URL based on environment
+        $env = app()->environment();
+        $dashboardUrls = config('trading.dashboard_urls', []);
+        
+        // Use environment-specific URL if available, otherwise fall back to default
+        $dashboardUrl = $dashboardUrls[$env] ?? config('trading.dashboard_url', 'http://165.22.59.174:5173/');
+        
+        // Ensure URL ends with /
+        if (!str_ends_with($dashboardUrl, '/')) {
+            $dashboardUrl .= '/';
+        }
+        
+        return view('customer.trading.dashboard', [
+            'dashboardUrl' => $dashboardUrl
+        ]);
     }
     
     /**

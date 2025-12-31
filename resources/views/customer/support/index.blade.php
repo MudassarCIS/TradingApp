@@ -289,6 +289,50 @@ use Illuminate\Support\Facades\Storage;
         color: #667781;
     }
 
+    .support-alert {
+        margin: 0;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+        border-radius: 0;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .support-alert.show {
+        display: flex;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .support-alert .alert-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 15px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .support-alert .alert-close:hover {
+        opacity: 1;
+    }
 </style>
 @endpush
 
@@ -306,12 +350,12 @@ use Illuminate\Support\Facades\Storage;
             @endif
         </div>
 
-        <!-- Support Note Alert -->
-        <div class="alert alert-info mb-0 d-flex align-items-center" style="border-radius: 0; border-left: 4px solid #0dcaf0; background-color: #d1ecf1; color: #0c5460; padding: 12px 20px; margin: 0;">
-            <i class="bi bi-info-circle-fill me-2"></i>
+        <div id="supportAlert" class="support-alert">
             <div>
-                Note: Support Agent will replay shortly after you send message to support
+                <i class="bi bi-check-circle-fill"></i>
+                <span id="alertMessage">Thank you for your message, our support agent will reply shortly to your message. Thanks</span>
             </div>
+            <button type="button" class="alert-close" id="closeAlert" aria-label="Close">&times;</button>
         </div>
 
         <div class="messages-container" id="messagesContainer">
@@ -530,6 +574,11 @@ use Illuminate\Support\Facades\Storage;
     // Initial scroll
     setTimeout(scrollToBottom, 100);
 
+    // Show alert on page load if there's a success message (from redirect)
+    @if(session('success'))
+        showSupportAlert();
+    @endif
+
     // Update unread count badge
     function updateUnreadCount() {
         fetch('{{ route("customer.support.unread-count") }}', {
@@ -556,6 +605,26 @@ use Illuminate\Support\Facades\Storage;
     // Update unread count every 30 seconds
     setInterval(updateUnreadCount, 30000);
     updateUnreadCount();
+
+    // Support alert functionality
+    function showSupportAlert() {
+        const alert = document.getElementById('supportAlert');
+        alert.classList.add('show');
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            hideSupportAlert();
+        }, 5000);
+    }
+
+    function hideSupportAlert() {
+        const alert = document.getElementById('supportAlert');
+        alert.classList.remove('show');
+    }
+
+    // Close alert button
+    document.getElementById('closeAlert').addEventListener('click', function() {
+        hideSupportAlert();
+    });
 
     // File attachment handling
     document.getElementById('attachmentButton').addEventListener('click', function() {
@@ -628,6 +697,8 @@ use Illuminate\Support\Facades\Storage;
                 attachmentInput.value = '';
                 document.getElementById('attachmentPreview').style.display = 'none';
                 loadMessages(false);
+                // Show success alert
+                showSupportAlert();
             } else {
                 alert(data.message || 'Failed to send message. Please try again.');
             }

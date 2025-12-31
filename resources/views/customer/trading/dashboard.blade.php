@@ -70,13 +70,14 @@
     <div class="dashboard-wrapper">
         <div class="dashboard-container">
             <iframe 
-                src="http://165.22.59.174:5173/" 
+                src="{{ $dashboardUrl ?? config('trading.dashboard_url', 'http://165.22.59.174:5173/') }}" 
                 class="dashboard-iframe"
                 title="Trades Dashboard"
                 allow="fullscreen"
                 allowfullscreen
                 frameborder="0"
-                scrolling="auto">
+                scrolling="auto"
+                referrerpolicy="no-referrer-when-downgrade">
             </iframe>
         </div>
     </div>
