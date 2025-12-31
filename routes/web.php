@@ -224,6 +224,7 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::post('/support/mark-read', [App\Http\Controllers\Admin\SupportController::class, 'markAsRead'])->name('support.mark-read');
     Route::get('/support/unread-count', [App\Http\Controllers\Admin\SupportController::class, 'getUnreadCount'])->name('support.unread-count');
     Route::get('/support/{threadId}/messages', [App\Http\Controllers\Admin\SupportController::class, 'getMessages'])->name('support.messages');
+    Route::get('/support/attachment/{id}', [App\Http\Controllers\Admin\SupportController::class, 'viewAttachment'])->name('support.attachment');
 });
 
 // Customer Routes (only for customers)
@@ -277,6 +278,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/support/messages', [SupportController::class, 'getMessages'])->name('support.messages');
     Route::post('/support/mark-read', [SupportController::class, 'markAsRead'])->name('support.mark-read');
     Route::get('/support/unread-count', [SupportController::class, 'getUnreadCount'])->name('support.unread-count');
+    Route::get('/support/attachment/{id}', [SupportController::class, 'viewAttachment'])->name('support.attachment');
     
     // Invoices
     Route::get('/invoices', [App\Http\Controllers\Customer\InvoiceController::class, 'index'])->name('invoices.index');

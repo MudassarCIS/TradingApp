@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SupportController extends Controller
 {
@@ -102,8 +104,21 @@ class SupportController extends Controller
     {
         $request->validate([
             'thread_id' => 'required|string',
-            'message' => 'required|string|max:5000',
+            'message' => 'nullable|string|max:5000',
+            'attachment' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf,doc,docx|max:10240', // 10MB max
         ]);
+        
+        // At least message or attachment must be provided
+        if (!$request->has('message') && !$request->hasFile('attachment')) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please provide a message or attachment'
+                ], 422);
+            }
+            return redirect()->route('admin.support.show', $request->thread_id)
+                ->with('error', 'Please provide a message or attachment');
+        }
         
         $admin = Auth::user();
         $threadId = $request->thread_id;
@@ -112,11 +127,44 @@ class SupportController extends Controller
         $userId = str_replace('user_', '', $threadId);
         $customer = User::findOrFail($userId);
         
+        $attachmentPath = null;
+        $attachmentName = null;
+        $attachmentType = null;
+        
+        // Handle file upload
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $extension = $file->getClientOriginalExtension();
+            $originalName = $file->getClientOriginalName();
+            
+            // Determine file type
+            $imageExtensions = ['jpeg', 'jpg', 'png', 'gif'];
+            $pdfExtensions = ['pdf'];
+            $wordExtensions = ['doc', 'docx'];
+            
+            if (in_array(strtolower($extension), $imageExtensions)) {
+                $attachmentType = 'image';
+            } elseif (in_array(strtolower($extension), $pdfExtensions)) {
+                $attachmentType = 'pdf';
+            } elseif (in_array(strtolower($extension), $wordExtensions)) {
+                $attachmentType = 'word';
+            }
+            
+            // Store file in public/support-attachments directory
+            $filename = Str::random(40) . '.' . $extension;
+            $path = $file->storeAs('support-attachments', $filename, 'public');
+            $attachmentPath = $path;
+            $attachmentName = $originalName;
+        }
+        
         SupportMessage::create([
             'thread_id' => $threadId,
             'user_id' => $customer->id,
             'admin_id' => $admin->id,
-            'message' => $request->message,
+            'message' => $request->message ?? '',
+            'attachment' => $attachmentPath,
+            'attachment_name' => $attachmentName,
+            'attachment_type' => $attachmentType,
             'sender_type' => 'admin',
             'is_read_by_customer' => false,
             'is_read_by_admin' => true, // Admin always reads their own messages
@@ -175,9 +223,17 @@ class SupportController extends Controller
         return response()->json([
             'success' => true,
             'messages' => $messages->map(function ($message) {
+                $attachmentUrl = null;
+                if ($message->attachment) {
+                    $attachmentUrl = Storage::url($message->attachment);
+                }
+                
                 return [
                     'id' => $message->id,
                     'message' => $message->message,
+                    'attachment' => $attachmentUrl,
+                    'attachment_name' => $message->attachment_name,
+                    'attachment_type' => $message->attachment_type,
                     'sender_type' => $message->sender_type,
                     'customer_name' => $message->user ? $message->user->name : null,
                     'admin_name' => $message->admin ? $message->admin->name : null,
@@ -185,6 +241,23 @@ class SupportController extends Controller
                     'created_at_formatted' => $message->created_at->format('M d, Y h:i A'),
                 ];
             })
+        ]);
+    }
+    
+    public function viewAttachment($id)
+    {
+        $message = SupportMessage::findOrFail($id);
+        
+        if (!$message->attachment || !Storage::disk('public')->exists($message->attachment)) {
+            abort(404, 'File not found');
+        }
+        
+        $filePath = Storage::disk('public')->path($message->attachment);
+        $mimeType = Storage::disk('public')->mimeType($message->attachment);
+        
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $message->attachment_name . '"',
         ]);
     }
 }
