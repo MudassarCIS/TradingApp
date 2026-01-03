@@ -269,6 +269,12 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/profile/edit', [CustomerProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [CustomerProfileController::class, 'update'])->name('profile.update');
     
+    // Trade Credentials
+    Route::get('/profile/connectors', [CustomerProfileController::class, 'getConnectors'])->name('profile.connectors');
+    Route::get('/profile/trade-credentials', [CustomerProfileController::class, 'getTradeCredentials'])->name('profile.trade-credentials');
+    Route::post('/profile/trade-credentials/account', [CustomerProfileController::class, 'saveAccount'])->name('profile.trade-credentials.account');
+    Route::post('/profile/trade-credentials/connector', [CustomerProfileController::class, 'saveConnector'])->name('profile.trade-credentials.connector');
+    
     // Referrals
     Route::get('/referrals', [ReferralController::class, 'index'])->name('referrals.index');
     

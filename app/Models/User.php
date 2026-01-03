@@ -110,6 +110,11 @@ class User extends Authenticatable
         return $this->hasMany(ApiAccount::class);
     }
 
+    public function tradeCredentials()
+    {
+        return $this->hasMany(TradeCredential::class);
+    }
+
     public function messages()
     {
         return $this->hasMany(Message::class);
