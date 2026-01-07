@@ -144,6 +144,64 @@
     </div>
 </div>
 
+<!-- Trade API Token Status Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Trade API Token Status</h5>
+                <button type="button" class="btn btn-sm btn-warning" id="refreshTokenBtn">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Token
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Token Status</label>
+                            <div class="form-control-plaintext">
+                                @if($user->api_token)
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Valid Token
+                                    </span>
+                                    <small class="text-muted ms-2">
+                                        Token: {{ substr($user->api_token, 0, 30) }}...
+                                    </small>
+                                @else
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> No Token
+                                    </span>
+                                    <small class="text-muted ms-2">Token will be generated automatically</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Refresh Token</label>
+                            <div class="form-control-plaintext">
+                                @if($user->refresh_token)
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-key"></i> Available
+                                    </span>
+                                    <small class="text-muted ms-2">
+                                        {{ substr($user->refresh_token, 0, 30) }}...
+                                    </small>
+                                @else
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-key"></i> Not Available
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tokenRefreshAlert"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Trade Credentials Section -->
 <div class="row mt-4">
     <div class="col-12">
@@ -164,13 +222,17 @@
                                             <div class="col-md-3">
                                                 <strong>Account:</strong> {{ $credential->account_name }}
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
                                                 <strong>Connector:</strong> {{ $credential->connector->connector_name ?? 'N/A' }}
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
+                                                <strong>Type:</strong> 
+                                                <span class="badge bg-info">{{ $credential->credential_type ?? 'NEXA' }}</span>
+                                            </div>
+                                            <div class="col-md-2">
                                                 <strong>API Key:</strong> {{ substr($credential->api_key, 0, 8) }}...
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
                                                 <span class="badge bg-{{ $credential->active_credentials ? 'success' : 'warning' }}">
                                                     {{ $credential->active_credentials ? 'Active' : 'Inactive' }}
                                                 </span>
@@ -239,6 +301,53 @@
 $(document).ready(function() {
     let connectors = [];
     let formCounter = 0;
+
+    // Token refresh functionality
+    $('#refreshTokenBtn').on('click', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Refreshing...');
+
+        $.ajax({
+            url: '{{ route("customer.profile.refresh-token") }}',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    showTokenAlert('success', 'Token refreshed successfully! Page will reload...');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showTokenAlert('danger', response.message || 'Failed to refresh token');
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || 'Failed to refresh token';
+                showTokenAlert('danger', errorMsg);
+                $btn.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+
+    function showTokenAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+            message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>';
+        
+        $('#tokenRefreshAlert').html(alertHtml);
+        
+        setTimeout(function() {
+            $('#tokenRefreshAlert .alert').fadeOut(function() {
+                $(this).remove();
+            });
+        }, 5000);
+    }
 
     // Load connectors on page load
     loadConnectors();

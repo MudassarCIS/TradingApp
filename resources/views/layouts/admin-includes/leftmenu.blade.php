@@ -107,6 +107,12 @@
                                 <p>{{ __('Logo & Project Name') }}</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{route('admin.trades-settings.index')}}" class="nav-link @if(request()->routeIs('admin.trades-settings.*')) active @endif">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>{{ __('Trades Settings') }}</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
             </ul>

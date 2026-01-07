@@ -23,7 +23,7 @@ return new class extends Migration
         }
 
         if (!Schema::hasColumn('support_messages', 'attachment_name')) {
-            Schema::table('support_messages', function (Blueprint $table) {
+        Schema::table('support_messages', function (Blueprint $table) {
                 $table->string('attachment_name')->nullable()->after('attachment');
             });
         }
@@ -31,7 +31,7 @@ return new class extends Migration
         if (!Schema::hasColumn('support_messages', 'attachment_type')) {
             Schema::table('support_messages', function (Blueprint $table) {
                 $table->string('attachment_type')->nullable()->after('attachment_name'); // image, pdf, word
-            });
+        });
         }
     }
 

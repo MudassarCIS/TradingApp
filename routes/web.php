@@ -217,6 +217,11 @@ Route::middleware(['auth', 'admin.access'])->prefix('admin')->name('admin.')->gr
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
     
+    // Trades Settings
+    Route::get('/trades-settings', [App\Http\Controllers\Admin\TradesSettingsController::class, 'index'])->name('trades-settings.index');
+    Route::post('/trades-settings/sync-connectors', [App\Http\Controllers\Admin\TradesSettingsController::class, 'syncConnectors'])->name('trades-settings.sync-connectors');
+    Route::post('/trades-settings/connector/{id}/toggle', [App\Http\Controllers\Admin\TradesSettingsController::class, 'updateConnectorStatus'])->name('trades-settings.connector.toggle');
+    
     // Support Messages
     Route::get('/support', [App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
     Route::get('/support/{threadId}', [App\Http\Controllers\Admin\SupportController::class, 'show'])->name('support.show');
@@ -235,6 +240,13 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     // Trading
     Route::get('/trading', [TradingController::class, 'index'])->name('trading.index');
     Route::get('/trading/dashboard', [TradingController::class, 'dashboard'])->name('trading.dashboard');
+    Route::get('/trading/save-credentials', [TradingController::class, 'saveCredentials'])->name('trading.save-credentials');
+    Route::post('/trading/save-credentials', [TradingController::class, 'storeCredentials'])->name('trading.store-credentials');
+    Route::put('/trading/credentials/{id}', [TradingController::class, 'updateCredentials'])->name('trading.update-credentials');
+    Route::delete('/trading/credentials/{id}', [TradingController::class, 'deleteCredentials'])->name('trading.delete-credentials');
+    Route::post('/trading/credentials/{id}/priority', [TradingController::class, 'setCredentialPriority'])->name('trading.set-priority');
+    Route::post('/trading/credentials/{id}/toggle-status', [TradingController::class, 'toggleStatus'])->name('trading.toggle-status');
+    Route::post('/trading/credentials/{id}/sync', [TradingController::class, 'syncCredentials'])->name('trading.sync-credentials');
     Route::post('/trading/start', [TradingController::class, 'startTrade'])->name('trading.start');
     Route::post('/trading/close/{tradeId}', [TradingController::class, 'closeTrade'])->name('trading.close');
     
@@ -274,6 +286,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/profile/trade-credentials', [CustomerProfileController::class, 'getTradeCredentials'])->name('profile.trade-credentials');
     Route::post('/profile/trade-credentials/account', [CustomerProfileController::class, 'saveAccount'])->name('profile.trade-credentials.account');
     Route::post('/profile/trade-credentials/connector', [CustomerProfileController::class, 'saveConnector'])->name('profile.trade-credentials.connector');
+    Route::post('/profile/refresh-token', [CustomerProfileController::class, 'refreshToken'])->name('profile.refresh-token');
     
     // Referrals
     Route::get('/referrals', [ReferralController::class, 'index'])->name('referrals.index');

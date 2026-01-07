@@ -11,9 +11,17 @@ class TradeCredential extends Model
         'user_id',
         'account_name',
         'connector_id',
+        'connector_name',
         'api_key',
         'secret_key',
         'active_credentials',
+        'credential_type',
+        'credential_priority',
+    ];
+
+    protected $attributes = [
+        'credential_type' => 'NEXA',
+        'credential_priority' => 'none',
     ];
 
     protected $casts = [

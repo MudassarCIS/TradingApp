@@ -105,11 +105,6 @@ class User extends Authenticatable
         return $this->hasMany(Agent::class);
     }
 
-    public function apiAccounts()
-    {
-        return $this->hasMany(ApiAccount::class);
-    }
-
     public function tradeCredentials()
     {
         return $this->hasMany(TradeCredential::class);
@@ -285,6 +280,22 @@ class User extends Authenticatable
             $this->save();
         }
         return $this->referral_code;
+    }
+
+    /**
+     * Get trade API token
+     */
+    public function getTradeToken(): ?string
+    {
+        return $this->api_token;
+    }
+
+    /**
+     * Check if user has valid trade token
+     */
+    public function hasValidTradeToken(): bool
+    {
+        return !empty($this->api_token);
     }
 
     protected static function booted()

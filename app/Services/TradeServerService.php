@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
@@ -10,25 +11,34 @@ class TradeServerService
 {
     protected $client;
     protected $baseUrl;
+    protected $tradeApiService;
 
-    public function __construct()
+    public function __construct(TradeApiService $tradeApiService = null)
     {
         $this->client = new Client([
             'timeout' => 30,
             'verify' => false,
         ]);
         $this->baseUrl = env('TRADE_SERVER_URL', 'http://165.22.59.174:8000');
+        $this->tradeApiService = $tradeApiService ?? app(TradeApiService::class);
     }
 
     /**
-     * Get connectors list from trade server
+     * Get connectors list from trade server (requires authentication)
+     * @deprecated Use TradeApiService::getConnectors() instead
      */
-    public function getConnectors(): ?array
+    public function getConnectors(User $user = null): ?array
     {
+        // If user is provided, use TradeApiService for authenticated request
+        if ($user) {
+            return $this->tradeApiService->getConnectors($user);
+        }
+
+        // Legacy non-authenticated call (may fail if API requires auth)
         try {
             $url = rtrim($this->baseUrl, '/') . '/connectors';
             
-            Log::info('Trade Server API - Fetching connectors', [
+            Log::info('Trade Server API - Fetching connectors (legacy, no auth)', [
                 'url' => $url,
             ]);
 
@@ -69,15 +79,22 @@ class TradeServerService
     }
 
     /**
-     * Save account to trade server
+     * Save account to trade server (requires authentication)
+     * @deprecated Use TradeApiService::addAccount() instead
      */
-    public function addAccount(string $accountName): array
+    public function addAccount(string $accountName, User $user = null): array
     {
+        // If user is provided, use TradeApiService for authenticated request
+        if ($user) {
+            return $this->tradeApiService->addAccount($user, $accountName);
+        }
+
+        // Legacy non-authenticated call (may fail if API requires auth)
         try {
             $url = rtrim($this->baseUrl, '/') . '/accounts/add-account';
             $url .= '?account_name=' . urlencode($accountName);
 
-            Log::info('Trade Server API - Adding account', [
+            Log::info('Trade Server API - Adding account (legacy, no auth)', [
                 'url' => $url,
                 'account_name' => $accountName,
             ]);

@@ -6,23 +6,35 @@ use App\Http\Controllers\Controller;
 use App\Models\Connector;
 use App\Models\TradeCredential;
 use App\Services\TradeServerService;
+use App\Services\TradeApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
     protected $tradeServerService;
+    protected $tradeApiService;
 
-    public function __construct(TradeServerService $tradeServerService)
+    public function __construct(TradeServerService $tradeServerService, TradeApiService $tradeApiService)
     {
         $this->tradeServerService = $tradeServerService;
+        $this->tradeApiService = $tradeApiService;
     }
 
     public function index()
     {
         $user = Auth::user();
+        
+        // Ensure user has valid token using full authentication flow
+        if (!$this->tradeApiService->ensureCustomerToken($user)) {
+            // Log error but continue - token will be retried on API calls
+            Log::warning('Failed to ensure customer token', ['user_id' => $user->id]);
+        }
+        $user->refresh();
+        
         $tradeCredentials = $user->tradeCredentials()->with('connector')->get();
         return view('customer.profile.index', compact('user', 'tradeCredentials'));
     }
@@ -65,6 +77,8 @@ class ProfileController extends Controller
     public function getConnectors()
     {
         try {
+            $user = Auth::user();
+            
             // First, try to get from cache (database)
             $connectors = Connector::where('is_active', true)->get();
 
@@ -73,18 +87,43 @@ class ProfileController extends Controller
                 ($connectors->first() && $connectors->first()->synced_at && 
                  $connectors->first()->synced_at->diffInHours(now()) > 1)) {
                 
-                $apiConnectors = $this->tradeServerService->getConnectors();
+                // Ensure user has valid token using full authentication flow
+                if (!$this->tradeApiService->ensureCustomerToken($user)) {
+                    // Log error but continue - token will be retried on API calls
+                    Log::warning('Failed to ensure customer token', ['user_id' => $user->id]);
+                }
+                $user->refresh();
+                
+                $apiConnectors = $this->tradeApiService->getConnectors($user);
                 
                 if ($apiConnectors && is_array($apiConnectors)) {
-                    // Clear old connectors
+                    // Clear old connectors (can't use truncate due to foreign key constraints)
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
                     Connector::truncate();
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
                     
                     // Save new connectors
                     foreach ($apiConnectors as $connectorData) {
+                        // Handle different response formats:
+                        // 1. Simple array of strings: ["ndax", "bybit", ...]
+                        // 2. Array of objects: [{"name": "ndax", "code": "ndax"}, ...]
+                        if (is_string($connectorData)) {
+                            // Simple string format - use as both name and code
+                            $connectorName = $connectorData;
+                            $connectorCode = $connectorData;
+                        } elseif (is_array($connectorData)) {
+                            // Object format
+                            $connectorName = $connectorData['name'] ?? $connectorData['connector_name'] ?? $connectorData['code'] ?? 'Unknown';
+                            $connectorCode = $connectorData['code'] ?? $connectorData['connector_code'] ?? $connectorData['id'] ?? $connectorName ?? uniqid();
+                        } else {
+                            // Skip invalid formats
+                            continue;
+                        }
+
                         Connector::create([
-                            'connector_name' => $connectorData['name'] ?? $connectorData['connector_name'] ?? 'Unknown',
-                            'connector_code' => $connectorData['code'] ?? $connectorData['connector_code'] ?? $connectorData['id'] ?? uniqid(),
-                            'is_active' => $connectorData['is_active'] ?? true,
+                            'connector_name' => $connectorName,
+                            'connector_code' => $connectorCode,
+                            'is_active' => true,
                             'synced_at' => now(),
                         ]);
                     }
@@ -203,7 +242,7 @@ class ProfileController extends Controller
 
             // Step 2: Update local database
             $tradeCredential->update([
-                'connector_id' => $connectorId,
+                'connector_name' => $connector->connector_name,
                 'api_key' => $apiKey,
                 'secret_key' => $secretKey,
                 'active_credentials' => $activeCredentials,
@@ -248,9 +287,52 @@ class ProfileController extends Controller
                     'connector_name' => $credential->connector->connector_name ?? 'N/A',
                     'api_key' => substr($credential->api_key, 0, 8) . '...', // Masked
                     'active_credentials' => $credential->active_credentials,
+                    'credential_type' => $credential->credential_type ?? 'NEXA',
                     'created_at' => $credential->created_at->format('Y-m-d H:i:s'),
                 ];
             }),
         ]);
+    }
+
+    /**
+     * Refresh trade API token
+     */
+    public function refreshToken()
+    {
+        $user = Auth::user();
+        
+        try {
+            if ($this->tradeApiService->refreshToken($user)) {
+                $user->refresh();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Token refreshed successfully',
+                ]);
+            } else {
+                // Try full authentication flow (login or register)
+                if ($this->tradeApiService->ensureCustomerToken($user)) {
+                    $user->refresh();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Token refreshed successfully',
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh token',
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Error refreshing token', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh token: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

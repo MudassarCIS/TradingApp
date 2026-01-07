@@ -31,11 +31,57 @@ function getRefreshToken() {
 function clearTokens() {
     unset($_SESSION['access_token']);
     unset($_SESSION['refresh_token']);
+    unset($_SESSION['last_login_email']);
+    unset($_SESSION['last_login_password']);
+}
+
+// Function to ensure we have a valid access token
+// Returns true if token is available, false if login needed
+function ensureValidToken() {
+    global $baseUrl;
+    
+    // If we have an access token, assume it's valid
+    if (getAccessToken()) {
+        return true;
+    }
+    
+    // No access token, try to refresh if we have refresh token
+    $refreshToken = getRefreshToken();
+    if ($refreshToken) {
+        $refreshResult = makeRequest(
+            $baseUrl . '/auth/refresh',
+            'POST',
+            ['refresh_token' => $refreshToken],
+            [],
+            false // No auth needed for refresh
+        );
+        
+        if ($refreshResult['success'] && isset($refreshResult['data']['access_token'])) {
+            saveTokens(
+                $refreshResult['data']['access_token'],
+                $refreshResult['data']['refresh_token'] ?? $refreshToken
+            );
+            return true;
+        }
+    }
+    
+    // No token and refresh failed - need to login
+    return false;
 }
 
 // Initialize cURL session
-function makeRequest($url, $method = 'GET', $data = null, $headers = [], $needsAuth = true) {
-    global $cookieFile;
+function makeRequest($url, $method = 'GET', $data = null, $headers = [], $needsAuth = true, $retryOn401 = true) {
+    global $cookieFile, $baseUrl;
+    
+    // Ensure we have a valid token before making authenticated requests
+    if ($needsAuth && !ensureValidToken()) {
+        return [
+            'success' => false,
+            'http_code' => 401,
+            'data' => ['detail' => 'Authentication required. Please login first.'],
+            'error' => 'No valid access token available'
+        ];
+    }
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -52,13 +98,17 @@ function makeRequest($url, $method = 'GET', $data = null, $headers = [], $needsA
         'Content-Type: application/json'
     ];
     
-    // Add authorization header if needed
-    if ($needsAuth && getAccessToken()) {
-        $defaultHeaders[] = 'Authorization: Bearer ' . getAccessToken();
+    // Add authorization header with Bearer token if needed
+    if ($needsAuth) {
+        $accessToken = getAccessToken();
+        if ($accessToken) {
+            $defaultHeaders[] = 'Authorization: Bearer ' . trim($accessToken);
+        }
     }
     
     curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($defaultHeaders, $headers));
     
+    // Set HTTP method
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
         if ($data) {
@@ -67,7 +117,14 @@ function makeRequest($url, $method = 'GET', $data = null, $headers = [], $needsA
             } else {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
             }
+        } else {
+            // Ensure POST is set even with no data
+            curl_setopt($ch, CURLOPT_POSTFIELDS, '');
         }
+    } elseif ($method === 'GET') {
+        curl_setopt($ch, CURLOPT_HTTPGET, true);
+    } else {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
     }
     
     $response = curl_exec($ch);
@@ -80,12 +137,37 @@ function makeRequest($url, $method = 'GET', $data = null, $headers = [], $needsA
     }
     
     $decoded = json_decode($response, true);
-    return [
+    $result = [
         'success' => $httpCode >= 200 && $httpCode < 300,
         'http_code' => $httpCode,
         'data' => $decoded !== null ? $decoded : $response,
         'raw' => $response
     ];
+    
+    // If we got 401 and retry is enabled, try to refresh token and retry once
+    if ($httpCode === 401 && $needsAuth && $retryOn401 && getRefreshToken()) {
+        $refreshToken = getRefreshToken();
+        $refreshResult = makeRequest(
+            $baseUrl . '/auth/refresh',
+            'POST',
+            ['refresh_token' => $refreshToken],
+            [],
+            false, // No auth needed for refresh
+            false  // Don't retry refresh
+        );
+        
+        if ($refreshResult['success'] && isset($refreshResult['data']['access_token'])) {
+            saveTokens(
+                $refreshResult['data']['access_token'],
+                $refreshResult['data']['refresh_token'] ?? $refreshToken
+            );
+            
+            // Retry the original request with new token
+            return makeRequest($url, $method, $data, $headers, $needsAuth, false);
+        }
+    }
+    
+    return $result;
 }
 
 // Handle form submissions
@@ -111,23 +193,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
             break;
             
         case 'login':
+            $email = $_POST['email'] ?? '';
+            $password = $_POST['password'] ?? '';
+            
             $result = makeRequest(
                 $baseUrl . '/auth/login',
                 'POST',
                 [
-                    'email' => $_POST['email'] ?? '',
-                    'password' => $_POST['password'] ?? ''
+                    'email' => $email,
+                    'password' => $password
                 ],
                 [],
                 false // No auth needed for login
             );
             
             // Save tokens if login successful
-            if ($result['success'] && isset($result['data']['access_token'])) {
-                saveTokens(
-                    $result['data']['access_token'],
-                    $result['data']['refresh_token'] ?? null
-                );
+            if ($result['success']) {
+                // Handle different response structures
+                $accessToken = null;
+                $refreshToken = null;
+                
+                if (isset($result['data']['access_token'])) {
+                    $accessToken = $result['data']['access_token'];
+                    $refreshToken = $result['data']['refresh_token'] ?? null;
+                } elseif (isset($result['access_token'])) {
+                    $accessToken = $result['access_token'];
+                    $refreshToken = $result['refresh_token'] ?? null;
+                }
+                
+                if ($accessToken) {
+                    saveTokens($accessToken, $refreshToken);
+                    // Store credentials for auto-login if token expires
+                    $_SESSION['last_login_email'] = $email;
+                    $_SESSION['last_login_password'] = $password;
+                }
             }
             break;
             
@@ -171,13 +270,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
             break;
             
         case 'get_accounts':
-            $result = makeRequest($baseUrl . '/accounts', 'GET');
+            $result = makeRequest(
+                $baseUrl . '/accounts',
+                'GET',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'get_account_credentials':
             $accountName = $_POST['account_name'] ?? '';
             if ($accountName) {
-                $result = makeRequest($baseUrl . '/accounts/' . urlencode($accountName) . '/credentials', 'GET');
+                $result = makeRequest(
+                    $baseUrl . '/accounts/' . urlencode($accountName) . '/credentials',
+                    'GET',
+                    null,
+                    [],
+                    true // Requires auth
+                );
             } else {
                 $result = ['success' => false, 'data' => ['message' => 'Account name required']];
             }
@@ -186,14 +297,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
         case 'add_account':
             $accountName = $_POST['account_name'] ?? '';
             if ($accountName) {
-                $result = makeRequest($baseUrl . '/accounts/add-account?account_name=' . urlencode($accountName), 'GET');
+                $result = makeRequest(
+                    $baseUrl . '/accounts/add-account?account_name=' . urlencode($accountName),
+                    'POST', // Changed to POST
+                    null,
+                    [],
+                    true // Requires auth
+                );
             } else {
                 $result = ['success' => false, 'data' => ['message' => 'Account name required']];
             }
             break;
             
         case 'get_connectors':
-            $connectorsResult = makeRequest($baseUrl . '/connectors', 'GET', null, [], false);
+            $connectorsResult = makeRequest(
+                $baseUrl . '/connectors',
+                'GET',
+                null,
+                [],
+                true // Requires auth
+            );
             $result = $connectorsResult;
             // Store connectors in session for dropdown
             if ($connectorsResult['success']) {
@@ -223,16 +346,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
                     'order_type' => $_POST['order_type'] ?? 'LIMIT',
                     'price' => floatval($_POST['price'] ?? 0),
                     'position_action' => $_POST['position_action'] ?? 'OPEN'
-                ]
+                ],
+                [],
+                true // Requires auth
             );
             break;
             
         case 'list_trades':
-            $result = makeRequest($baseUrl . '/trading/trades', 'POST');
+            $result = makeRequest(
+                $baseUrl . '/trading/trades',
+                'POST',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'get_active_orders':
-            $result = makeRequest($baseUrl . '/trading/orders/active', 'POST');
+            $result = makeRequest(
+                $baseUrl . '/trading/orders/active',
+                'POST',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'cancel_order':
@@ -242,7 +379,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
             if ($accountName && $connectorName && $clientOrderId) {
                 $result = makeRequest(
                     $baseUrl . '/trading/' . urlencode($accountName) . '/' . urlencode($connectorName) . '/orders/' . urlencode($clientOrderId) . '/cancel',
-                    'POST'
+                    'POST',
+                    null,
+                    [],
+                    true // Requires auth
                 );
             } else {
                 $result = ['success' => false, 'data' => ['message' => 'Account name, connector name, and client order ID are required']];
@@ -251,27 +391,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
             
         case 'create_bot':
             // Deploy V2 Script - this creates a bot
-            // Note: This endpoint might need body data, check API docs
-            $result = makeRequest($baseUrl . '/bot-orchestration/deploy-v2-script', 'POST', null, [], false);
+            $result = makeRequest(
+                $baseUrl . '/bot-orchestration/deploy-v2-script',
+                'POST',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'get_bot_status':
             $botName = $_POST['bot_name'] ?? '';
             if ($botName) {
-                $result = makeRequest($baseUrl . '/bot-orchestration/' . urlencode($botName) . '/status', 'GET', null, [], false);
+                $result = makeRequest(
+                    $baseUrl . '/bot-orchestration/' . urlencode($botName) . '/status',
+                    'GET',
+                    null,
+                    [],
+                    true // Requires auth
+                );
             } else {
-                $result = makeRequest($baseUrl . '/bot-orchestration/status', 'GET', null, [], false);
+                $result = makeRequest(
+                    $baseUrl . '/bot-orchestration/status',
+                    'GET',
+                    null,
+                    [],
+                    true // Requires auth
+                );
             }
             break;
             
         case 'start_bot':
-            // Start bot - might need body data
-            $result = makeRequest($baseUrl . '/bot-orchestration/start-bot', 'POST', null, [], false);
+            $result = makeRequest(
+                $baseUrl . '/bot-orchestration/start-bot',
+                'POST',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'stop_bot':
-            // Stop bot - might need body data
-            $result = makeRequest($baseUrl . '/bot-orchestration/stop-bot', 'POST', null, [], false);
+            $result = makeRequest(
+                $baseUrl . '/bot-orchestration/stop-bot',
+                'POST',
+                null,
+                [],
+                true // Requires auth
+            );
             break;
             
         case 'get_bot_runs':
@@ -282,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
                 'GET',
                 null,
                 [],
-                false
+                true // Requires auth
             );
             break;
     }
@@ -478,6 +645,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action) {
             <?php if (isset($result['data']['message'])): ?>
                 <div class="result-info">
                     <strong>Message:</strong> <?php echo htmlspecialchars($result['data']['message']); ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($result['data']['detail'])): ?>
+                <div class="result-info" style="background: #f8d7da; border-color: #f5c2c7; color: #842029;">
+                    <strong>Detail:</strong> <?php echo htmlspecialchars($result['data']['detail']); ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($result['error']) && strpos($result['error'], 'Authentication required') !== false): ?>
+                <div class="result-info" style="background: #fff3cd; border-color: #ffecb5; color: #856404;">
+                    <strong>⚠️ Action Required:</strong> Please login first to access this endpoint.
                 </div>
             <?php endif; ?>
             <details style="margin-top: 15px;">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Referral;
 use App\Services\ExternalApiService;
+use App\Services\TradeApiService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,13 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    protected $tradeApiService;
+
+    public function __construct(TradeApiService $tradeApiService)
+    {
+        $this->tradeApiService = $tradeApiService;
+    }
+
     /**
      * Display the registration view.
      */
@@ -123,6 +131,53 @@ class RegisteredUserController extends Controller
         } catch (\Exception $e) {
             // Log error but don't fail registration
             Log::error('User Registration - 3rd Party API Exception', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        // Call Trade API to register user and save api_token
+        try {
+            Log::info('User Registration - Calling Trade API', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+            ]);
+            
+            // Register user with trade API (will save api_token and refresh_token)
+            if ($this->tradeApiService->registerUser($user, $data['password'])) {
+                $user->refresh();
+                Log::info('User Registration - Trade API Registration Successful', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'has_api_token' => !empty($user->api_token),
+                ]);
+            } else {
+                // If registration fails, try login (user might already exist)
+                Log::info('User Registration - Trade API registration failed, trying login', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+                
+                if ($this->tradeApiService->loginUser($user, $data['password'])) {
+                    $user->refresh();
+                    Log::info('User Registration - Trade API Login Successful', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'has_api_token' => !empty($user->api_token),
+                    ]);
+                } else {
+                    Log::warning('User Registration - Trade API Login/Registration Failed', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail registration
+            Log::error('User Registration - Trade API Exception', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'error' => $e->getMessage(),

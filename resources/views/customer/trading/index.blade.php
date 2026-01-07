@@ -52,11 +52,16 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-graph-up"></i> Trading History</h5>
-                @if($hasNexaPackage)
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#startTradeModal">
-                    <i class="bi bi-play-circle"></i> Start Trade
-                </button>
-                @endif
+                <div class="d-flex gap-2">
+                    <a href="{{ route('customer.trading.save-credentials') }}" class="btn btn-success btn-sm">
+                        <i class="bi bi-key"></i> Save Credentials
+                    </a>
+                    @if($hasNexaPackage)
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#startTradeModal">
+                        <i class="bi bi-play-circle"></i> Start Trade
+                    </button>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
                 @if($trades->count() > 0)
